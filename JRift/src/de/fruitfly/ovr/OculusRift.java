@@ -39,6 +39,7 @@ public class OculusRift implements IOculusRift {
         hmdInfo.VResolution            = 800;
         hmdInfo.HScreenSize            = 0.14976f;
         hmdInfo.VScreenSize            = hmdInfo.HScreenSize / (1280.0f / 800.0f);
+        hmdInfo.VScreenCenter          = hmdInfo.VScreenSize / 2f;
         hmdInfo.InterpupillaryDistance = 0.0635f;
         hmdInfo.LensSeparationDistance = 0.064f;
         hmdInfo.EyeToScreenDistance    = 0.041f;
@@ -86,7 +87,7 @@ public class OculusRift implements IOculusRift {
             hmdInfo.VResolution = _getVResolution();
             hmdInfo.HScreenSize = _getHScreenSize();
             hmdInfo.VScreenSize = _getVScreenSize();
-            hmdInfo.HScreenSize = _getVScreenCenter();
+            hmdInfo.VScreenCenter = _getVScreenCenter();
             hmdInfo.EyeToScreenDistance =  _getEyeToScreenDistance();
             hmdInfo.LensSeparationDistance = _getLensSeparationDistance();
             hmdInfo.InterpupillaryDistance = _getInterpupillaryDistance();
