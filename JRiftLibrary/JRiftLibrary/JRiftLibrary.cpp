@@ -262,7 +262,9 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1configureRendering(
     jboolean UseChromAbCorrection,
     jboolean UseTimewarp,
     jboolean UseVignette,
-	jboolean UseLowPersistence)
+	jboolean UseLowPersistence,
+    jboolean MirrorDisplay,
+    jboolean UseDisplayOverdrive)
 {
 	if (!_initialised)
 		return 0;
@@ -337,7 +339,9 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1configureRendering(
     if (UseTimewarp)
         DistortionCaps |= ovrDistortionCap_TimeWarp;
     if (UseVignette)
-        DistortionCaps |= ovrDistortionCap_Vignette;    
+        DistortionCaps |= ovrDistortionCap_Vignette;
+    if (UseDisplayOverdrive)  
+        DistortionCaps |= ovrDistortionCap_Overdrive;
     
 	ovrEyeRenderDesc EyeRenderDesc[2];
 
@@ -345,6 +349,7 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1configureRendering(
     unsigned int HmdCaps = ovrHmd_GetEnabledCaps(_pHmd);
     SetBit(HmdCaps, ovrHmdCap_NoVSync, !VSyncEnabled);
 	SetBit(HmdCaps, ovrHmdCap_LowPersistence, UseLowPersistence);
+    SetBit(HmdCaps, ovrHmdCap_NoMirrorToWindow, !MirrorDisplay);
     ovrHmd_SetEnabledCaps(_pHmd, HmdCaps); 
 
     // Configure render setup
@@ -355,6 +360,14 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1configureRendering(
         ResetRenderConfig();
 		return 0;
 	}
+
+    // Setup direct rendering if configured to do so
+    if (HmdCaps & ovrHmdCap_ExtendDesktop == false)
+    {
+#if defined(OVR_OS_WIN32)
+        ovrHmd_AttachToWindow(_pHmd, (void*)Win, NULL, NULL);
+#endif
+    }
 
     _renderConfigured = true;
 

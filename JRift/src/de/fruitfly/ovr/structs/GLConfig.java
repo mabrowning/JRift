@@ -12,4 +12,6 @@ public class GLConfig
     public boolean useTimewarp = true;
     public boolean useVignette = true;
     public boolean useLowPersistence = true;
+    public boolean mirrorDisplay = true;
+    public boolean useDisplayOverdrive = true;
 }

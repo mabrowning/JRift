@@ -14,10 +14,10 @@ public class OculusRift //implements IOculusRift
 	private boolean initialized = false;
     private boolean renderConfigured = false;
 
-    public final String VERSION = "0.3.2.1";
+    public final String VERSION = "0.4.0.1";
 
 	private HmdDesc hmdDesc = new HmdDesc();
-    private SensorState sensorState = new SensorState();
+    private TrackerState trackerState = new TrackerState();
     private Posef lastPose[] = new Posef[2];
 
     public String _initSummary = "Not initialised";
@@ -34,7 +34,7 @@ public class OculusRift //implements IOculusRift
     private void resetHMDInfo()
     {
         hmdDesc = new HmdDesc();
-        sensorState = new SensorState();
+        trackerState = new TrackerState();
     }
 
 	public String getInitializationStatus()
@@ -100,25 +100,25 @@ public class OculusRift //implements IOculusRift
         return hmdDesc;
     }
 
-    public SensorState poll(double futureDelta)
+    public TrackerState poll(double futureDelta)
     {
         if (initialized)
         {
-            // Get sensor state as of now
-            sensorState = _getSensorState(futureDelta);
+            // Get tracking state as of now
+            trackerState = _getTrackerState(futureDelta);
         }
 
-        return sensorState;
+        return trackerState;
     }
 
-    public SensorState getLastSensorState()
+    public TrackerState getLastTrackerState()
     {
-        return sensorState;
+        return trackerState;
     }
 
-    public void resetSensor()
+    public void resetTracker()
     {
-        _resetSensor();
+        _resetTracker();
     }
 
     public FovTextureInfo getFovTextureSize(float renderScaleFactor)
@@ -149,7 +149,9 @@ public class OculusRift //implements IOculusRift
                                    glConfig.useChromaticAbCorrection,
                                    glConfig.useTimewarp,
                                    glConfig.useVignette,
-                                   glConfig.useLowPersistence);
+                                   glConfig.useLowPersistence,
+                                   glConfig.mirrorDisplay,
+                                   glConfig.useDisplayOverdrive);
 
         if (erp != null)
             renderConfigured = true;
@@ -181,7 +183,9 @@ public class OculusRift //implements IOculusRift
                                    glConfig.useChromaticAbCorrection,
                                    glConfig.useTimewarp,
                                    glConfig.useVignette,
-                                   glConfig.useLowPersistence);
+                                   glConfig.useLowPersistence,
+                                   glConfig.mirrorDisplay,
+                                   glConfig.useDisplayOverdrive);
 
         if (erp != null)
             renderConfigured = true;
@@ -211,12 +215,12 @@ public class OculusRift //implements IOculusRift
         return _beginFrame(0);
     }
 
-    public Posef beginEyeRender(EyeType eye)
+    public Posef getEyePose(EyeType eye)
     {
         if (!initialized || !renderConfigured)
             return null;
 
-        lastPose[eye.value()] = _beginEyeRender(eye.value());
+        lastPose[eye.value()] = _getEyePose(eye.value());
         return lastPose[eye.value()];
     }
 
@@ -239,14 +243,6 @@ public class OculusRift //implements IOculusRift
                                       fov.RightTan,
                                       nearClip,
                                       farClip);
-    }
-
-    public void endEyeRender(EyeType eye)
-    {
-        if (!initialized || !renderConfigured)
-            return;
-
-        _endEyeRender(eye.value());
     }
 
     public void endFrame()
@@ -298,8 +294,8 @@ public class OculusRift //implements IOculusRift
     protected native boolean         _getNextHmd();
     protected native HmdDesc         _getHmdDesc();
 
-    protected native SensorState     _getSensorState(double timeFromNow);
-    protected native void            _resetSensor();
+    protected native TrackerState    _getTrackerState(double timeFromNow);
+    protected native void            _resetTracker();
 
     protected native FovTextureInfo  _getFovTextureSize(float RenderScaleFactor);
     protected native EyeRenderParams _configureRendering(boolean UsesInputTexture1Only,
@@ -318,18 +314,19 @@ public class OculusRift //implements IOculusRift
                                                          boolean useChromaticAbCorrection,
                                                          boolean useTimewarp,
                                                          boolean useVignette,
-                                                         boolean useLowPersistence);
+                                                         boolean useLowPersistence,
+                                                         boolean mirrorDisplay,
+                                                         boolean useDisplayOverdrive);
     protected native void            _resetRenderConfig();
 
     protected native FrameTiming     _beginFrame(int frameIndex);
-    protected native Posef           _beginEyeRender(int eye);
+    protected native Posef           _getEyePose(int eye);
     protected native Matrix4f        _getMatrix4fProjection(float EyeFovPortUpTan,
                                                             float EyeFovPortDownTan,
                                                             float EyeFovPortLeftTan,
                                                             float EyeFovPortRightTan,
                                                             float nearClip,
                                                             float farClip);
-    protected native void            _endEyeRender(int eye);
     protected native void            _endFrame();
 
     protected native static EulerOrient _convertQuatToEuler(float quatx,
@@ -386,8 +383,8 @@ public class OculusRift //implements IOculusRift
         while (or.isInitialized())
         {
             or.poll(0.0d);
-            SensorState state = or.getLastSensorState();
-            EulerOrient euler = or.getEulerAnglesDeg(state.Predicted.Pose.Orientation,
+            TrackerState state = or.getLastTrackerState();
+            EulerOrient euler = or.getEulerAnglesDeg(state.HeadPose.ThePose.Orientation,
                                                1.0f,
                                                Axis.Axis_Y,
                                                Axis.Axis_X,
@@ -395,7 +392,7 @@ public class OculusRift //implements IOculusRift
                                                HandedSystem.Handed_L,
                                                RotateDirection.Rotate_CCW);
 
-            Vector3f pos = state.Predicted.Pose.Position;
+            Vector3f pos = state.HeadPose.ThePose.Position;
 
             System.out.println("Yaw: " + euler.yaw + " Pitch: " + euler.pitch + " Roll: " + euler.roll + " PosX: " + pos.x+ " PosY: " + pos.y + " PosZ: " + pos.z);
 
@@ -408,18 +405,4 @@ public class OculusRift //implements IOculusRift
 
         or.destroy();
     }
-
-//    public float[] latencyTesterDisplayScreenColor()
-//    {
-//        return _latencyTesterDisplayScreenColor();
-//    }
-//
-//    public String latencyTesterGetResultsString()
-//    {
-//        return _latencyTesterGetResultsString();
-//    }
-//
-//    protected native void    _latencyTesterProcessInputs();
-//    protected native float[] _latencyTesterDisplayScreenColor();
-//    protected native String  _latencyTesterGetResultsString();
 }

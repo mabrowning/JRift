@@ -15,7 +15,7 @@ public class HmdDesc
             String productName,
             String manufacturer,
             int hmdCaps,
-            int sensorCaps,
+            int trackingCaps,
             int distortionCaps,
             int resolutionW,
             int resolutionH,
@@ -49,7 +49,7 @@ public class HmdDesc
         Manufacturer = manufacturer;
         HmdCaps = hmdCaps;
         DistortionCaps = distortionCaps;
-        SensorCaps = sensorCaps;
+        TrackingCaps = trackingCaps;
         Resolution.w = resolutionW;
         Resolution.h = resolutionH;
         WindowsPos.x = windowPosX;
@@ -90,7 +90,7 @@ public class HmdDesc
     // Capability bits described by ovrHmdCapBits.
     public int HmdCaps;
     public int DistortionCaps;
-    public int SensorCaps;
+    public int TrackingCaps;
 
     // Resolution of the entire HMD screen (for both eyes) in pixels.
     public Sizei    Resolution = new Sizei();
@@ -128,7 +128,7 @@ public class HmdDesc
         sb.append("Manufacturer:      ").append(Manufacturer).append("\n");
         sb.append("Hmd capability bits:\n").append(HmdDesc.HmdCapsToString(HmdCaps));
         sb.append("Distortion capability bits:\n").append(HmdDesc.DistortionCapsToString(DistortionCaps));
-        sb.append("Sensor capability bits:\n").append(HmdDesc.SensorCapsToString(SensorCaps));
+        sb.append("Tracker capability bits:\n").append(HmdDesc.TrackingCapsToString(TrackingCaps));
         sb.append("Resolution:        ").append(Resolution.w).append("x").append(Resolution.h).append("\n");
         sb.append("EyeRenderOrder:    ").append(EyeType.toString(EyeRenderOrder[0])).append(", ").append(EyeType.toString(EyeRenderOrder[1])).append("\n");
         sb.append("DisplayDeviceName: ").append(DisplayDeviceName).append("\n");
@@ -163,11 +163,11 @@ public class HmdDesc
     // These bits can be modified by ovrHmd_SetEnabledCaps.
     public static int ovrHmdCap_Writable_Mask     = 0x1380;
 
-    // Sensor capability bits reported by device.
-    // Used with ovrHmd_StartSensor.
-    public static int ovrSensorCap_Orientation    = 0x0010;   //  Supports orientation tracking (IMU).
-    public static int ovrSensorCap_YawCorrection  = 0x0020;   //  Supports yaw correction through magnetometer or other means.
-    public static int ovrSensorCap_Position       = 0x0040;   //  Supports positional tracking.
+    // Tracking capability bits reported by device.
+    // Used with ovrHmd_ConfigureTracking.
+    public static int ovrTrackingCap_Orientation    = 0x0010;   //  Supports orientation tracking (IMU).
+    public static int ovrTrackingCap_MagYawCorrection  = 0x0020;   //  Supports yaw correction through magnetometer or other means.
+    public static int ovrTrackingCap_Position       = 0x0040;   //  Supports positional tracking.
 
     // Distortion capability bits reported by device.
     // Used with ovrHmd_ConfigureRendering and ovrHmd_CreateDistortionMesh.
@@ -200,18 +200,18 @@ public class HmdDesc
         return sb.toString();
     }
 
-    public static String SensorCapsToString(int caps)
+    public static String TrackingCapsToString(int caps)
     {
         StringBuilder sb = new StringBuilder();
 
-        if ((caps & ovrSensorCap_Orientation) != 0)
-            sb.append(" ovrSensorCap_Orientation\n");
+        if ((caps & ovrTrackingCap_Orientation) != 0)
+            sb.append(" ovrTrackingCap_Orientation\n");
 
-        if ((caps & ovrSensorCap_YawCorrection) != 0)
-            sb.append(" ovrSensorCap_YawCorrection\n");
+        if ((caps & ovrTrackingCap_MagYawCorrection) != 0)
+            sb.append(" ovrTrackingCap_MagYawCorrection\n");
 
-        if ((caps & ovrSensorCap_Position) != 0)
-            sb.append(" ovrSensorCap_Position\n");
+        if ((caps & ovrTrackingCap_Position) != 0)
+            sb.append(" ovrTrackingCap_Position\n");
 
         return sb.toString();
     }
