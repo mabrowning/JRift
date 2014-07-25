@@ -9,15 +9,15 @@
 
 using namespace OVR;
 
-ovrHmd                      _pHmd = 0;
-std::auto_ptr<ovrHmdDesc>   _pHmdDesc(0);
+ovrHmd              _pHmd = 0;
 
 int                 _hmdIndex    = -1;
 bool                _initialised = false;
 bool                _renderConfigured = false;
 bool                _realDevice = false;
 ovrPosef            _eyeRenderPose[2];
-ovrGLTexture        _EyeTexture[2];
+ovrGLTexture        _GLEyeTexture[2];
+ovrTexture          _EyeTextures[2];
 
 const bool          LogDebug = true;
 
@@ -28,8 +28,8 @@ static jclass       frameTiming_Class                    = 0;
 static jmethodID    frameTiming_constructor_MethodID     = 0;
 static jclass       posef_Class                          = 0;
 static jmethodID    posef_constructor_MethodID           = 0;
-static jclass       sensorState_Class                    = 0;
-static jmethodID    sensorState_constructor_MethodID     = 0;
+static jclass       trackerState_Class                   = 0;
+static jmethodID    trackerState_constructor_MethodID    = 0;
 static jclass       sizei_Class                          = 0;
 static jmethodID    sizei_constructor_MethodID           = 0;
 static jclass       fovTextureInfo_Class                 = 0;
@@ -61,10 +61,10 @@ JNIEXPORT jboolean JNICALL Java_de_fruitfly_ovr_OculusRift__1initSubsystem(JNIEn
 	// Initialise LibOVR
 	ovr_Initialize();
 
-    // Try first HMD index [TODO: Store / use last used index]
+    // Try first HMD index
     _hmdIndex = 0;
 
-    if (CreateHmdAndStartSensor(_hmdIndex))
+    if (CreateHmdAndConfigureTracker(_hmdIndex))
         _initialised = true;
 	
 	if (!_initialised)
@@ -90,43 +90,43 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getHmdDesc(JNIEnv *e
 	if (!_initialised) 
         return 0;
 
-    jstring productName = env->NewStringUTF( _pHmdDesc->ProductName == NULL ? "" : _pHmdDesc->ProductName );
-    jstring manufacturer = env->NewStringUTF( _pHmdDesc->Manufacturer == NULL ? "" : _pHmdDesc->Manufacturer );
-    jstring displayDeviceName = env->NewStringUTF( _pHmdDesc->DisplayDeviceName == NULL ? "" : _pHmdDesc->DisplayDeviceName );
+    jstring productName = env->NewStringUTF( _pHmd->ProductName == NULL ? "" : _pHmd->ProductName );
+    jstring manufacturer = env->NewStringUTF( _pHmd->Manufacturer == NULL ? "" : _pHmd->Manufacturer );
+    jstring displayDeviceName = env->NewStringUTF( _pHmd->DisplayDeviceName == NULL ? "" : _pHmd->DisplayDeviceName );
     
     ClearException(env);
 
     jobject jHmdDesc = env->NewObject(hmdDesc_Class, hmdDesc_constructor_MethodID,
-                                      (int)_pHmdDesc->Type,
+                                      (int)_pHmd->Type,
                                       productName,
                                       manufacturer,
-                                      (int)_pHmdDesc->HmdCaps,
-                                      (int)_pHmdDesc->SensorCaps,
-                                      (int)_pHmdDesc->DistortionCaps,
-                                      _pHmdDesc->Resolution.w,
-                                      _pHmdDesc->Resolution.h,
-                                      _pHmdDesc->WindowsPos.x,
-                                      _pHmdDesc->WindowsPos.y,
-                                      _pHmdDesc->DefaultEyeFov[0].UpTan,
-                                      _pHmdDesc->DefaultEyeFov[0].DownTan,
-                                      _pHmdDesc->DefaultEyeFov[0].LeftTan,
-                                      _pHmdDesc->DefaultEyeFov[0].RightTan,
-                                      _pHmdDesc->DefaultEyeFov[1].UpTan,
-                                      _pHmdDesc->DefaultEyeFov[1].DownTan,
-                                      _pHmdDesc->DefaultEyeFov[1].LeftTan,
-                                      _pHmdDesc->DefaultEyeFov[1].RightTan,
-                                      _pHmdDesc->MaxEyeFov[0].UpTan,
-                                      _pHmdDesc->MaxEyeFov[0].DownTan,
-                                      _pHmdDesc->MaxEyeFov[0].LeftTan,
-                                      _pHmdDesc->MaxEyeFov[0].RightTan,
-                                      _pHmdDesc->MaxEyeFov[1].UpTan,
-                                      _pHmdDesc->MaxEyeFov[1].DownTan,
-                                      _pHmdDesc->MaxEyeFov[1].LeftTan,
-                                      _pHmdDesc->MaxEyeFov[1].RightTan,
-                                      (int)_pHmdDesc->EyeRenderOrder[0],
-                                      (int)_pHmdDesc->EyeRenderOrder[1],
+                                      (int)_pHmd->HmdCaps,
+                                      (int)_pHmd->TrackingCaps,
+                                      (int)_pHmd->DistortionCaps,
+                                      _pHmd->Resolution.w,
+                                      _pHmd->Resolution.h,
+                                      _pHmd->WindowsPos.x,
+                                      _pHmd->WindowsPos.y,
+                                      _pHmd->DefaultEyeFov[0].UpTan,
+                                      _pHmd->DefaultEyeFov[0].DownTan,
+                                      _pHmd->DefaultEyeFov[0].LeftTan,
+                                      _pHmd->DefaultEyeFov[0].RightTan,
+                                      _pHmd->DefaultEyeFov[1].UpTan,
+                                      _pHmd->DefaultEyeFov[1].DownTan,
+                                      _pHmd->DefaultEyeFov[1].LeftTan,
+                                      _pHmd->DefaultEyeFov[1].RightTan,
+                                      _pHmd->MaxEyeFov[0].UpTan,
+                                      _pHmd->MaxEyeFov[0].DownTan,
+                                      _pHmd->MaxEyeFov[0].LeftTan,
+                                      _pHmd->MaxEyeFov[0].RightTan,
+                                      _pHmd->MaxEyeFov[1].UpTan,
+                                      _pHmd->MaxEyeFov[1].DownTan,
+                                      _pHmd->MaxEyeFov[1].LeftTan,
+                                      _pHmd->MaxEyeFov[1].RightTan,
+                                      (int)_pHmd->EyeRenderOrder[0],
+                                      (int)_pHmd->EyeRenderOrder[1],
                                       displayDeviceName,
-                                      _pHmdDesc->DisplayId,
+                                      _pHmd->DisplayId,
                                       _realDevice
             );
 
@@ -147,91 +147,66 @@ JNIEXPORT jboolean JNICALL Java_de_fruitfly_ovr_OculusRift__1getNextHmd(JNIEnv *
     // Reset render config
     ResetRenderConfig();
 
-	// Stop sensor
-	if (_pHmd)
-		ovrHmd_StopSensor(_pHmd);
-
 	// Cleanup HMD
 	if (_pHmd)
 		ovrHmd_Destroy(_pHmd);
 
     _pHmd = 0;
-    _pHmdDesc.reset();
 
     const int hmdCount = ovrHmd_Detect();
     _hmdIndex++;
     if (_hmdIndex >= hmdCount)
         _hmdIndex = 0;
 
-    return CreateHmdAndStartSensor(_hmdIndex);
+    return CreateHmdAndConfigureTracker(_hmdIndex);
 }
 
-JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getSensorState(JNIEnv *env, jobject, jdouble time) 
+JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getTrackingState(JNIEnv *env, jobject, jdouble time) 
 {
 	if (!_initialised) 
         return 0;
 
 	// Get sensorstate at the specified time in the future from now (0.0 means 'now')
-	ovrSensorState ss = ovrHmd_GetSensorState(_pHmd, time);
+	ovrTrackingState ss = ovrHmd_GetTrackingState(_pHmd, time);
 
     ClearException(env);
 
-    jobject jss = env->NewObject(sensorState_Class, sensorState_constructor_MethodID, 
-                                 ss.Predicted.Pose.Orientation.x,   
-                                 ss.Predicted.Pose.Orientation.y,  
-                                 ss.Predicted.Pose.Orientation.z,   
-                                 ss.Predicted.Pose.Orientation.w,   
-                                 ss.Predicted.Pose.Position.x,      
-                                 ss.Predicted.Pose.Position.y,      
-                                 ss.Predicted.Pose.Position.z,      
-                                 ss.Predicted.AngularVelocity.x,    
-                                 ss.Predicted.AngularVelocity.y,    
-                                 ss.Predicted.AngularVelocity.z,    
-                                 ss.Predicted.LinearVelocity.x,     
-                                 ss.Predicted.LinearVelocity.y,     
-                                 ss.Predicted.LinearVelocity.z,     
-                                 ss.Predicted.AngularAcceleration.x,
-                                 ss.Predicted.AngularAcceleration.y,
-                                 ss.Predicted.AngularAcceleration.z,
-                                 ss.Predicted.LinearAcceleration.x, 
-                                 ss.Predicted.LinearAcceleration.y, 
-                                 ss.Predicted.LinearAcceleration.z, 
-                                 ss.Predicted.TimeInSeconds,        
-                                 ss.Recorded.Pose.Orientation.x,    
-                                 ss.Recorded.Pose.Orientation.y,    
-                                 ss.Recorded.Pose.Orientation.z,    
-                                 ss.Recorded.Pose.Orientation.w,    
-                                 ss.Recorded.Pose.Position.x,       
-                                 ss.Recorded.Pose.Position.y,       
-                                 ss.Recorded.Pose.Position.z,       
-                                 ss.Recorded.AngularVelocity.x,     
-                                 ss.Recorded.AngularVelocity.y,     
-                                 ss.Recorded.AngularVelocity.z,     
-                                 ss.Recorded.LinearVelocity.x,      
-                                 ss.Recorded.LinearVelocity.y,      
-                                 ss.Recorded.LinearVelocity.z,      
-                                 ss.Recorded.AngularAcceleration.x, 
-                                 ss.Recorded.AngularAcceleration.y, 
-                                 ss.Recorded.AngularAcceleration.z, 
-                                 ss.Recorded.LinearAcceleration.x,  
-                                 ss.Recorded.LinearAcceleration.y,  
-                                 ss.Recorded.LinearAcceleration.z,  
-                                 ss.Recorded.TimeInSeconds,         
-                                 ss.Temperature,
+    jobject jss = env->NewObject(trackerState_Class, trackerState_constructor_MethodID,
+                                 ss.HeadPose.ThePose.Orientation.x,   
+                                 ss.HeadPose.ThePose.Orientation.y,  
+                                 ss.HeadPose.ThePose.Orientation.z,   
+                                 ss.HeadPose.ThePose.Orientation.w,   
+                                 ss.HeadPose.ThePose.Position.x,      
+                                 ss.HeadPose.ThePose.Position.y,      
+                                 ss.HeadPose.ThePose.Position.z,      
+                                 ss.HeadPose.AngularVelocity.x,    
+                                 ss.HeadPose.AngularVelocity.y,    
+                                 ss.HeadPose.AngularVelocity.z,    
+                                 ss.HeadPose.LinearVelocity.x,     
+                                 ss.HeadPose.LinearVelocity.y,     
+                                 ss.HeadPose.LinearVelocity.z,     
+                                 ss.HeadPose.AngularAcceleration.x,
+                                 ss.HeadPose.AngularAcceleration.y,
+                                 ss.HeadPose.AngularAcceleration.z,
+                                 ss.HeadPose.LinearAcceleration.x, 
+                                 ss.HeadPose.LinearAcceleration.y, 
+                                 ss.HeadPose.LinearAcceleration.z, 
+                                 ss.HeadPose.TimeInSeconds,        
+                                 ss.RawSensorData.Temperature,
                                  ss.StatusFlags
                                  );
 
-    if (jss == 0) PrintNewObjectException(env, "SensorState");
+    if (jss == 0) PrintNewObjectException(env, "TrackerState");
 
     return jss;
 }
 
-JNIEXPORT void JNICALL Java_de_fruitfly_ovr_OculusRift__1resetSensor(JNIEnv *env, jobject) 
+JNIEXPORT void JNICALL Java_de_fruitfly_ovr_OculusRift__1resetTracking(JNIEnv *env, jobject) 
 {
 	if (!_initialised)
 		return;
 
-    ovrHmd_ResetSensor(_pHmd);
+    ovrHmd_RecenterPose(_pHmd);
 }
 
 JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getFovTextureSize(JNIEnv *env, jobject, jfloat RenderScaleFactor)
@@ -240,14 +215,14 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getFovTextureSize(JN
 		return 0;
 
 	// A RenderScaleFactor of 1.0f signifies default (non-scaled) operation
-    Sizei recommendedTex0Size = ovrHmd_GetFovTextureSize(_pHmd, ovrEye_Left,  _pHmdDesc->DefaultEyeFov[0], RenderScaleFactor);
-    Sizei recommendedTex1Size = ovrHmd_GetFovTextureSize(_pHmd, ovrEye_Right, _pHmdDesc->DefaultEyeFov[1], RenderScaleFactor);
+    Sizei recommendedTex0Size = ovrHmd_GetFovTextureSize(_pHmd, ovrEye_Left,  _pHmd->DefaultEyeFov[0], RenderScaleFactor);
+    Sizei recommendedTex1Size = ovrHmd_GetFovTextureSize(_pHmd, ovrEye_Right, _pHmd->DefaultEyeFov[1], RenderScaleFactor);
     Sizei RenderTargetSize;
     RenderTargetSize.w = recommendedTex0Size.w + recommendedTex1Size.w;
     RenderTargetSize.h = (std::max) ( recommendedTex0Size.h, recommendedTex1Size.h );
 
-    float scalew = (float)RenderTargetSize.w / (float)_pHmdDesc->Resolution.w;
-    float scaleh = (float)RenderTargetSize.h / (float)_pHmdDesc->Resolution.h;
+    float scalew = (float)RenderTargetSize.w / (float)_pHmd->Resolution.w;
+    float scaleh = (float)RenderTargetSize.h / (float)_pHmd->Resolution.h;
 
     ClearException(env);
 
@@ -258,8 +233,8 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getFovTextureSize(JN
 									recommendedTex1Size.h,
                                     RenderTargetSize.w,
                                     RenderTargetSize.h,
-									_pHmdDesc->Resolution.w,
-									_pHmdDesc->Resolution.h,
+									_pHmd->Resolution.w,
+									_pHmd->Resolution.h,
                                     (float)RenderScaleFactor
                                     );
 
@@ -298,7 +273,7 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1configureRendering(
     // The viewport sizes are re-computed in case RenderTargetSize changed due to HW limitations.
 
     ovrRecti EyeRenderViewport[2];
-    ovrFovPort eyeFov[2] = { _pHmdDesc->DefaultEyeFov[0], _pHmdDesc->DefaultEyeFov[1] } ;
+    ovrFovPort eyeFov[2] = { _pHmd->DefaultEyeFov[0], _pHmd->DefaultEyeFov[1] } ;
 
 	if (UsesInputTexture1Only) // Same texture used over both views
 	{
@@ -308,15 +283,15 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1configureRendering(
 		EyeRenderViewport[1].Size = EyeRenderViewport[0].Size;
 
 		// Setup GL texture data.
-		_EyeTexture[0].OGL.Header.API            = ovrRenderAPI_OpenGL;
-		_EyeTexture[0].OGL.Header.TextureSize.w  = InTexture1Width;
-		_EyeTexture[0].OGL.Header.TextureSize.h  = InTexture1Height;
-		_EyeTexture[0].OGL.Header.RenderViewport = EyeRenderViewport[0];
-		_EyeTexture[0].OGL.TexId                 = (GLuint)InTexture1GLId;
+		_GLEyeTexture[0].OGL.Header.API            = ovrRenderAPI_OpenGL;
+		_GLEyeTexture[0].OGL.Header.TextureSize.w  = InTexture1Width;
+		_GLEyeTexture[0].OGL.Header.TextureSize.h  = InTexture1Height;
+		_GLEyeTexture[0].OGL.Header.RenderViewport = EyeRenderViewport[0];
+		_GLEyeTexture[0].OGL.TexId                 = (GLuint)InTexture1GLId;
     
 		// Right eye uses the same texture, but different rendering viewport.
-		_EyeTexture[1] = _EyeTexture[0];
-		_EyeTexture[1].OGL.Header.RenderViewport = EyeRenderViewport[1];
+		_GLEyeTexture[1] = _GLEyeTexture[0];
+		_GLEyeTexture[1].OGL.Header.RenderViewport = EyeRenderViewport[1];
 	}
 	else // Uses individual input textures for each view
 	{
@@ -326,18 +301,21 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1configureRendering(
 		EyeRenderViewport[1].Size = Sizei(InTexture2Width, InTexture2Height);
 
 		// Setup GL texture data.
-		_EyeTexture[0].OGL.Header.API            = ovrRenderAPI_OpenGL;
-		_EyeTexture[0].OGL.Header.TextureSize.w  = InTexture1Width;
-		_EyeTexture[0].OGL.Header.TextureSize.h  = InTexture1Height;
-		_EyeTexture[0].OGL.Header.RenderViewport = EyeRenderViewport[0];
-		_EyeTexture[0].OGL.TexId                 = (GLuint)InTexture1GLId;
+		_GLEyeTexture[0].OGL.Header.API            = ovrRenderAPI_OpenGL;
+		_GLEyeTexture[0].OGL.Header.TextureSize.w  = InTexture1Width;
+		_GLEyeTexture[0].OGL.Header.TextureSize.h  = InTexture1Height;
+		_GLEyeTexture[0].OGL.Header.RenderViewport = EyeRenderViewport[0];
+		_GLEyeTexture[0].OGL.TexId                 = (GLuint)InTexture1GLId;
 
-		_EyeTexture[1].OGL.Header.API            = ovrRenderAPI_OpenGL;
-		_EyeTexture[1].OGL.Header.TextureSize.w  = InTexture2Width;
-		_EyeTexture[1].OGL.Header.TextureSize.h  = InTexture2Height;
-		_EyeTexture[1].OGL.Header.RenderViewport = EyeRenderViewport[1];
-		_EyeTexture[1].OGL.TexId                 = (GLuint)InTexture2GLId;
+		_GLEyeTexture[1].OGL.Header.API            = ovrRenderAPI_OpenGL;
+		_GLEyeTexture[1].OGL.Header.TextureSize.w  = InTexture2Width;
+		_GLEyeTexture[1].OGL.Header.TextureSize.h  = InTexture2Height;
+		_GLEyeTexture[1].OGL.Header.RenderViewport = EyeRenderViewport[1];
+		_GLEyeTexture[1].OGL.TexId                 = (GLuint)InTexture2GLId;
 	}
+
+    _EyeTextures[0] = _GLEyeTexture[0].Texture;
+    _EyeTextures[1] = _GLEyeTexture[1].Texture;
 
 	// Configure OpenGL. 
 	ovrGLConfig cfg; 
@@ -455,14 +433,14 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1beginFrame(JNIEnv *e
     return jframeTiming;
 }
 
-JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1beginEyeRender(JNIEnv *env, jobject, jint Eye)
+JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getEyePose(JNIEnv *env, jobject, jint Eye)
 {
     if (!_initialised)
         return 0;
 
     if (!_renderConfigured)
     {
-        printf("beginEyeRender() - ERROR: Render config not set!\n");
+        printf("getEyePose() - ERROR: Render config not set!\n");
         return 0;
     }
 
@@ -470,7 +448,7 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1beginEyeRender(JNIEn
     if (Eye > 0)
         eye = ovrEye_Right;
 
-    _eyeRenderPose[eye] = ovrHmd_BeginEyeRender(_pHmd, eye);
+    _eyeRenderPose[eye] = ovrHmd_GetEyePose(_pHmd, eye);
 
 	jobject jposef = env->NewObject(posef_Class, posef_constructor_MethodID,
                                     _eyeRenderPose[eye].Orientation.x,
@@ -503,7 +481,7 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getMatrix4fProjectio
         return 0;
     }
 
-    FovPort fov;
+    ovrFovPort fov;
     fov.UpTan = EyeFovPortUpTan;
     fov.DownTan = EyeFovPortDownTan;
     fov.LeftTan = EyeFovPortLeftTan;
@@ -521,24 +499,6 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getMatrix4fProjectio
     return jproj;
 }
 
-JNIEXPORT void JNICALL Java_de_fruitfly_ovr_OculusRift__1endEyeRender(JNIEnv *env, jobject, jint Eye)
-{
-    if (!_initialised)
-        return;
-
-    if (!_renderConfigured)
-    {
-        printf("endEyeRender() - ERROR: Render config not set!");
-        return;
-    }
-
-    ovrEyeType eye = ovrEye_Left;
-    if (Eye > 0)
-        eye = ovrEye_Right;
-
-    ovrHmd_EndEyeRender(_pHmd, eye, _eyeRenderPose[eye], &_EyeTexture[eye].Texture);
-}
-
 JNIEXPORT void JNICALL Java_de_fruitfly_ovr_OculusRift__1endFrame(JNIEnv *env, jobject)
 {
     if (!_initialised)
@@ -551,7 +511,7 @@ JNIEXPORT void JNICALL Java_de_fruitfly_ovr_OculusRift__1endFrame(JNIEnv *env, j
     }
 
     // Let OVR do distortion rendering, Present and flush/sync
-    ovrHmd_EndFrame(_pHmd);
+    ovrHmd_EndFrame(_pHmd, _eyeRenderPose, _EyeTextures);
 }
 
 JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1convertQuatToEuler
@@ -825,23 +785,25 @@ void ResetRenderConfig()
     }
 
     // Reset texture data
-	_EyeTexture[0].OGL.Header.API                   = ovrRenderAPI_None;
-    _EyeTexture[0].OGL.Header.TextureSize.w         = 0;
-	_EyeTexture[0].OGL.Header.TextureSize.h         = 0;
-    _EyeTexture[0].OGL.Header.RenderViewport.Pos.x  = 0;
-    _EyeTexture[0].OGL.Header.RenderViewport.Pos.y  = 0;
-    _EyeTexture[0].OGL.Header.RenderViewport.Size.w = 0;
-    _EyeTexture[0].OGL.Header.RenderViewport.Size.h = 0;
-	_EyeTexture[0].OGL.TexId                        = 0;
-    _EyeTexture[1] = _EyeTexture[0];
+	_GLEyeTexture[0].OGL.Header.API                   = ovrRenderAPI_None;
+    _GLEyeTexture[0].OGL.Header.TextureSize.w         = 0;
+	_GLEyeTexture[0].OGL.Header.TextureSize.h         = 0;
+    _GLEyeTexture[0].OGL.Header.RenderViewport.Pos.x  = 0;
+    _GLEyeTexture[0].OGL.Header.RenderViewport.Pos.y  = 0;
+    _GLEyeTexture[0].OGL.Header.RenderViewport.Size.w = 0;
+    _GLEyeTexture[0].OGL.Header.RenderViewport.Size.h = 0;
+	_GLEyeTexture[0].OGL.TexId                        = 0;
+    _GLEyeTexture[1] = _GLEyeTexture[0];
+
+    _EyeTextures[0] = _GLEyeTexture[0].Texture;
+    _EyeTextures[1] = _GLEyeTexture[1].Texture;
 
     _renderConfigured = false;
 }
 
-bool CreateHmdAndStartSensor(int hmdIndex)
+bool CreateHmdAndConfigureTracker(int hmdIndex)
 {
     _pHmd = 0;
-    _pHmdDesc.reset();
 
     bool result = false;
     _realDevice = false;
@@ -864,21 +826,18 @@ bool CreateHmdAndStartSensor(int hmdIndex)
 
 	if (_pHmd)
 	{
-		_pHmdDesc.reset(new ovrHmdDesc);
-		ovrHmd_GetDesc(_pHmd, _pHmdDesc.get());
-
 		// Log description
-		LogHmdDesc(_pHmdDesc);
+		LogHmdDesc(_pHmd);
 
         // Set hmd caps
-        ovrHmd_SetEnabledCaps(_pHmd, ovrHmdCap_LowPersistence | ovrHmdCap_LatencyTest);
+        ovrHmd_SetEnabledCaps(_pHmd, ovrHmdCap_LowPersistence);
 
-		    // Start sensor
-		ovrBool sensorResult = ovrHmd_StartSensor(_pHmd,
-			    ovrSensorCap_Orientation | ovrSensorCap_YawCorrection | ovrSensorCap_Position,
+		// Configure tracking
+        ovrBool trackerResult = ovrHmd_ConfigureTracking(_pHmd,
+			    ovrTrackingCap_Orientation | ovrTrackingCap_MagYawCorrection | ovrTrackingCap_Position,
 			    0);
 
-		if (sensorResult)
+		if (trackerResult)
 		{
 			// Initialised successfully
 			printf("Oculus Rift Device Interface initialized.\n");
@@ -907,12 +866,12 @@ void PrintNewObjectException(JNIEnv *env, std::string objectName)
     env->ExceptionClear();
 }
 
-void LogHmdDesc(std::auto_ptr<ovrHmdDesc>& pHmdDesc)
+void LogHmdDesc(ovrHmd pHmd)
 {
 	// Chuck out some basic HMD info
-	printf(" ProductName: %s\n", pHmdDesc->ProductName);
-	printf(" Manufacturer: %s\n", pHmdDesc->Manufacturer);
-	printf(" Resolution: %d X %d\n", pHmdDesc->Resolution.w, pHmdDesc->Resolution.h);
+	printf(" ProductName: %s\n", pHmd->ProductName);
+	printf(" Manufacturer: %s\n", pHmd->Manufacturer);
+	printf(" Resolution: %d X %d\n", pHmd->Resolution.w, pHmd->Resolution.h);
 }
 
 void Reset()
@@ -921,10 +880,6 @@ void Reset()
 	{
         // Reset render config
         ResetRenderConfig();
-
-		// Stop sensor
-		if (_pHmd)
-			ovrHmd_StopSensor(_pHmd);
 
 		// Cleanup HMD
 		if (_pHmd)
@@ -935,7 +890,6 @@ void Reset()
 	}
 
 	_pHmd = 0;
-	_pHmdDesc.reset();
 	_hmdIndex = -1;
 
     _eyeRenderPose[0].Orientation.x = 0.0;
@@ -981,10 +935,10 @@ bool CacheJNIGlobals(JNIEnv *env)
     }
 
     if (!LookupJNIGlobal(env,
-                         sensorState_Class,
-                         "de/fruitfly/ovr/structs/SensorState",
-                         sensorState_constructor_MethodID,
-                         "(FFFFFFFFFFFFFFFFFFFDFFFFFFFFFFFFFFFFFFFDFI)V"))
+                         trackerState_Class,
+                         "de/fruitfly/ovr/structs/TrackerState",
+                         trackerState_constructor_MethodID,
+                         "(FFFFFFFFFFFFFFFFFFFDFI)V"))
     {
         return false;
     }

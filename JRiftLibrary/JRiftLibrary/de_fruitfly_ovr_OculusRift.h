@@ -45,18 +45,18 @@ JNIEXPORT jboolean JNICALL Java_de_fruitfly_ovr_OculusRift__1getNextHmd
 
 /*
  * Class:     de_fruitfly_ovr_OculusRift
- * Method:    getSensorState
+ * Method:    getTrackerState
  * Signature: (D)Lde/fruitfly/ovr/struct/SensorState;
  */
-JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getSensorState
+JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getTrackerState
     (JNIEnv *, jobject, jdouble);
 
 /*
  * Class:     de_fruitfly_ovr_OculusRift
- * Method:    resetSensor
+ * Method:    resetTracking
  * Signature: ()V
  */
-JNIEXPORT void JNICALL Java_de_fruitfly_ovr_OculusRift__1resetSensor
+JNIEXPORT void JNICALL Java_de_fruitfly_ovr_OculusRift__1resetTracking
     (JNIEnv *, jobject);
 
 /*
@@ -111,10 +111,10 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1beginFrame
 
 /*
  * Class:     de_fruitfly_ovr_OculusRift
- * Method:    beginEyeRender
+ * Method:    getEyePose
  * Signature: (I)Lde/fruitfly/ovr/structs/Posef;
  */
-JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1beginEyeRender
+JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getEyePose
     (JNIEnv *, jobject, jint);
 
 /*
@@ -131,14 +131,6 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getMatrix4fProjectio
     jfloat,
     jfloat,
     jfloat);
-
-/*
- * Class:     de_fruitfly_ovr_OculusRift
- * Method:    endEyeRender
- * Signature: (I)V
- */
-JNIEXPORT void JNICALL Java_de_fruitfly_ovr_OculusRift__1endEyeRender
-    (JNIEnv *, jobject, jint);
 
 /*
  * Class:     de_fruitfly_ovr_OculusRift
@@ -178,11 +170,11 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getUserProfileData(
 
 /* Helpers */
 void DEBUGLOG(std::string s);
-void LogHmdDesc(std::auto_ptr<ovrHmdDesc>& pHmdDesc);
+void LogHmdDesc(ovrHmd pHmd);
 void Reset();
 void ResetRenderConfig();
 bool CacheJNIGlobals(JNIEnv *env);
-bool CreateHmdAndStartSensor(int hmdIndex);
+bool CreateHmdAndConfigureTracker(int hmdIndex);
 bool LookupJNIGlobal(JNIEnv *env,
                      jclass& clazz,
                      std::string className,
@@ -202,63 +194,6 @@ void SetEulerEnumValues(int firstRotationAxis,
 					    OVR::RotateDirection& D,
 					    OVR::HandedSystem& S);
 void SetAxisEnum(int value, OVR::Axis& A);
-
-//
-///*
-// * Class:     de_fruitfly_ovr_OculusRift
-// * Method:    _getEyeRenderParams
-// * Signature: (IIIIFFFFF)Lde/fruitfly/ovr/EyeRenderParams;
-// */
-//JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getEyeRenderParams
-//  (JNIEnv *, jobject, jint, jint, jint, jint, jfloat, jfloat, jfloat, jfloat, jfloat, jfloat, jint);
-//
-///*
-// * Class:     de_fruitfly_ovr_OculusRift
-// * Method:    _getUserProfileData
-// * Signature: L de/fruitfly/ovr/UserProfileData
-// */
-//JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getUserProfileData(
-//   JNIEnv *env, jobject);
-//
-///*
-// * Class:     de_fruitfly_ovr_OculusRift
-// * Method:    _getUserProfiles
-// * Signature: [L java/lang/String
-// */
-//JNIEXPORT jobjectArray JNICALL Java_de_fruitfly_ovr_OculusRift__1getUserProfiles(
-//   JNIEnv *env, jobject);
-//
-///*
-// * Class:     de_fruitfly_ovr_OculusRift
-// * Method:    _loadUserProfile
-// * Signature: ()Z
-// */
-//JNIEXPORT jboolean JNICALL Java_de_fruitfly_ovr_OculusRift__1loadUserProfile(
-//   JNIEnv *env, jobject, jstring);
-//
-///*
-// * Class:     de_fruitfly_ovr_OculusRift
-// * Method:    _latencyTesterProcessInputs
-// * Signature: ()V
-// */
-//JNIEXPORT void JNICALL Java_de_fruitfly_ovr_OculusRift__1latencyTesterProcessInputs
-//  (JNIEnv *, jobject);
-//
-///*
-// * Class:     de_fruitfly_ovr_OculusRift
-// * Method:    _latencyTesterDisplayScreenColor
-// * Signature: ()[F
-// */
-//JNIEXPORT jfloatArray JNICALL Java_de_fruitfly_ovr_OculusRift__1latencyTesterDisplayScreenColor
-//  (JNIEnv *env, jobject);
-//
-///*
-// * Class:     de_fruitfly_ovr_OculusRift
-// * Method:    _latencyTesterGetResultsString
-// * Signature: ()L java/lang/String
-// */
-//JNIEXPORT jstring JNICALL Java_de_fruitfly_ovr_OculusRift__1latencyTesterGetResultsString
-//  (JNIEnv *env, jobject);
 
 #ifdef __cplusplus
 }
