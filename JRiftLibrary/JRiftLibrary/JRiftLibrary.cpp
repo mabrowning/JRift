@@ -329,6 +329,7 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1configureRendering(
 	// Cast context pointers to 32 / 64 bit as appropriate
 #if defined(OVR_OS_WIN32)
     cfg.OGL.Window = (HWND)(intptr_t)Win;
+	cfg.OGL.DC     = 0;
 #elif defined(OVR_OS_LINUX)
     cfg.OGL.Disp   = (Display*)(intptr_t)Displ;
     cfg.OGL.Win    = (Window)(intptr_t)Win;
