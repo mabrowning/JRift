@@ -151,7 +151,8 @@ public class OculusRift //implements IOculusRift
                                    glConfig.useVignette,
                                    glConfig.useLowPersistence,
                                    glConfig.mirrorDisplay,
-                                   glConfig.useDisplayOverdrive);
+                                   glConfig.useDisplayOverdrive,
+                                   glConfig.useDynamicPrediction);
 
         if (erp != null)
             renderConfigured = true;
@@ -185,7 +186,8 @@ public class OculusRift //implements IOculusRift
                                    glConfig.useVignette,
                                    glConfig.useLowPersistence,
                                    glConfig.mirrorDisplay,
-                                   glConfig.useDisplayOverdrive);
+                                   glConfig.useDisplayOverdrive,
+                                   glConfig.useDynamicPrediction);
 
         if (erp != null)
             renderConfigured = true;
@@ -316,7 +318,8 @@ public class OculusRift //implements IOculusRift
                                                          boolean useVignette,
                                                          boolean useLowPersistence,
                                                          boolean mirrorDisplay,
-                                                         boolean useDisplayOverdrive);
+                                                         boolean useDisplayOverdrive,
+                                                         boolean useDynamicPrediction);
     protected native void            _resetRenderConfig();
 
     protected native FrameTiming     _beginFrame(int frameIndex);

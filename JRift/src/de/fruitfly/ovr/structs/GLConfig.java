@@ -14,4 +14,5 @@ public class GLConfig
     public boolean useLowPersistence = true;
     public boolean mirrorDisplay = true;
     public boolean useDisplayOverdrive = true;
+    public boolean useDynamicPrediction = true;
 }

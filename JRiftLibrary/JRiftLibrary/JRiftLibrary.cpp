@@ -263,7 +263,8 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1configureRendering(
     jboolean UseVignette,
 	jboolean UseLowPersistence,
     jboolean MirrorDisplay,
-    jboolean UseDisplayOverdrive)
+    jboolean UseDisplayOverdrive,
+	jboolean DynamicPrediction)
 {
 	if (!_initialised)
 		return 0;
@@ -350,7 +351,8 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1configureRendering(
     SetBit(HmdCaps, ovrHmdCap_NoVSync, !VSyncEnabled);
 	SetBit(HmdCaps, ovrHmdCap_LowPersistence, UseLowPersistence);
     SetBit(HmdCaps, ovrHmdCap_NoMirrorToWindow, !MirrorDisplay);
-    ovrHmd_SetEnabledCaps(_pHmd, HmdCaps); 
+	SetBit(HmdCaps, ovrHmdCap_DynamicPrediction, DynamicPrediction);
+	ovrHmd_SetEnabledCaps(_pHmd, HmdCaps); 
 
     // Setup direct rendering if configured to do so
     //if (!(HmdCaps & ovrHmdCap_ExtendDesktop))
