@@ -790,6 +790,13 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getUserProfileData(
 	return profileData;
 }
 
+JNIEXPORT jstring JNICALL Java_de_fruitfly_ovr_OculusRift__1getVersionString(
+   JNIEnv *env, jobject)
+{
+    std::string version = ovr_GetVersionString();
+    return env->NewStringUTF(version.c_str());
+}
+
 void ResetRenderConfig()
 {
     if (_initialised)
