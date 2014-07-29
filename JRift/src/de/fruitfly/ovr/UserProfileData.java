@@ -16,14 +16,16 @@ public class UserProfileData
         Gender_Female
     };
 
-    public GenderType _gender;
-    public float _playerHeight;
-    public float _eyeHeight;
-    public float _ipd;
-    public String _name;
-    public boolean _isDefault;
+    public GenderType _gender = GenderType.Gender_Unspecified;
+    public float _playerHeight = 1.62f;
+    public float _eyeHeight = 0f;
+    public float _ipd = 0.0064f;
+    public String _name = "No Profile";
+    public boolean _isDefault = true;
 
-    UserProfileData(float playerHeight, float eyeHeight, float ipd,
+    public UserProfileData() {}
+
+    public UserProfileData(float playerHeight, float eyeHeight, float ipd,
                     String gender, boolean isDefault, String name)
     {
          _name = name;
