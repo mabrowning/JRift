@@ -276,7 +276,7 @@ bool HSWDisplay::TickState(ovrHSWDisplayState *hswDisplayState)
                 {
                     if(IsDisplayViewable()) // If the HMD is mounted and otherwise being viewed by the user...
                     {
-                        Display();
+                        //Display();  // Disable for now!!!
                         newlyDisplayed = true;
                     }
                 }
