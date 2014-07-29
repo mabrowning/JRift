@@ -269,6 +269,7 @@ void DistortionRenderer::EndFrame(bool swapBuffers)
 
     if (swapBuffers)
     {
+		int Error = 0;
 		bool useVsync = ((RState.EnabledHmdCaps & ovrHmdCap_NoVSync) == 0);
 		int swapInterval = (useVsync) ? 1 : 0;
 #if defined(OVR_OS_WIN32)
@@ -277,6 +278,19 @@ void DistortionRenderer::EndFrame(bool swapBuffers)
 
         HDC dc = (RParams.DC != NULL) ? RParams.DC : GetDC(RParams.Window);
 		BOOL success = SwapBuffers(dc);
+		if (!success)
+		{
+			Error = GetLastError();
+			int ret = 0;
+			LPVOID lpMsgBuf = 0;
+			ret = FormatMessageW( 
+				FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+				NULL, Error, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+				reinterpret_cast<wchar_t*>(&lpMsgBuf), 0, NULL );
+			wprintf(L"SwapBuffers error: %s", lpMsgBuf);
+			LocalFree( lpMsgBuf );
+		}
+
         OVR_ASSERT(success);
         OVR_UNUSED(success);
 

@@ -17,7 +17,6 @@ bool                _renderConfigured = false;
 bool                _realDevice = false;
 ovrPosef            _eyeRenderPose[2];
 ovrGLTexture        _GLEyeTexture[2];
-ovrTexture          _EyeTextures[2];
 
 const bool          LogDebug = true;
 
@@ -264,7 +263,8 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1configureRendering(
     jboolean UseVignette,
 	jboolean UseLowPersistence,
     jboolean MirrorDisplay,
-    jboolean UseDisplayOverdrive)
+    jboolean UseDisplayOverdrive,
+	jboolean DynamicPrediction)
 {
 	if (!_initialised)
 		return 0;
@@ -275,7 +275,8 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1configureRendering(
     // The viewport sizes are re-computed in case RenderTargetSize changed due to HW limitations.
 
     ovrRecti EyeRenderViewport[2];
-    ovrFovPort eyeFov[2] = { _pHmd->DefaultEyeFov[0], _pHmd->DefaultEyeFov[1] } ;
+    //ovrFovPort eyeFov[2] = { _pHmd->DefaultEyeFov[0], _pHmd->DefaultEyeFov[1] } ; // TODO: Why does this lead to an asymmetric fov? 
+	ovrFovPort eyeFov[2] = { _pHmd->MaxEyeFov[0], _pHmd->MaxEyeFov[1] } ;
 
 	if (UsesInputTexture1Only) // Same texture used over both views
 	{
@@ -316,9 +317,6 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1configureRendering(
 		_GLEyeTexture[1].OGL.TexId                 = (GLuint)InTexture2GLId;
 	}
 
-    _EyeTextures[0] = _GLEyeTexture[0].Texture;
-    _EyeTextures[1] = _GLEyeTexture[1].Texture;
-
 	// Configure OpenGL. 
 	ovrGLConfig cfg; 
 	cfg.OGL.Header.API         = ovrRenderAPI_OpenGL; 
@@ -328,6 +326,7 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1configureRendering(
 	// Cast context pointers to 32 / 64 bit as appropriate
 #if defined(OVR_OS_WIN32)
     cfg.OGL.Window = (HWND)(intptr_t)Win;
+	cfg.OGL.DC     = 0;
 #elif defined(OVR_OS_LINUX)
     cfg.OGL.Disp   = (Display*)(intptr_t)Displ;
     cfg.OGL.Win    = (Window)(intptr_t)Win;
@@ -342,6 +341,8 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1configureRendering(
         DistortionCaps |= ovrDistortionCap_Vignette;
     if (UseDisplayOverdrive)  
         DistortionCaps |= ovrDistortionCap_Overdrive;
+
+	//DistortionCaps |= ovrDistortionCap_SRGB;
     
 	ovrEyeRenderDesc EyeRenderDesc[2];
 
@@ -350,7 +351,16 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1configureRendering(
     SetBit(HmdCaps, ovrHmdCap_NoVSync, !VSyncEnabled);
 	SetBit(HmdCaps, ovrHmdCap_LowPersistence, UseLowPersistence);
     SetBit(HmdCaps, ovrHmdCap_NoMirrorToWindow, !MirrorDisplay);
-    ovrHmd_SetEnabledCaps(_pHmd, HmdCaps); 
+	SetBit(HmdCaps, ovrHmdCap_DynamicPrediction, DynamicPrediction);
+	ovrHmd_SetEnabledCaps(_pHmd, HmdCaps); 
+
+    // Setup direct rendering if configured to do so
+    //if (!(HmdCaps & ovrHmdCap_ExtendDesktop))
+    //{
+#if defined(OVR_OS_WIN32)
+        ovrHmd_AttachToWindow(_pHmd, (void*)Win, NULL, NULL);
+#endif
+    //}
 
     // Configure render setup
     ovrBool result = ovrHmd_ConfigureRendering(_pHmd, &cfg.Config, DistortionCaps, eyeFov, EyeRenderDesc);
@@ -361,14 +371,15 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1configureRendering(
 		return 0;
 	}
 
-    // Setup direct rendering if configured to do so
-    if (HmdCaps & ovrHmdCap_ExtendDesktop == false)
-    {
-#if defined(OVR_OS_WIN32)
-        ovrHmd_AttachToWindow(_pHmd, (void*)Win, NULL, NULL);
-#endif
-    }
-
+	unsigned sensorCaps = ovrTrackingCap_Orientation|ovrTrackingCap_MagYawCorrection|ovrTrackingCap_Position;
+    ovrHmd_ConfigureTracking(_pHmd, sensorCaps, 0);
+	
+	// Nuke HSW
+	ovrHSWDisplayState hswState;
+	ovrHmd_GetHSWDisplayState(_pHmd, &hswState);
+	if (hswState.Displayed)
+		ovrHmd_DismissHSWDisplay(_pHmd);
+	
     _renderConfigured = true;
 
 	jobject eyeRenderDesc = env->NewObject(eyeRenderParams_Class, eyeRenderParams_constructor_MethodID,
@@ -523,8 +534,8 @@ JNIEXPORT void JNICALL Java_de_fruitfly_ovr_OculusRift__1endFrame(JNIEnv *env, j
         return;
     }
 
-    // Let OVR do distortion rendering, Present and flush/sync
-    ovrHmd_EndFrame(_pHmd, _eyeRenderPose, _EyeTextures);
+    // Let OVR do distortion rendering, present and flush/sync
+    ovrHmd_EndFrame(_pHmd, _eyeRenderPose, &_GLEyeTexture[0].Texture);
 }
 
 JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1convertQuatToEuler
@@ -815,9 +826,6 @@ void ResetRenderConfig()
 	_GLEyeTexture[0].OGL.TexId                        = 0;
     _GLEyeTexture[1] = _GLEyeTexture[0];
 
-    _EyeTextures[0] = _GLEyeTexture[0].Texture;
-    _EyeTextures[1] = _GLEyeTexture[1].Texture;
-
     _renderConfigured = false;
 }
 
@@ -849,20 +857,20 @@ bool CreateHmdAndConfigureTracker(int hmdIndex)
 		// Log description
 		LogHmdDesc(_pHmd);
 
-        // Set hmd caps
-        ovrHmd_SetEnabledCaps(_pHmd, ovrHmdCap_LowPersistence);
+  //      // Set hmd caps
+  //      ovrHmd_SetEnabledCaps(_pHmd, ovrHmdCap_LowPersistence);
 
-		// Configure tracking
-        ovrBool trackerResult = ovrHmd_ConfigureTracking(_pHmd,
-			    ovrTrackingCap_Orientation | ovrTrackingCap_MagYawCorrection | ovrTrackingCap_Position,
-			    0);
+		//// Configure tracking
+  //      ovrBool trackerResult = ovrHmd_ConfigureTracking(_pHmd,
+		//	    ovrTrackingCap_Orientation | ovrTrackingCap_MagYawCorrection | ovrTrackingCap_Position,
+		//	    0);
 
-		if (trackerResult)
-		{
+		//if (trackerResult)
+		//{
 			// Initialised successfully
 			printf("Oculus Rift Device Interface initialized.\n");
             result = true;
-		}
+		//}
 	}
 
     return result;
