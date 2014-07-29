@@ -275,8 +275,8 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1configureRendering(
     // The viewport sizes are re-computed in case RenderTargetSize changed due to HW limitations.
 
     ovrRecti EyeRenderViewport[2];
-    //ovrFovPort eyeFov[2] = { _pHmd->DefaultEyeFov[0], _pHmd->DefaultEyeFov[1] } ; // TODO: Why does this lead to an asymmetric fov? 
-	ovrFovPort eyeFov[2] = { _pHmd->MaxEyeFov[0], _pHmd->MaxEyeFov[1] } ;
+    ovrFovPort eyeFov[2] = { _pHmd->DefaultEyeFov[0], _pHmd->DefaultEyeFov[1] } ; // TODO: Why does this lead to an asymmetric fov? 
+	//ovrFovPort eyeFov[2] = { _pHmd->MaxEyeFov[0], _pHmd->MaxEyeFov[1] } ;
 
 	if (UsesInputTexture1Only) // Same texture used over both views
 	{
