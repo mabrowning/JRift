@@ -116,9 +116,9 @@ public class OculusRift //implements IOculusRift
         return trackerState;
     }
 
-    public void resetTracker()
+    public void resetTracking()
     {
-        _resetTracker();
+        _resetTracking();
     }
 
     public FovTextureInfo getFovTextureSize(float renderScaleFactor)
@@ -297,7 +297,7 @@ public class OculusRift //implements IOculusRift
     protected native HmdDesc         _getHmdDesc();
 
     protected native TrackerState    _getTrackerState(double timeFromNow);
-    protected native void            _resetTracker();
+    protected native void            _resetTracking();
 
     protected native FovTextureInfo  _getFovTextureSize(float RenderScaleFactor);
     protected native EyeRenderParams _configureRendering(boolean UsesInputTexture1Only,
