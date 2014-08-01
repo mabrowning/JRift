@@ -275,7 +275,7 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1configureRendering(
     // The viewport sizes are re-computed in case RenderTargetSize changed due to HW limitations.
 
     ovrRecti EyeRenderViewport[2];
-    ovrFovPort eyeFov[2] = { _pHmd->DefaultEyeFov[0], _pHmd->DefaultEyeFov[1] } ; // TODO: Why does this lead to an asymmetric fov? 
+    ovrFovPort eyeFov[2] = { _pHmd->DefaultEyeFov[0], _pHmd->DefaultEyeFov[1] } ; // TODO: Why does this lead to an asymmetric fov on DK1? 
 	//ovrFovPort eyeFov[2] = { _pHmd->MaxEyeFov[0], _pHmd->MaxEyeFov[1] } ;
 
 	if (UsesInputTexture1Only) // Same texture used over both views
@@ -326,7 +326,7 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1configureRendering(
 	// Cast context pointers to 32 / 64 bit as appropriate
 #if defined(OVR_OS_WIN32)
     cfg.OGL.Window = (HWND)(intptr_t)Win;
-	cfg.OGL.DC     = 0;
+	cfg.OGL.DC     = ::GetDC(cfg.OGL.Window);
 #elif defined(OVR_OS_LINUX)
     cfg.OGL.Disp   = (Display*)(intptr_t)Displ;
     cfg.OGL.Win    = (Window)(intptr_t)Win;
