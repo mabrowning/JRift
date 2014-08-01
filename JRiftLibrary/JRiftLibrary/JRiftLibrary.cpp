@@ -346,21 +346,26 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1configureRendering(
     
 	ovrEyeRenderDesc EyeRenderDesc[2];
 
-    // Set VSync and low persistence
-    unsigned int HmdCaps = ovrHmd_GetEnabledCaps(_pHmd);
-    SetBit(HmdCaps, ovrHmdCap_NoVSync, !VSyncEnabled);
-	SetBit(HmdCaps, ovrHmdCap_LowPersistence, UseLowPersistence);
-    SetBit(HmdCaps, ovrHmdCap_NoMirrorToWindow, !MirrorDisplay);
-	SetBit(HmdCaps, ovrHmdCap_DynamicPrediction, DynamicPrediction);
+    // Set VSync and low persistence etc.
+    unsigned int HmdCaps = 0;
+    if (!VSyncEnabled)
+        HmdCaps |= ovrHmdCap_NoVSync;
+    if (UseLowPersistence)
+        HmdCaps |= ovrHmdCap_LowPersistence;
+    if (!MirrorDisplay)
+        HmdCaps |= ovrHmdCap_NoMirrorToWindow;
+    if (DynamicPrediction)  
+        HmdCaps |= ovrHmdCap_DynamicPrediction;
+
 	ovrHmd_SetEnabledCaps(_pHmd, HmdCaps); 
 
     // Setup direct rendering if configured to do so
-    //if (!(HmdCaps & ovrHmdCap_ExtendDesktop))
-    //{
+	if (!(ovrHmd_GetEnabledCaps(_pHmd) & ovrHmdCap_ExtendDesktop))
+    {
 #if defined(OVR_OS_WIN32)
         ovrHmd_AttachToWindow(_pHmd, (void*)Win, NULL, NULL);
 #endif
-    //}
+    }
 
     // Configure render setup
     ovrBool result = ovrHmd_ConfigureRendering(_pHmd, &cfg.Config, DistortionCaps, eyeFov, EyeRenderDesc);
