@@ -193,7 +193,6 @@ bool LookupJNIGlobal(JNIEnv *env,
                      std::string constructorSignature);
 void ClearException(JNIEnv *env);
 void PrintNewObjectException(JNIEnv *env, std::string objectName);
-void SetBit(unsigned int& BitField, unsigned int BitIndex, bool Value);
 void SetEulerEnumValues(int firstRotationAxis,
 					    int secondRotationAxis,
 					    int thirdRotationAxis,

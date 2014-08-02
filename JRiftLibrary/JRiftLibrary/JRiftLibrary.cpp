@@ -1066,18 +1066,6 @@ bool LookupJNIGlobal(JNIEnv *env,
     return true;
 }
 
-void SetBit(unsigned int& BitField, unsigned int BitIndex, bool Value)
-{
-    if (Value)
-    {
-        BitField |= 1 << BitIndex;
-    }
-    else
-    {
-        BitField &= ~(1 << BitIndex);
-    }
-}
-
 void SetEulerEnumValues(int firstRotationAxis,
 					    int secondRotationAxis,
 					    int thirdRotationAxis,
