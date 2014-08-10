@@ -269,7 +269,7 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1configureRendering(
 	if (!_initialised)
 		return 0;
 
-    ResetRenderConfig();
+    //ResetRenderConfig(); // Hack to avoid drawArrays issue?
 
     // Initialize eye rendering information for ovrHmd_Configure.
     // The viewport sizes are re-computed in case RenderTargetSize changed due to HW limitations.
