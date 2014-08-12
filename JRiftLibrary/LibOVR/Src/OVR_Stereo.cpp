@@ -1080,13 +1080,15 @@ LensConfig GenerateLensConfigFromEyeRelief ( float eyeReliefInMeters, HmdRenderI
         distortions[numDistortions].EyeRelief = 0.020f;
         numDistortions++;
 
+		static float custom_dk2_distortion = 0.75f;  // krp's chromatic abberation tweak
+
         // Chromatic aberration doesn't seem to change with eye relief.
         for ( int i = 0; i < numDistortions; i++ )
         {
-            distortions[i].Config.ChromaticAberration[0]        = -0.015f;
-            distortions[i].Config.ChromaticAberration[1]        = -0.02f;
-            distortions[i].Config.ChromaticAberration[2]        =  0.025f;
-            distortions[i].Config.ChromaticAberration[3]        =  0.02f;
+            distortions[i].Config.ChromaticAberration[0]        = -0.015f * custom_dk2_distortion;
+            distortions[i].Config.ChromaticAberration[1]        = -0.02f  * custom_dk2_distortion;
+            distortions[i].Config.ChromaticAberration[2]        =  0.025f * custom_dk2_distortion;
+            distortions[i].Config.ChromaticAberration[3]        =  0.02f  * custom_dk2_distortion;
         }
     }
     else
