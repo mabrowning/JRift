@@ -14,8 +14,6 @@ public class OculusRift //implements IOculusRift
 	private boolean initialized = false;
     private boolean renderConfigured = false;
 
-    public final String VERSION = "0.4.0.1";
-
 	private HmdDesc hmdDesc = new HmdDesc();
     private TrackerState trackerState = new TrackerState();
     private Posef lastPose[] = new Posef[2];
@@ -44,7 +42,10 @@ public class OculusRift //implements IOculusRift
 
     public String getVersion()
     {
-        return VERSION;
+        if (!libraryLoaded)
+            return "Not loaded";
+
+        return _getVersionString();
     }
 
 	public boolean init( File nativeDir )
@@ -53,7 +54,20 @@ public class OculusRift //implements IOculusRift
 		return init();
 	}
 
-	public boolean init() {
+	public static void initRenderingShim()
+    {
+        if (libraryLoaded)
+            _initRenderingShim();
+    }
+
+	public boolean init()
+	{
+        _initSummary = "Load library failed";
+
+        LoadLibrary();
+
+        if( !libraryLoaded )
+            return false;
 
         _initSummary = "Last initialisation attempt failed";
 
@@ -290,6 +304,7 @@ public class OculusRift //implements IOculusRift
 
     // Native declarations
 
+    protected native static void     _initRenderingShim();
 	protected native boolean         _initSubsystem();
     protected native void            _destroySubsystem();
 
@@ -344,6 +359,7 @@ public class OculusRift //implements IOculusRift
                                                             int rotationDir);
 
     protected native UserProfileData _getUserProfileData();
+    protected native String          _getVersionString();
 
     public static void LoadLibrary()
     {

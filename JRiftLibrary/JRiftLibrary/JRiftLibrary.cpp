@@ -813,6 +813,12 @@ JNIEXPORT jstring JNICALL Java_de_fruitfly_ovr_OculusRift__1getVersionString(
     return env->NewStringUTF(version.c_str());
 }
 
+JNIEXPORT void JNICALL Java_de_fruitfly_ovr_OculusRift__1initRenderingShim(
+   JNIEnv *env, jobject)
+{
+    ovr_InitializeRenderingShim();
+}
+
 void ResetRenderConfig()
 {
     if (_initialised)

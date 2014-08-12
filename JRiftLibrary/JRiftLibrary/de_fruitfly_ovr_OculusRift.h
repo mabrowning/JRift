@@ -178,6 +178,13 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getUserProfileData(
 JNIEXPORT jstring JNICALL Java_de_fruitfly_ovr_OculusRift__1getVersionString(
    JNIEnv *env, jobject);
 
+/*
+ * Class:     de_fruitfly_ovr_OculusRift
+ * Method:    _initRenderingShim
+ * Signature: ()V
+ */
+JNIEXPORT void JNICALL Java_de_fruitfly_ovr_OculusRift__1initRenderingShim(
+   JNIEnv *env, jobject);
 
 /* Helpers */
 void DEBUGLOG(std::string s);
