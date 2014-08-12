@@ -30,7 +30,7 @@ public class Matrix4f
         M[3][0] = 0;                       M[3][1] = 0;                       M[3][2] = 0;                       M[3][3] = 1;
     }
 
-    Matrix4f()
+    public Matrix4f()
     {
 
     }
