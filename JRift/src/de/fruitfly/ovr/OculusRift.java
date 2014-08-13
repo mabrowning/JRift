@@ -5,7 +5,6 @@ import de.fruitfly.ovr.enums.EyeType;
 import de.fruitfly.ovr.enums.HandedSystem;
 import de.fruitfly.ovr.enums.RotateDirection;
 import de.fruitfly.ovr.structs.*;
-import net.minecraft.util.Vec3;
 
 import java.io.File;
 
@@ -240,10 +239,10 @@ public class OculusRift //implements IOculusRift
         return lastPose[eye.value()];
     }
 
-    public Vec3 getEyePosition(EyeType eye)
+    public Vector3f getEyePos(EyeType eye)
     {
         Posef pose = lastPose[eye.value()];
-        return Vec3.createVectorHelper(pose.Position.x, pose.Position.y, pose.Position.z);
+        return new Vector3f(pose.Position.x, pose.Position.y, pose.Position.z);
     }
 
     public Matrix4f getMatrix4fProjection(FovPort fov,
