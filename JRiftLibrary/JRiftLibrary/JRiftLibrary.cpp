@@ -160,7 +160,7 @@ JNIEXPORT jboolean JNICALL Java_de_fruitfly_ovr_OculusRift__1getNextHmd(JNIEnv *
     return CreateHmdAndConfigureTracker(_hmdIndex);
 }
 
-JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getTrackingState(JNIEnv *env, jobject, jdouble time) 
+JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getTrackerState(JNIEnv *env, jobject, jdouble time) 
 {
 	if (!_initialised) 
         return 0;

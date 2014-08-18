@@ -46,7 +46,7 @@ JNIEXPORT jboolean JNICALL Java_de_fruitfly_ovr_OculusRift__1getNextHmd
 /*
  * Class:     de_fruitfly_ovr_OculusRift
  * Method:    getTrackerState
- * Signature: (D)Lde/fruitfly/ovr/struct/SensorState;
+ * Signature: (D)Lde/fruitfly/ovr/structs/TrackerState;
  */
 JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getTrackerState
     (JNIEnv *, jobject, jdouble);

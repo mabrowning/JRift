@@ -39,7 +39,7 @@ public class OculusRift //implements IOculusRift
 		return _initSummary;
 	}
 
-    public String getVersion()
+    public static String getVersionString()
     {
         if (!libraryLoaded)
             return "Not loaded";
@@ -358,7 +358,7 @@ public class OculusRift //implements IOculusRift
                                                             int rotationDir);
 
     protected native UserProfileData _getUserProfileData();
-    protected native String          _getVersionString();
+    protected native static String   _getVersionString();
 
     public static void LoadLibrary()
     {
