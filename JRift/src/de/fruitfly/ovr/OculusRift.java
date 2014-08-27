@@ -21,6 +21,8 @@ public class OculusRift //implements IOculusRift
 
 	private static boolean libraryLoaded = false;
 	
+    protected EyeRenderParams erp = new EyeRenderParams();
+	
 	public OculusRift()
     {
         lastPose[0] = new Posef();
@@ -146,7 +148,7 @@ public class OculusRift //implements IOculusRift
         if (!initialized)
             return null;
 
-        EyeRenderParams erp = _configureRendering(true,
+        erp = _configureRendering(true,
                                    InTexture1Size.w,
                                    InTexture1Size.h,
                                    glConfig.TexId,
@@ -181,7 +183,7 @@ public class OculusRift //implements IOculusRift
         if (!initialized)
             return null;
 
-        EyeRenderParams erp = _configureRendering(false,
+        erp = _configureRendering(false,
                                    InTexture1Size.w,
                                    InTexture1Size.h,
                                    glConfig.TexId,

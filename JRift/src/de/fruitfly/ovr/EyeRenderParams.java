@@ -6,6 +6,13 @@ import de.fruitfly.ovr.structs.EyeRenderDesc;
 public class EyeRenderParams
 {
     public EyeRenderDesc[] Eyes = new EyeRenderDesc[2];
+    public boolean valid = false;
+
+    public EyeRenderParams()
+    {
+        Eyes[0] = new EyeRenderDesc();
+        Eyes[1] = new EyeRenderDesc();
+    }
     
     public EyeRenderParams(
             int eye1DescInt,
@@ -84,5 +91,7 @@ public class EyeRenderParams
         Eyes[1].ViewAdjust.x = eye2ViewAdjustx;
         Eyes[1].ViewAdjust.y = eye2ViewAdjusty;
         Eyes[1].ViewAdjust.z = eye2ViewAdjustz;       
+
+        valid = true;
     }
 }
