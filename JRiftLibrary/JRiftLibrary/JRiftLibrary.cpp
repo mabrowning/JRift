@@ -264,7 +264,8 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1configureRendering(
 	jboolean UseLowPersistence,
     jboolean MirrorDisplay,
     jboolean UseDisplayOverdrive,
-	jboolean DynamicPrediction)
+	jboolean DynamicPrediction,
+	jboolean UseHighQualityDistortion)
 {
 	if (!_initialised)
 		return 0;
@@ -341,6 +342,8 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1configureRendering(
         DistortionCaps |= ovrDistortionCap_Vignette;
     if (UseDisplayOverdrive)  
         DistortionCaps |= ovrDistortionCap_Overdrive;
+	if (UseHighQualityDistortion)
+		DistortionCaps |= ovrDistortionCap_HqDistortion;
 
 	//DistortionCaps |= ovrDistortionCap_SRGB;
     

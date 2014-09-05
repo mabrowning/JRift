@@ -15,4 +15,5 @@ public class GLConfig
     public boolean mirrorDisplay = true;
     public boolean useDisplayOverdrive = true;
     public boolean useDynamicPrediction = true;
+    public boolean useHighQualityDistortion = true;
 }

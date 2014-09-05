@@ -94,6 +94,7 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1configureRendering(
 	jboolean,
     jboolean,
 	jboolean,
+	jboolean,
 	jboolean);
 
 /*
