@@ -136,14 +136,26 @@ public class OculusRift //implements IOculusRift
         _resetTracking();
     }
 
-    public FovTextureInfo getFovTextureSize(float renderScaleFactor)
+    public FovTextureInfo getFovTextureSize(FovPort leftFov,
+                                            FovPort rightFov,
+                                            float renderScaleFactor)
     {
-        return _getFovTextureSize(renderScaleFactor);
+        return _getFovTextureSize(leftFov.UpTan,
+                                  leftFov.DownTan,
+                                  leftFov.LeftTan,
+                                  leftFov.RightTan,
+                                  rightFov.UpTan,
+                                  rightFov.DownTan,
+                                  rightFov.LeftTan,
+                                  rightFov.RightTan,
+                                  renderScaleFactor);
     }
 
     public EyeRenderParams configureRendering(Sizei InTexture1Size,
                                               Sizei OutDisplaySize,
-                                              GLConfig glConfig)
+                                              GLConfig glConfig,
+                                              FovPort LeftFov,
+                                              FovPort RightFov)
     {
         if (!initialized)
             return null;
@@ -168,7 +180,15 @@ public class OculusRift //implements IOculusRift
                                    glConfig.mirrorDisplay,
                                    glConfig.useDisplayOverdrive,
                                    glConfig.useDynamicPrediction,
-                                   glConfig.useHighQualityDistortion);
+                                   glConfig.useHighQualityDistortion,
+                                   LeftFov.UpTan,
+                                   LeftFov.DownTan,
+                                   LeftFov.LeftTan,
+                                   LeftFov.RightTan,
+                                   RightFov.UpTan,
+                                   RightFov.DownTan,
+                                   RightFov.LeftTan,
+                                   RightFov.RightTan);
 
         if (erp != null)
             renderConfigured = true;
@@ -179,7 +199,9 @@ public class OculusRift //implements IOculusRift
     public EyeRenderParams configureRenderingDualTexture(Sizei InTexture1Size,
                                                          Sizei InTexture2Size,
                                                          Sizei OutDisplaySize,
-                                                         GLConfig glConfig)
+                                                         GLConfig glConfig,
+                                                         FovPort LeftFov,
+                                                         FovPort RightFov)
     {
         if (!initialized)
             return null;
@@ -204,7 +226,15 @@ public class OculusRift //implements IOculusRift
                                    glConfig.mirrorDisplay,
                                    glConfig.useDisplayOverdrive,
                                    glConfig.useDynamicPrediction,
-                                   glConfig.useHighQualityDistortion);
+                                   glConfig.useHighQualityDistortion,
+                                   LeftFov.UpTan,
+                                   LeftFov.DownTan,
+                                   LeftFov.LeftTan,
+                                   LeftFov.RightTan,
+                                   RightFov.UpTan,
+                                   RightFov.DownTan,
+                                   RightFov.LeftTan,
+                                   RightFov.RightTan);
 
         if (erp != null)
             renderConfigured = true;
@@ -297,6 +327,33 @@ public class OculusRift //implements IOculusRift
         return eulerAngles;
     }
 
+    public static Matrix4f getViewFromEyePose(float yawOffsetRads,
+                                              float pitchOffsetRads,
+                                              Vector3f headPos,
+                                              Quatf orientation,
+                                              Vector3f position,
+                                              Vector3f viewAdjust)
+    {
+        if( !libraryLoaded )
+            return null;
+
+        return _getViewFromEyePose(yawOffsetRads,
+                pitchOffsetRads,
+                headPos.x,
+                headPos.y,
+                headPos.z,
+                orientation.x,
+                orientation.y,
+                orientation.z,
+                orientation.w,
+                position.x,
+                position.y,
+                position.z,
+                viewAdjust.x,
+                viewAdjust.y,
+                viewAdjust.z);
+    }
+
     public UserProfileData getUserProfile()
     {
         if (!isInitialized())
@@ -317,7 +374,15 @@ public class OculusRift //implements IOculusRift
     protected native TrackerState    _getTrackerState(double timeFromNow);
     protected native void            _resetTracking();
 
-    protected native FovTextureInfo  _getFovTextureSize(float RenderScaleFactor);
+    protected native FovTextureInfo  _getFovTextureSize(float LeftFovUpTan,
+                                                        float LeftFovDownTan,
+                                                        float LeftFovLeftTan,
+                                                        float LeftFovRightTan,
+                                                        float RightFovUpTan,
+                                                        float RightFovDownTan,
+                                                        float RightFovLeftTan,
+                                                        float RightFovRightTan,
+                                                        float RenderScaleFactor);
     protected native EyeRenderParams _configureRendering(boolean UsesInputTexture1Only,
                                                          int InTexture1Width,
                                                          int InTexture1Height,
@@ -338,7 +403,15 @@ public class OculusRift //implements IOculusRift
                                                          boolean mirrorDisplay,
                                                          boolean useDisplayOverdrive,
                                                          boolean useDynamicPrediction,
-                                                         boolean useHighQualityDistortion);
+                                                         boolean useHighQualityDistortion,
+                                                         float LeftFovUpTan,
+                                                         float LeftFovDownTan,
+                                                         float LeftFovLeftTan,
+                                                         float LeftFovRightTan,
+                                                         float RightFovUpTan,
+                                                         float RightFovDownTan,
+                                                         float RightFovLeftTan,
+                                                         float RightFovRightTan);
     protected native void            _resetRenderConfig();
 
     protected native FrameTiming     _beginFrame(int frameIndex);
@@ -349,6 +422,21 @@ public class OculusRift //implements IOculusRift
                                                             float EyeFovPortRightTan,
                                                             float nearClip,
                                                             float farClip);
+    protected native static Matrix4f _getViewFromEyePose(float yawOffsetRads,
+                                                         float pitchOffsetRads,
+                                                         float headPosX,
+                                                         float headPosY,
+                                                         float headPosZ,
+                                                         float orientX,
+                                                         float orientY,
+                                                         float orientZ,
+                                                         float orientW,
+                                                         float PosX,
+                                                         float PosY,
+                                                         float PosZ,
+                                                         float viewAdjustX,
+                                                         float viewAdjustY,
+                                                         float viewAdjustZ);
     protected native void            _endFrame();
 
     protected native static EulerOrient _convertQuatToEuler(float quatx,
@@ -400,7 +488,7 @@ public class OculusRift //implements IOculusRift
         HmdDesc hmdDesc = or.getHmdDesc();
         System.out.println(hmdDesc.toString());
 
-        FovTextureInfo recommendedFovTextureSize = or.getFovTextureSize(1.0f);
+        FovTextureInfo recommendedFovTextureSize = or.getFovTextureSize(hmdDesc.DefaultEyeFov[0], hmdDesc.DefaultEyeFov[1], 1.0f);
         System.out.println("Render target size: " + recommendedFovTextureSize.CombinedTextureResolution.w + "x" + recommendedFovTextureSize.CombinedTextureResolution.h);
 
         while (or.isInitialized())

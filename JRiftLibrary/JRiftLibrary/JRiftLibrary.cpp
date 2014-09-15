@@ -20,6 +20,9 @@ ovrGLTexture        _GLEyeTexture[2];
 
 const bool          LogDebug = true;
 
+const Vector3f		UpVector(0.0f, 1.0f, 0.0f);
+const Vector3f		ForwardVector(0.0f, 0.0f, -1.0f);
+
 // JNI class / method caching
 static jclass       eyeRenderParams_Class                = 0;
 static jmethodID    eyeRenderParams_constructor_MethodID = 0;
@@ -208,20 +211,39 @@ JNIEXPORT void JNICALL Java_de_fruitfly_ovr_OculusRift__1resetTracking(JNIEnv *e
     ovrHmd_RecenterPose(_pHmd);
 }
 
-JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getFovTextureSize(JNIEnv *env, jobject, jfloat RenderScaleFactor)
+JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getFovTextureSize(
+	JNIEnv *env, 
+	jobject, 
+	jfloat leftFovUpTan,
+	jfloat leftFovDownTan,
+	jfloat leftFovLeftTan,
+	jfloat leftFovRightTan,
+	jfloat rightFovUpTan,
+	jfloat rightFovDownTan,
+	jfloat rightFovLeftTan,
+	jfloat rightFovRightTan,
+	jfloat RenderScaleFactor)
 {
 	if (!_initialised)
 		return 0;
 
+	ovrFovPort leftFov;
+	ovrFovPort rightFov;
+	leftFov.UpTan     = leftFovUpTan;
+	leftFov.DownTan   = leftFovDownTan;
+	leftFov.LeftTan   = leftFovLeftTan;
+	leftFov.RightTan  = leftFovRightTan;
+	rightFov.UpTan    = rightFovUpTan;
+	rightFov.DownTan  = rightFovDownTan;
+	rightFov.LeftTan  = rightFovLeftTan;
+	rightFov.RightTan = rightFovRightTan;
+
 	// A RenderScaleFactor of 1.0f signifies default (non-scaled) operation
-    Sizei recommendedTex0Size = ovrHmd_GetFovTextureSize(_pHmd, ovrEye_Left,  _pHmd->DefaultEyeFov[0], RenderScaleFactor);
-    Sizei recommendedTex1Size = ovrHmd_GetFovTextureSize(_pHmd, ovrEye_Right, _pHmd->DefaultEyeFov[1], RenderScaleFactor);
+    Sizei recommendedTex0Size = ovrHmd_GetFovTextureSize(_pHmd, ovrEye_Left,  leftFov, RenderScaleFactor);
+    Sizei recommendedTex1Size = ovrHmd_GetFovTextureSize(_pHmd, ovrEye_Right, rightFov, RenderScaleFactor);
     Sizei RenderTargetSize;
     RenderTargetSize.w = recommendedTex0Size.w + recommendedTex1Size.w;
     RenderTargetSize.h = (std::max) ( recommendedTex0Size.h, recommendedTex1Size.h );
-
-    float scalew = (float)RenderTargetSize.w / (float)_pHmd->Resolution.w;
-    float scaleh = (float)RenderTargetSize.h / (float)_pHmd->Resolution.h;
 
     ClearException(env);
 
@@ -265,7 +287,16 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1configureRendering(
     jboolean MirrorDisplay,
     jboolean UseDisplayOverdrive,
 	jboolean DynamicPrediction,
-	jboolean UseHighQualityDistortion)
+	jboolean UseHighQualityDistortion,
+	jfloat leftFovUpTan,
+	jfloat leftFovDownTan,
+	jfloat leftFovLeftTan,
+	jfloat leftFovRightTan,
+	jfloat rightFovUpTan,
+	jfloat rightFovDownTan,
+	jfloat rightFovLeftTan,
+	jfloat rightFovRightTan
+	)
 {
 	if (!_initialised)
 		return 0;
@@ -274,10 +305,20 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1configureRendering(
 
     // Initialize eye rendering information for ovrHmd_Configure.
     // The viewport sizes are re-computed in case RenderTargetSize changed due to HW limitations.
+	
+	ovrFovPort leftFov;
+	ovrFovPort rightFov;
+	leftFov.UpTan     = leftFovUpTan;
+	leftFov.DownTan   = leftFovDownTan;
+	leftFov.LeftTan   = leftFovLeftTan;
+	leftFov.RightTan  = leftFovRightTan;
+	rightFov.UpTan    = rightFovUpTan;
+	rightFov.DownTan  = rightFovDownTan;
+	rightFov.LeftTan  = rightFovLeftTan;
+	rightFov.RightTan = rightFovRightTan;
 
-    ovrRecti EyeRenderViewport[2];
-    ovrFovPort eyeFov[2] = { _pHmd->DefaultEyeFov[0], _pHmd->DefaultEyeFov[1] } ; // TODO: Why does this lead to an asymmetric fov on DK1? 
-	//ovrFovPort eyeFov[2] = { _pHmd->MaxEyeFov[0], _pHmd->MaxEyeFov[1] } ;
+    ovrRecti   EyeRenderViewport[2];
+	ovrFovPort eyeFov[2] = { leftFov, rightFov } ;
 
 	if (UsesInputTexture1Only) // Same texture used over both views
 	{
@@ -544,6 +585,51 @@ JNIEXPORT void JNICALL Java_de_fruitfly_ovr_OculusRift__1endFrame(JNIEnv *env, j
 
     // Let OVR do distortion rendering, present and flush/sync
     ovrHmd_EndFrame(_pHmd, _eyeRenderPose, &_GLEyeTexture[0].Texture);
+}
+
+JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getViewFromEyePose(
+    JNIEnv *env, 
+    jobject, 
+    jfloat yawOffsetRads,
+	jfloat pitchOffsetRads,
+	jfloat headPosX,
+	jfloat headPosY,
+	jfloat headPosZ,
+	jfloat orientX,
+	jfloat orientY,
+	jfloat orientZ,
+	jfloat orientW,
+	jfloat PosX,
+	jfloat PosY,
+	jfloat PosZ,
+	jfloat viewAdjustX,
+	jfloat viewAdjustY,
+	jfloat viewAdjustZ)
+{
+	Vector3f HeadPos(headPosX, headPosY, headPosZ);
+	Quatf	 Orient(orientX, orientY, orientZ, orientW);
+	Vector3f Pos(PosX, PosY, PosZ);
+	Posef    Pose(Orient, Pos);
+	Vector3f ViewAdjust(viewAdjustX, viewAdjustY, viewAdjustZ);
+
+	Quatf baseQ           = Quatf(UpVector, yawOffsetRads);
+	Posef WorldPose       = Posef(baseQ * Pose.Rotation, HeadPos + baseQ.Rotate(Pose.Translation));
+
+	// Rotate and position View Camera
+    Vector3f up           = WorldPose.Rotation.Rotate(UpVector);
+    Vector3f forward      = WorldPose.Rotation.Rotate(ForwardVector);
+	Vector3f viewPos      = WorldPose.Translation;
+	Matrix4f view         = Matrix4f::LookAtRH(viewPos, viewPos + forward, up);
+	Matrix4f adjustedView = Matrix4f::Translation(ViewAdjust) * view;
+    
+    jobject jproj = env->NewObject(matrix4f_Class, matrix4f_constructor_MethodID,
+                                   adjustedView.M[0][0], adjustedView.M[0][1], adjustedView.M[0][2], adjustedView.M[0][3],
+                                   adjustedView.M[1][0], adjustedView.M[1][1], adjustedView.M[1][2], adjustedView.M[1][3],
+                                   adjustedView.M[2][0], adjustedView.M[2][1], adjustedView.M[2][2], adjustedView.M[2][3],
+                                   adjustedView.M[3][0], adjustedView.M[3][1], adjustedView.M[3][2], adjustedView.M[3][3]
+                                   );
+
+    return jproj;
 }
 
 JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1convertQuatToEuler
