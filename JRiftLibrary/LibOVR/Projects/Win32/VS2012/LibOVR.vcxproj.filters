@@ -174,47 +174,38 @@
     <ClCompile Include="..\..\..\Src\CAPI\GL\CAPI_GL_HSWDisplay.cpp">
       <Filter>CAPI\GL</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\Src\Util\OptionMenu.cpp">
+    <ClCompile Include="..\..\..\..\Samples\CommonSrc\Platform\Platform.cpp">
+      <Filter>Platform</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\Samples\CommonSrc\Platform\Win32_Gamepad.cpp">
+      <Filter>Platform</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\Samples\CommonSrc\Platform\Win32_Platform.cpp">
+      <Filter>Platform</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\Samples\CommonSrc\Render\Render_Device.cpp">
+      <Filter>Render</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\Samples\CommonSrc\Render\Render_GL_Device.cpp">
+      <Filter>Render</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\Samples\CommonSrc\Render\Render_GL_Win32_Device.cpp">
+      <Filter>Render</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\Samples\CommonSrc\Render\Render_LoadTextureDDS.cpp">
+      <Filter>Render</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\Samples\CommonSrc\Render\Render_LoadTextureTGA.cpp">
+      <Filter>Render</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\Samples\CommonSrc\Render\Render_XmlSceneLoader.cpp">
+      <Filter>Render</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\Samples\CommonSrc\Util\OptionMenu.cpp">
       <Filter>Util</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\Src\Util\RenderProfiler.cpp">
+    <ClCompile Include="..\..\..\..\Samples\CommonSrc\Util\RenderProfiler.cpp">
       <Filter>Util</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\Src\Render\Render_D3D1X_Device.cpp">
-      <Filter>Render</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\Src\Render\Render_D3D10_Device.cpp">
-      <Filter>Render</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\Src\Render\Render_D3D11_Device.cpp">
-      <Filter>Render</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\Src\Render\Render_Device.cpp">
-      <Filter>Render</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\Src\Render\Render_GL_Device.cpp">
-      <Filter>Render</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\Src\Render\Render_GL_Win32_Device.cpp">
-      <Filter>Render</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\Src\Render\Render_LoadTextureDDS.cpp">
-      <Filter>Render</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\Src\Render\Render_LoadTextureTGA.cpp">
-      <Filter>Render</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\Src\Render\Render_XmlSceneLoader.cpp">
-      <Filter>Render</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\Src\Platform\Platform.cpp">
-      <Filter>Platform</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\Src\Platform\Win32_Gamepad.cpp">
-      <Filter>Platform</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\Src\Platform\Win32_Platform.cpp">
-      <Filter>Platform</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -435,53 +426,44 @@
     <ClInclude Include="..\..\..\Src\CAPI\GL\CAPI_GL_HSWDisplay.h">
       <Filter>CAPI\GL</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\Src\Util\OptionMenu.h">
+    <ClInclude Include="..\..\..\..\Samples\CommonSrc\Platform\Gamepad.h">
+      <Filter>Platform</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\Samples\CommonSrc\Platform\Platform.h">
+      <Filter>Platform</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\Samples\CommonSrc\Platform\Platform_Default.h">
+      <Filter>Platform</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\Samples\CommonSrc\Platform\Win32_Gamepad.h">
+      <Filter>Platform</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\Samples\CommonSrc\Platform\Win32_Platform.h">
+      <Filter>Platform</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\Samples\CommonSrc\Render\Render_Device.h">
+      <Filter>Render</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\Samples\CommonSrc\Render\Render_Font.h">
+      <Filter>Render</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\Samples\CommonSrc\Render\Render_FontEmbed_DejaVu48.h">
+      <Filter>Render</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\Samples\CommonSrc\Render\Render_GL_Device.h">
+      <Filter>Render</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\Samples\CommonSrc\Render\Render_GL_Win32_Device.h">
+      <Filter>Render</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\Samples\CommonSrc\Render\Render_XmlSceneLoader.h">
+      <Filter>Render</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\Samples\CommonSrc\Util\OptionMenu.h">
       <Filter>Util</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\Src\Util\RenderProfiler.h">
+    <ClInclude Include="..\..\..\..\Samples\CommonSrc\Util\RenderProfiler.h">
       <Filter>Util</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\Src\Render\Render_D3D1X_Device.h">
-      <Filter>Render</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\Src\Render\Render_D3D10_Device.h">
-      <Filter>Render</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\Src\Render\Render_D3D11_Device.h">
-      <Filter>Render</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\Src\Render\Render_Device.h">
-      <Filter>Render</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\Src\Render\Render_Font.h">
-      <Filter>Render</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\Src\Render\Render_FontEmbed_DejaVu48.h">
-      <Filter>Render</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\Src\Render\Render_GL_Device.h">
-      <Filter>Render</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\Src\Render\Render_GL_Win32_Device.h">
-      <Filter>Render</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\Src\Render\Render_XmlSceneLoader.h">
-      <Filter>Render</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\Src\Platform\Gamepad.h">
-      <Filter>Platform</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\Src\Platform\Platform.h">
-      <Filter>Platform</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\Src\Platform\Platform_Default.h">
-      <Filter>Platform</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\Src\Platform\Win32_Gamepad.h">
-      <Filter>Platform</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\Src\Platform\Win32_Platform.h">
-      <Filter>Platform</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
