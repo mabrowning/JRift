@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "OVR_CAPI_GL.h"
+#include "../Samples/CommonSrc/Platform/Platform_Default.h"
 
 using namespace OVR;
 
@@ -17,6 +18,11 @@ bool                _renderConfigured = false;
 bool                _realDevice = false;
 ovrPosef            _eyeRenderPose[2];
 ovrGLTexture        _GLEyeTexture[2];
+
+// Direct mode proto
+OVR::Render::RenderDevice*      _pRender   = 0;
+OVR::OvrPlatform::Application*  _app       = 0;
+OVR::OvrPlatform::PlatformCore* _pPlatform = 0;
 
 const bool          LogDebug = true;
 
@@ -55,6 +61,17 @@ JNIEXPORT jboolean JNICALL Java_de_fruitfly_ovr_OculusRift__1initSubsystem(JNIEn
 
 	Reset();
 
+    _app = OVR::OvrPlatform::Application::CreateApplication();
+
+#if defined(OVR_OS_WIN32)
+    HINSTANCE hinst = ::GetModuleHandle(NULL); // Get HINSTANCE of application that is using this dll
+    OVR::OvrPlatform::Win32::PlatformCore* platform = new OVR::OvrPlatform::Win32::PlatformCore(_app, hinst);
+    // The platform attached to an app will be deleted by DestroyApplication.
+    _app->SetPlatformCore(platform);
+#endif
+
+    _pPlatform = _app->GetPlatformCore();
+
     if (!CacheJNIGlobals(env))
     {
         return false;
@@ -68,6 +85,9 @@ JNIEXPORT jboolean JNICALL Java_de_fruitfly_ovr_OculusRift__1initSubsystem(JNIEn
 
     if (CreateHmdAndConfigureTracker(_hmdIndex))
         _initialised = true;
+
+    if (_initialised)
+        SetupWindowAndRendering();
 	
 	if (!_initialised)
 	{
@@ -75,6 +95,68 @@ JNIEXPORT jboolean JNICALL Java_de_fruitfly_ovr_OculusRift__1initSubsystem(JNIEn
 	}
 
 	return _initialised;
+}
+
+bool SetupWindowAndRendering()
+{
+    bool FullScreen = false;
+    
+    Sizei WindowSize;
+    if (_pHmd->HmdCaps & ovrHmdCap_ExtendDesktop)
+    {
+        WindowSize = _pHmd->Resolution;
+    }
+    else
+    {
+        // In Direct App-rendered mode, we can use smaller window size,
+        // as it can have its own contents and isn't tied to the buffer.
+        WindowSize = Sizei(1100, 618);//Sizei(960, 540); avoid rotated output bug.
+    }    
+
+    // *** Window creation
+
+    void* windowHandle = _pPlatform->SetupWindow(WindowSize.w, WindowSize.h);
+
+	if(!windowHandle)
+        return false;
+    
+	ovrHmd_AttachToWindow( _pHmd, windowHandle, NULL, NULL );
+
+    // Report relative mouse motion in OnMouseMove
+    _pPlatform->SetMouseMode(OVR::OvrPlatform::Mouse_Relative);
+
+    // *** Initialize Rendering
+    const char* graphics = "GL";
+
+    String title = "Oculus World Demo ";
+    title += graphics;
+
+    if (_pHmd->ProductName[0])
+    {
+        title += " : ";
+        title += _pHmd->ProductName;
+    }
+    _pPlatform->SetWindowTitle(title);
+
+    // Enable multi-sampling by default.
+    OVR::Render::RendererParams      RenderParams;
+    RenderParams.Display     = OVR::Render::DisplayId(_pHmd->DisplayDeviceName, _pHmd->DisplayId);
+    RenderParams.Multisample = 1;
+    RenderParams.Resolution  = _pHmd->Resolution;
+
+//    if (OVR_strcmp(graphics, "GL") == 0 && !(_pHmd->HmdCaps & ovrHmdCap_ExtendDesktop))
+//        SupportsSrgb = false;
+
+    //RenderParams.Fullscreen = true;
+#if defined(OVR_OS_WIN32)    
+    _pRender = _pPlatform->SetupGraphics(OVR::OvrPlatform::SetupGraphicsDeviceSet("GL", &OVR::Render::GL::Win32::RenderDevice::CreateDevice),
+                                       graphics, RenderParams);
+#endif                                      
+
+    if (!_pRender)
+        return false;
+
+    return true;
 }
 
 JNIEXPORT void JNICALL Java_de_fruitfly_ovr_OculusRift__1destroySubsystem(JNIEnv *env, jobject jobj) 
