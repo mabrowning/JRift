@@ -24,13 +24,13 @@ limitations under the License.
 #ifndef INC_OptionMenu_h
 #define INC_OptionMenu_h
 
-#include "OVR_Kernel.h"
+#include "../../Include/OVR_Kernel.h"
 
 #include "../Platform/Platform_Default.h"
 #include "../Render/Render_Device.h"
 #include "../Platform/Gamepad.h"
 
-#include "Util/Util_Render_Stereo.h"
+#include "../Util/Util_Render_Stereo.h"
 using namespace OVR::Util::Render;
 
 #include <Kernel/OVR_SysFile.h>
