@@ -908,6 +908,12 @@ JNIEXPORT void JNICALL Java_de_fruitfly_ovr_OculusRift__1initRenderingShim(
     ovr_InitializeRenderingShim();
 }
 
+JNIEXPORT jdouble JNICALL Java_de_fruitfly_ovr_OculusRift__1getCurrentTimeSecs(
+   JNIEnv *env, jobject)
+{
+    return ovr_GetTimeInSeconds();
+}
+
 void ResetRenderConfig()
 {
     if (_initialised)

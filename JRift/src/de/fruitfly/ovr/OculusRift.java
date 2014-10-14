@@ -259,7 +259,7 @@ public class OculusRift //implements IOculusRift
     public FrameTiming beginFrameGetTiming()
     {
         if (!initialized || !renderConfigured)
-            return null;
+            return new FrameTiming();
 
         return _beginFrame(0);
     }
@@ -267,7 +267,7 @@ public class OculusRift //implements IOculusRift
     public Posef getEyePose(EyeType eye)
     {
         if (!initialized || !renderConfigured)
-            return null;
+            return new Posef();
 
         lastPose[eye.value()] = _getEyePose(eye.value());
         return lastPose[eye.value()];
@@ -362,6 +362,16 @@ public class OculusRift //implements IOculusRift
         return _getUserProfileData();
     }
 
+    public static double getCurrentTimeSecs()
+    {
+        double time = 0f;
+
+        if (libraryLoaded)
+            time = _getCurrentTimeSecs();
+
+        return time;
+    }
+
     // Native declarations
 
     protected native static void     _initRenderingShim();
@@ -452,6 +462,7 @@ public class OculusRift //implements IOculusRift
 
     protected native UserProfileData _getUserProfileData();
     protected native static String   _getVersionString();
+    protected native static double   _getCurrentTimeSecs();
 
     public static void LoadLibrary()
     {

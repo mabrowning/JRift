@@ -231,6 +231,15 @@ JNIEXPORT jstring JNICALL Java_de_fruitfly_ovr_OculusRift__1getVersionString(
 JNIEXPORT void JNICALL Java_de_fruitfly_ovr_OculusRift__1initRenderingShim(
    JNIEnv *env, jobject);
 
+/*
+ * Class:     de_fruitfly_ovr_OculusRift
+ * Method:    _getCurrentTimeSecs
+ * Signature: ()D
+ */
+JNIEXPORT jdouble JNICALL Java_de_fruitfly_ovr_OculusRift__1getCurrentTimeSecs(
+   JNIEnv *env, jobject);
+
+
 /* Helpers */
 void DEBUGLOG(std::string s);
 void LogHmdDesc(ovrHmd pHmd);
