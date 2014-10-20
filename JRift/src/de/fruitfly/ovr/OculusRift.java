@@ -362,7 +362,7 @@ public class OculusRift //implements IOculusRift
         return _getUserProfileData();
     }
 
-    public static double getCurrentTimeSecs()
+    public static double getCurrentTimeSeconds()
     {
         double time = 0f;
 
