@@ -279,7 +279,7 @@ bool HSWDisplay::TickState(ovrHSWDisplayState *hswDisplayState, bool graphicsCon
             {
                 if(IsDisplayViewable()) // If the HMD is mounted and otherwise being viewed by the user...
                 {
-                    Display();
+                    //Display(); // Disable for now!
                     newlyDisplayed = true;
                 }
             }
