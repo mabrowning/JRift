@@ -447,9 +447,9 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1configureRendering(
                                            EyeRenderDesc[0].DistortedViewport.Size.h,
                                            EyeRenderDesc[0].PixelsPerTanAngleAtCenter.x,
                                            EyeRenderDesc[0].PixelsPerTanAngleAtCenter.y,
-                                           EyeRenderDesc[0].ViewAdjust.x,
-                                           EyeRenderDesc[0].ViewAdjust.y,
-                                           EyeRenderDesc[0].ViewAdjust.z,
+                                           EyeRenderDesc[0].HmdToEyeViewOffset.x,
+                                           EyeRenderDesc[0].HmdToEyeViewOffset.y,
+                                           EyeRenderDesc[0].HmdToEyeViewOffset.z,
                                            EyeRenderDesc[1].Eye,
                                            EyeRenderViewport[1].Pos.x,
                                            EyeRenderViewport[1].Pos.y,
@@ -465,9 +465,9 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1configureRendering(
                                            EyeRenderDesc[1].DistortedViewport.Size.h,
                                            EyeRenderDesc[1].PixelsPerTanAngleAtCenter.x,
                                            EyeRenderDesc[1].PixelsPerTanAngleAtCenter.y,
-                                           EyeRenderDesc[1].ViewAdjust.x,
-                                           EyeRenderDesc[1].ViewAdjust.y,
-                                           EyeRenderDesc[1].ViewAdjust.z
+                                           EyeRenderDesc[1].HmdToEyeViewOffset.x,
+                                           EyeRenderDesc[1].HmdToEyeViewOffset.y,
+                                           EyeRenderDesc[1].HmdToEyeViewOffset.z
 										);
 
     return eyeRenderDesc;
@@ -521,7 +521,7 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getEyePose(JNIEnv *e
     if (Eye > 0)
         eye = ovrEye_Right;
 
-    _eyeRenderPose[eye] = ovrHmd_GetEyePose(_pHmd, eye);
+    _eyeRenderPose[eye] = ovrHmd_GetHmdPosePerEye(_pHmd, eye);
 
 	jobject jposef = env->NewObject(posef_Class, posef_constructor_MethodID,
                                     _eyeRenderPose[eye].Orientation.x,
