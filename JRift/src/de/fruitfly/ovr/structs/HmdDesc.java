@@ -197,6 +197,9 @@ public class HmdDesc
         if ((caps & ovrHmdCap_NoVSync) != 0)
             sb.append(" ovrHmdCap_NoVSync\n");
 
+        if ((caps & ovrHmdCap_ExtendDesktop) != 0)
+            sb.append(" ovrHmdCap_ExtendDesktop\n");
+
         return sb.toString();
     }
 
@@ -230,5 +233,18 @@ public class HmdDesc
             sb.append(" ovrDistortion_Vignette\n");
 
         return sb.toString();
+    }
+
+    public boolean isDirectMode()
+    {
+        if ((HmdCaps & ovrHmdCap_ExtendDesktop) != 0)
+            return false;
+
+        return true;
+    }
+
+    public boolean isExtendedMode()
+    {
+        return !isDirectMode();
     }
 }
