@@ -24,6 +24,9 @@
 UNAME := $(shell uname)
 
 OCULUS_SDK:=..
+CPP:=g++
+CPPFLAGS:=-O2
+LDFLAGS:=-Wl,-O1,--sort-common,--as-needed,-z,relro
 
 ifeq ($(UNAME), Darwin)
 
@@ -99,8 +102,7 @@ ${OCULUS_SDK}/LibOVR/OSX/Release/i386/libOVR.a :
 else
 ifeq ($(UNAME), Linux)
 
-LINUX_JDK_HOME:=/usr/lib/jvm/default-java
-#LINUX_JDK_HOME:=/usr/lib/jvm/java-6-openjdk-amd64
+LINUX_JDK_HOME:=/usr/lib/jvm/default
 
 all: libJRiftLibrary64.so libJRiftLibrary.so
 
@@ -109,48 +111,52 @@ all: libJRiftLibrary64.so libJRiftLibrary.so
 64: libJRiftLibrary64.so
 
 JRiftLibrary.o: JRiftLibrary.cpp
-	g++ \
+	$(CPP) $(CFLAGS) \
 	-m32 \
 	-fPIC \
 	-fno-rtti \
 	"-I${LINUX_JDK_HOME}/include/" \
+	"-I${LINUX_JDK_HOME}/include/linux/" \
 	"-I${OCULUS_SDK}/LibOVR/Include" \
 	"-I${OCULUS_SDK}/LibOVR/Src" \
 	-c $< \
 	-o $@
 
 JRiftLibrary64.o: JRiftLibrary.cpp
-	g++ \
+	$(CPP) $(CFLAGS) \
 	-m64 \
 	-fPIC \
 	-fno-rtti \
 	"-I${LINUX_JDK_HOME}/include/" \
+	"-I${LINUX_JDK_HOME}/include/linux/" \
 	"-I${OCULUS_SDK}/LibOVR/Include" \
 	"-I${OCULUS_SDK}/LibOVR/Src" \
 	-c $< \
 	-o $@
 
 libJRiftLibrary.so: JRiftLibrary.o ${OCULUS_SDK}/LibOVR/Linux/Release/i386/libOVR.a 
-	g++ \
+	$(CPP) $(CFLAGS) $(LDFLAGS) \
 		-m32 \
 		-fno-rtti \
 		-shared \
 		-o $@ \
 		"-I${LINUX_JDK_HOME}/include/" \
+		"-I${LINUX_JDK_HOME}/include/linux/" \
 		-L ${OCULUS_SDK}/LibOVR/Lib/Linux/Release/i386/ \
 		$< \
-		-lovr -ludev -lXinerama
+		-lOculusVR -ludev -lXinerama
 
 libJRiftLibrary64.so: JRiftLibrary64.o ${OCULUS_SDK}/LibOVR/Lib/Linux/Release/x86_64/libOVR.a 
-	g++ \
+	$(CPP) $(CFLAGS) $(LDFLAGS) \
 		-m64 \
 		-fno-rtti \
 		-shared \
 		-o $@ \
 		"-I${LINUX_JDK_HOME}/include/" \
+		"-I${LINUX_JDK_HOME}/include/linux/" \
 		-L ${OCULUS_SDK}/LibOVR/Lib/Linux/Release/x86_64/ \
 		$< \
-		-lovr -ludev -lXinerama
+		-lOculusVR -ludev -lXinerama
 
 ${OCULUS_SDK}/LibOVR/Lib/Linux/Release/x86_64/libOVR.a:
 	make ARCH=64 -C ${OCULUS_SDK}/LibOVR
