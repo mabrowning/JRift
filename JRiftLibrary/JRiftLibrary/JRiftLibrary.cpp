@@ -15,6 +15,7 @@ int                 _hmdIndex    = -1;
 bool                _initialised = false;
 bool                _renderConfigured = false;
 bool                _realDevice = false;
+bool                _attachedToWindow = false;
 ovrPosef            _eyeRenderPose[2];
 ovrGLTexture        _GLEyeTexture[2];
 
@@ -404,12 +405,18 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1configureRendering(
 	ovrHmd_SetEnabledCaps(_pHmd, HmdCaps); 
 
     // Setup direct rendering if configured to do so
-	if (!(ovrHmd_GetEnabledCaps(_pHmd) & ovrHmdCap_ExtendDesktop))
+	if (!(ovrHmd_GetEnabledCaps(_pHmd) & ovrHmdCap_ExtendDesktop) && _realDevice)
     {
+		_attachedToWindow = true;
 #if defined(OVR_OS_WIN32)
         ovrHmd_AttachToWindow(_pHmd, (void*)Win, NULL, NULL);
 #endif
     }
+	else
+	{
+		_attachedToWindow = false;
+        ovrHmd_AttachToWindow(_pHmd, NULL, NULL, NULL);
+	}
 
     // Configure render setup
     ovrBool result = ovrHmd_ConfigureRendering(_pHmd, &cfg.Config, DistortionCaps, eyeFov, EyeRenderDesc);
@@ -918,6 +925,12 @@ void ResetRenderConfig()
 {
     if (_initialised)
     {
+		if (_attachedToWindow)
+		{
+			_attachedToWindow = false;
+			ovrHmd_AttachToWindow(_pHmd, NULL, NULL, NULL);
+		}
+
         ovrHmd_ConfigureRendering(_pHmd, 0, 0, 0, 0);
     }
 
@@ -933,6 +946,7 @@ void ResetRenderConfig()
     _GLEyeTexture[1] = _GLEyeTexture[0];
 
     _renderConfigured = false;
+	_attachedToWindow = false;
 }
 
 bool CreateHmdAndConfigureTracker(int hmdIndex)
