@@ -18,7 +18,7 @@ bool                _realDevice = false;
 ovrPosef            _eyeRenderPose[2];
 ovrGLTexture        _GLEyeTexture[2];
 
-const bool          LogDebug = true;
+const bool          LogDebug = false;
 
 const Vector3f		UpVector(0.0f, 1.0f, 0.0f);
 const Vector3f		ForwardVector(0.0f, 0.0f, -1.0f);
@@ -430,6 +430,16 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1configureRendering(
 		ovrHmd_DismissHSWDisplay(_pHmd);
 	
     _renderConfigured = true;
+
+    if (LogDebug)
+    {
+        printf("EyeRenderDesc[0].HmdToEyeViewOffset.x=%f\n", EyeRenderDesc[0].HmdToEyeViewOffset.x);
+        printf("EyeRenderDesc[0].HmdToEyeViewOffset.y=%f\n", EyeRenderDesc[0].HmdToEyeViewOffset.y);
+        printf("EyeRenderDesc[0].HmdToEyeViewOffset.z=%f\n", EyeRenderDesc[0].HmdToEyeViewOffset.z);
+        printf("EyeRenderDesc[1].HmdToEyeViewOffset.x=%f\n", EyeRenderDesc[1].HmdToEyeViewOffset.x);
+        printf("EyeRenderDesc[1].HmdToEyeViewOffset.y=%f\n", EyeRenderDesc[1].HmdToEyeViewOffset.y);
+        printf("EyeRenderDesc[1].HmdToEyeViewOffset.z=%f\n", EyeRenderDesc[1].HmdToEyeViewOffset.z);
+    }
 
 	jobject eyeRenderDesc = env->NewObject(eyeRenderParams_Class, eyeRenderParams_constructor_MethodID,
                                            EyeRenderDesc[0].Eye,
