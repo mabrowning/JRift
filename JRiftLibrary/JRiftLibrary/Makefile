@@ -23,7 +23,7 @@
 #############################################################################
 UNAME := $(shell uname)
 
-OCULUS_SDK:=..
+OCULUS_SDK:=../OculusSDK
 CPP:=g++
 CPPFLAGS:=-O2
 LDFLAGS:=-Wl,-O1,--sort-common,--as-needed,-z,relro
