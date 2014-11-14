@@ -15,10 +15,11 @@ int                 _hmdIndex    = -1;
 bool                _initialised = false;
 bool                _renderConfigured = false;
 bool                _realDevice = false;
+bool                _attachedToWindow = false;
 ovrPosef            _eyeRenderPose[2];
 ovrGLTexture        _GLEyeTexture[2];
 
-const bool          LogDebug = true;
+const bool          LogDebug = false;
 
 const Vector3f		UpVector(0.0f, 1.0f, 0.0f);
 const Vector3f		ForwardVector(0.0f, 0.0f, -1.0f);
@@ -404,12 +405,18 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1configureRendering(
 	ovrHmd_SetEnabledCaps(_pHmd, HmdCaps); 
 
     // Setup direct rendering if configured to do so
-	if (!(ovrHmd_GetEnabledCaps(_pHmd) & ovrHmdCap_ExtendDesktop))
+	if (!(ovrHmd_GetEnabledCaps(_pHmd) & ovrHmdCap_ExtendDesktop) && _realDevice)
     {
+		_attachedToWindow = true;
 #if defined(OVR_OS_WIN32)
         ovrHmd_AttachToWindow(_pHmd, (void*)Win, NULL, NULL);
 #endif
     }
+	else
+	{
+		_attachedToWindow = false;
+        ovrHmd_AttachToWindow(_pHmd, NULL, NULL, NULL);
+	}
 
     // Configure render setup
     ovrBool result = ovrHmd_ConfigureRendering(_pHmd, &cfg.Config, DistortionCaps, eyeFov, EyeRenderDesc);
@@ -430,6 +437,16 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1configureRendering(
 		ovrHmd_DismissHSWDisplay(_pHmd);
 	
     _renderConfigured = true;
+
+    if (LogDebug)
+    {
+        printf("EyeRenderDesc[0].HmdToEyeViewOffset.x=%f\n", EyeRenderDesc[0].HmdToEyeViewOffset.x);
+        printf("EyeRenderDesc[0].HmdToEyeViewOffset.y=%f\n", EyeRenderDesc[0].HmdToEyeViewOffset.y);
+        printf("EyeRenderDesc[0].HmdToEyeViewOffset.z=%f\n", EyeRenderDesc[0].HmdToEyeViewOffset.z);
+        printf("EyeRenderDesc[1].HmdToEyeViewOffset.x=%f\n", EyeRenderDesc[1].HmdToEyeViewOffset.x);
+        printf("EyeRenderDesc[1].HmdToEyeViewOffset.y=%f\n", EyeRenderDesc[1].HmdToEyeViewOffset.y);
+        printf("EyeRenderDesc[1].HmdToEyeViewOffset.z=%f\n", EyeRenderDesc[1].HmdToEyeViewOffset.z);
+    }
 
 	jobject eyeRenderDesc = env->NewObject(eyeRenderParams_Class, eyeRenderParams_constructor_MethodID,
                                            EyeRenderDesc[0].Eye,
@@ -918,6 +935,12 @@ void ResetRenderConfig()
 {
     if (_initialised)
     {
+		if (_attachedToWindow)
+		{
+			_attachedToWindow = false;
+			ovrHmd_AttachToWindow(_pHmd, NULL, NULL, NULL);
+		}
+
         ovrHmd_ConfigureRendering(_pHmd, 0, 0, 0, 0);
     }
 
@@ -933,6 +956,7 @@ void ResetRenderConfig()
     _GLEyeTexture[1] = _GLEyeTexture[0];
 
     _renderConfigured = false;
+	_attachedToWindow = false;
 }
 
 bool CreateHmdAndConfigureTracker(int hmdIndex)
