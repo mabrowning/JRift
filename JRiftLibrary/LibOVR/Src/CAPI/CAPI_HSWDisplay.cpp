@@ -175,7 +175,7 @@ void HSWDisplay::Display()
 bool HSWDisplay::IsDisplayViewable() const
 {
     // This function is called IsDisplayViewable, but currently it refers only to whether the 
-    // HMD is mounted on the user's head. 
+    // HMD is mounted on the user's head.
 
     return HMDMounted;
 }
@@ -183,7 +183,7 @@ bool HSWDisplay::IsDisplayViewable() const
 
 bool HSWDisplay::Dismiss()
 {
-    #if HSWDISPLAY_DEBUGGING
+    #if HSWDISPLAY_DEBUGGING && defined(OVR_OS_WIN32)
         if(GetKeyState(VK_SCROLL) & 0x0001) // If the scroll lock key is toggled on...
             return false;                   // Make it so that the display doesn't dismiss, so we can debug this.
     #endif
@@ -279,7 +279,7 @@ bool HSWDisplay::TickState(ovrHSWDisplayState *hswDisplayState, bool graphicsCon
             {
                 if(IsDisplayViewable()) // If the HMD is mounted and otherwise being viewed by the user...
                 {
-                    //Display(); // Disable for now!
+                    Display();
                     newlyDisplayed = true;
                 }
             }
