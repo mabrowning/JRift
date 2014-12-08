@@ -138,42 +138,54 @@ public class HmdDesc
         return sb.toString();
     }
 
+    // WARNING: Oculus seem to change these on a regular basis, occasionally breaking backwards compatibility!
+
     // HMD capability bits reported by device.
     // Read-only flags.
     public static int ovrHmdCap_Present           = 0x0001;   //  This HMD exists (as opposed to being unplugged).
     public static int ovrHmdCap_Available         = 0x0002;   //  HMD and is sensor is available for use
                                                               //  (if not owned by another app).
+    public static int ovrHmdCap_Captured          = 0x0004;   /// Set to 'true' if we captured ownership of this HMD.
 
     // These flags are intended for use with the new driver display mode.
-    public static int ovrHmdCap_ExtendDesktop     = 0x0004;   // Read only, means display driver is in compatibility mode.
+    public static int ovrHmdCap_ExtendDesktop     = 0x0008;   // (read only) Means the display driver is in compatibility mode.
 
-    public static int ovrHmdCap_DisplayOff        = 0x0040;   // Turns off Oculus HMD screen and output.
-    public static int ovrHmdCap_NoMirrorToWindow  = 0x2000;   // Disables mirrowing of HMD output to the window;
+    public static int ovrHmdCap_NoMirrorToWindow  = 0x2000;   // Disables mirroring of HMD output to the window;
                                                               // may improve rendering performance slightly.
+    public static int ovrHmdCap_DisplayOff        = 0x0040;   // Turns off Oculus HMD screen and output.
 
     // Modifiable flags (through ovrHmd_SetEnabledCaps).
     public static int ovrHmdCap_LowPersistence    = 0x0080;   //  Supports low persistence mode.
-    public static int ovrHmdCap_LatencyTest       = 0x0100;   //  Supports pixel reading for continuous latency testing.
     public static int ovrHmdCap_DynamicPrediction = 0x0200;   //  Adjust prediction dynamically based on DK2 Latency.
-
-    // Support rendering without VSync for debugging
-    public static int ovrHmdCap_NoVSync           = 0x1000;
-    public static int ovrHmdCap_NoRestore         = 0x4000;
+    public static int ovrHmdCap_NoVSync           = 0x1000;   //  Support rendering without VSync for debugging
 
     // These bits can be modified by ovrHmd_SetEnabledCaps.
     public static int ovrHmdCap_Writable_Mask     = 0x1380;
+    public static int ovrHmdCap_Service_Mask      = 0x23F0;
 
     // Tracking capability bits reported by device.
     // Used with ovrHmd_ConfigureTracking.
-    public static int ovrTrackingCap_Orientation    = 0x0010;   //  Supports orientation tracking (IMU).
+    public static int ovrTrackingCap_Orientation       = 0x0010;   //  Supports orientation tracking (IMU).
     public static int ovrTrackingCap_MagYawCorrection  = 0x0020;   //  Supports yaw correction through magnetometer or other means.
-    public static int ovrTrackingCap_Position       = 0x0040;   //  Supports positional tracking.
+    public static int ovrTrackingCap_Position          = 0x0040;   //  Supports positional tracking.
+    /// Overrides the other flags. Indicates that the application
+    /// doesn't care about tracking settings. This is the internal
+    /// default before ovrHmd_ConfigureTracking is called.
+    public static int ovrTrackingCap_Idle              = 0x0100;
 
     // Distortion capability bits reported by device.
     // Used with ovrHmd_ConfigureRendering and ovrHmd_CreateDistortionMesh.
-    public static int ovrDistortion_Chromatic = 0x01;    //	Supports chromatic aberration correction.
-    public static int ovrDistortion_TimeWarp  = 0x02;    //	Supports timewarp.
-    public static int ovrDistortion_Vignette  = 0x08;    //	Supports vignetting around the edges of the view.
+    public static int ovrDistortion_Chromatic                      = 0x01;    // Supports chromatic aberration correction.
+    public static int ovrDistortion_TimeWarp                       = 0x02;    // Supports timewarp.
+    public static int ovrDistortion_Vignette                       = 0x08;    // Supports vignetting around the edges of the view.
+    public static int ovrDistortionCap_NoRestore                   = 0x10;    // Do not save and restore the graphics state when rendering distortion.
+    public static int ovrDistortionCap_FlipInput                   = 0x20;    // Flip the vertical texture coordinate of input images.
+    public static int ovrDistortionCap_SRGB                        = 0x40;    // Assume input images are in sRGB gamma-corrected color space.
+    public static int ovrDistortionCap_Overdrive                   = 0x80;    // Overdrive brightness transitions to reduce artifacts on DK2+ displays
+    public static int ovrDistortionCap_HqDistortion                = 0x100;   // High-quality sampling of distortion buffer for anti-aliasing
+    public static int ovrDistortionCap_LinuxDevFullscreen          = 0x200;   // Indicates window is fullscreen on a device when set. The SDK will automatically apply distortion mesh rotation if needed.
+    public static int ovrDistortionCap_ProfileNoTimewarpSpinWaits  = 0x10000; // Use when profiling with timewarp to remove false positives
+
 
     public static String HmdCapsToString(int caps)
     {
@@ -185,11 +197,11 @@ public class HmdDesc
         if ((caps & ovrHmdCap_Available) != 0)
             sb.append(" ovrHmdCap_Available\n");
 
+        if ((caps & ovrHmdCap_Captured) != 0)
+            sb.append(" ovrHmdCap_Captured\n");
+
         if ((caps & ovrHmdCap_LowPersistence) != 0)
             sb.append(" ovrHmdCap_LowPersistence\n");
-
-        if ((caps & ovrHmdCap_LatencyTest) != 0)
-            sb.append(" ovrHmdCap_LatencyTest\n");
 
         if ((caps & ovrHmdCap_DynamicPrediction) != 0)
             sb.append(" ovrHmdCap_DynamicPrediction\n");
@@ -199,6 +211,21 @@ public class HmdDesc
 
         if ((caps & ovrHmdCap_ExtendDesktop) != 0)
             sb.append(" ovrHmdCap_ExtendDesktop\n");
+
+        if ((caps & ovrHmdCap_ExtendDesktop) != 0)
+            sb.append(" ovrHmdCap_ExtendDesktop\n");
+
+        if ((caps & ovrHmdCap_DisplayOff) != 0)
+            sb.append(" ovrHmdCap_DisplayOff\n");
+
+        if ((caps & ovrHmdCap_NoMirrorToWindow) != 0)
+            sb.append(" ovrHmdCap_NoMirrorToWindow\n");
+
+        if ((caps & ovrHmdCap_Writable_Mask) != 0)
+            sb.append(" ovrHmdCap_Writable_Mask\n");
+
+        if ((caps & ovrHmdCap_Service_Mask) != 0)
+            sb.append(" ovrHmdCap_Service_Mask\n");
 
         return sb.toString();
     }
@@ -216,6 +243,9 @@ public class HmdDesc
         if ((caps & ovrTrackingCap_Position) != 0)
             sb.append(" ovrTrackingCap_Position\n");
 
+        if ((caps & ovrTrackingCap_Idle) != 0)
+            sb.append(" ovrTrackingCap_Idle\n");
+
         return sb.toString();
     }
 
@@ -231,6 +261,27 @@ public class HmdDesc
 
         if ((caps & ovrDistortion_Vignette) != 0)
             sb.append(" ovrDistortion_Vignette\n");
+
+        if ((caps & ovrDistortionCap_NoRestore) != 0)
+            sb.append(" ovrDistortionCap_NoRestore\n");
+
+        if ((caps & ovrDistortionCap_FlipInput) != 0)
+            sb.append(" ovrDistortionCap_FlipInput\n");
+
+        if ((caps & ovrDistortionCap_SRGB) != 0)
+            sb.append(" ovrDistortionCap_SRGB\n");
+
+        if ((caps & ovrDistortionCap_Overdrive) != 0)
+            sb.append(" ovrDistortionCap_Overdrive\n");
+
+        if ((caps & ovrDistortionCap_HqDistortion) != 0)
+            sb.append(" ovrDistortionCap_HqDistortion\n");
+
+        if ((caps & ovrDistortionCap_LinuxDevFullscreen) != 0)
+            sb.append(" ovrDistortionCap_LinuxDevFullscreen\n");
+
+        if ((caps & ovrDistortionCap_ProfileNoTimewarpSpinWaits) != 0)
+            sb.append(" ovrDistortionCap_ProfileNoTimewarpSpinWaits\n");
 
         return sb.toString();
     }

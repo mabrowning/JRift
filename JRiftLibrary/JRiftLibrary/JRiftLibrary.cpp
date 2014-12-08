@@ -4,7 +4,9 @@
 #include <iostream>
 #include <string>
 #include <vector>
-
+#if defined(OVR_OS_WIN32)
+#include "Windows.h"
+#endif
 #include "OVR_CAPI_GL.h"
 
 using namespace OVR;
@@ -362,9 +364,9 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1configureRendering(
 
 	// Configure OpenGL. 
 	ovrGLConfig cfg; 
-	cfg.OGL.Header.API         = ovrRenderAPI_OpenGL; 
-	cfg.OGL.Header.RTSize      = Sizei(OutDisplayWidth, OutDisplayHeight); 
-	cfg.OGL.Header.Multisample = MultiSample; 
+	cfg.OGL.Header.API            = ovrRenderAPI_OpenGL; 
+	cfg.OGL.Header.BackBufferSize = Sizei(OutDisplayWidth, OutDisplayHeight); 
+	cfg.OGL.Header.Multisample    = MultiSample; 
 
 	// Cast context pointers to 32 / 64 bit as appropriate
 #if defined(OVR_OS_WIN32)
