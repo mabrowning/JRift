@@ -6,7 +6,7 @@ find_package(JNI REQUIRED)
 
 add_subdirectory (OculusSDK)
  
-include_directories(Include ${CMAKE_CURRENT_SOURCE_DIR}/Src)
+include_directories(Include ${CMAKE_CURRENT_SOURCE_DIR}/src)
 include_directories(Include ${CMAKE_CURRENT_SOURCE_DIR}/OculusSDK/LibOVR/Include)
 include_directories(Include ${CMAKE_CURRENT_SOURCE_DIR}/OculusSDK/LibOVR/Src)
 include_directories(Include ${JNI_INCLUDE_DIRS})
@@ -33,7 +33,7 @@ foreach( OUTPUTCONFIG ${CMAKE_CONFIGURATION_TYPES} )
 endforeach( OUTPUTCONFIG CMAKE_CONFIGURATION_TYPES )
 
 set( JRIFT_DYNLIB_NAME JRiftLibrary${BITS} )
-add_library(${JRIFT_DYNLIB_NAME} SHARED ${CMAKE_CURRENT_SOURCE_DIR}/Src/JRiftLibrary.cpp)
+add_library(${JRIFT_DYNLIB_NAME} SHARED ${CMAKE_CURRENT_SOURCE_DIR}/src/JRiftLibrary.cpp)
 target_link_libraries (${JRIFT_DYNLIB_NAME} general ${OVR_LIBRARIES})
 target_link_libraries (${JRIFT_DYNLIB_NAME} debug OculusVRd)
 target_link_libraries (${JRIFT_DYNLIB_NAME} optimized OculusVR)
