@@ -12,6 +12,10 @@ include_directories(Include ${CMAKE_CURRENT_SOURCE_DIR}/OculusSDK/LibOVR/Src)
 include_directories(Include ${JNI_INCLUDE_DIRS})
 link_directories(Include ${CMAKE_BINARY_DIR}/output)
 
+set(CMAKE_C_FLAGS "-O2 ${CMAKE_C_FLAGS}")
+set(CMAKE_CXX_FLAGS "-O2 ${CMAKE_CXX_FLAGS}")
+set(CMAKE_SHARED_LINKER_FLAGS "-Wl,-O1,--sort-common,--as-needed,-z,relro")
+
 if(WIN32)
     set ( NATIVES_DIR ${CMAKE_CURRENT_SOURCE_DIR}/natives/windows )
 elseif(APPLE)
