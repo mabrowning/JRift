@@ -393,6 +393,10 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1configureRendering(
 	if (UseHighQualityDistortion)
 		DistortionCaps |= ovrDistortionCap_HqDistortion;
 
+#if defined(OVR_OS_LINUX)
+    DistortionCaps |= ovrDistortionCap_LinuxDevFullscreen;
+#endif
+
 	//DistortionCaps |= ovrDistortionCap_SRGB;
     
 	ovrEyeRenderDesc EyeRenderDesc[2];
