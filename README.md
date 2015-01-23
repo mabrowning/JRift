@@ -3,21 +3,34 @@ JRift
 
 Java Wrapper (JNI) for the Oculus Rift HMD and Sensors.
 
-Currently exposes the [HMDInfo](https://developer.oculusvr.com/doc/html/class_o_v_r_1_1_h_m_d_info.html) and yaw/pitch/roll angles of the sensors.
+Uses Jherico's Oculus SDK port as a submodule, https://github.com/jherico/OculusSDK
+Many thanks to Jherico for making it easier to port to new releases of the Oculus SDK! 
 
-You can get a first alpha build (32-bit JRE) for Windows from here:
-https://dl.dropbox.com/u/8241387/OVR/JRift_alpha.zip
 
-Buliding
+Building
 ========
+
+- Ensure the JAVA_HOME environment variable is set-up and points to a valid Java installation directory. I currently build with JDK 1.6.0.45 64bit.
+- Install CMake >= V2.8
+- Install Maven if you want to be able to easily package and deploy JRift versions.
+
+JRift - the java part
+---------------------
+
+- Change directory to <JRift root>/JRift/
+- Run 'mvn package'. This will create the appropriately named <JRift-version>.jar in <JRift root>/JRift/target/
+
+JRiftLibrary - the C++ JNI part
+-------------------------------
 
 Windows
 -------
 
-Compile the Java-part into a JAR (JRift) and compile the C++ part into a .dll (JRiftLibrary).
-The JRiftLibrary comes with a Visual Studio 2010 solution project so it should build by only properly setting up two depenencies:
-* jni.h header include of your installed JDK (include <jdk-dir>/include and <jdk-dir>/win32
-* OVR SDK headers and library references. Get the SDK from [Oculus VR](https://developer.oculusvr.com) and see [this wiki entry](https://developer.oculusvr.com/wiki/Minimal_Oculus_Application) on how to set up the includes and library references properly.
+- Ensure Visual Studio 12 or higher is installed. 
+- Change directory to <JRift root>/JRiftLibrary/
+- Run 'build_windows.bat'. This will build the Windows JRiftLibrary 32 and 64 bit native dlls in <JRift root>/JRiftLibrary/natives/windows
+- Run 'mvn package'. This will create the appropriately named <JRiftLibrary-version>.jar and <JRiftLibrary-version-windows-natives>.jar in <JRift root>/JRiftLibrary/target/
+- Any client program using JRift and JRiftLibrary will have a dependency on the MS VC++ 12 re-distributable packages (32 or 64bit, dependent on the version of Java being used to run your client). Install these before running your program on Windows.
 
 Mac
 ---
