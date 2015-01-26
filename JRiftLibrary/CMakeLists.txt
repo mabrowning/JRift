@@ -4,7 +4,14 @@ project(JRiftLibrary)
 
 find_package(JNI REQUIRED)
 
+# Don’t build the Oculus SDK samples
+SET(OCULUS_BUILD_SAMPLES OFF CACHE BOOL "Build Oculus demos")
+
+# Add the OculusSDK project
 add_subdirectory (OculusSDK)
+
+#cmake_policy(SET CMP0015 OLD)
+#cmake_policy(SET CMP0042 OLD)
  
 include_directories(Include ${CMAKE_CURRENT_SOURCE_DIR}/src)
 include_directories(Include ${CMAKE_CURRENT_SOURCE_DIR}/OculusSDK/LibOVR/Include)
