@@ -19,7 +19,7 @@ elif [ "$1" == "-m32" ]; then
    cd "$SCRIPTDIR/linux32"
    cmake -DCMAKE_C_FLAGS="-m32" -DCMAKE_CXX_FLAGS="-m32" -DCMAKE_SHARED_LINKER_FLAGS="-m32" "$SCRIPTDIR"
    make
-   cp "$SCRIPTDIR/linux64/libJRiftLibrary.so" "$SCRIPTDIR/natives/linux/"
+   cp "$SCRIPTDIR/linux32/libJRiftLibrary.so" "$SCRIPTDIR/natives/linux/"
    cd "$CURDIR"
 else
    echo "Missing argument '-m32' (for 32bit build) or '-m64' (for 64bit build)"
