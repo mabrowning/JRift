@@ -288,7 +288,7 @@ public class HmdDesc
 
     public boolean isDirectMode()
     {
-        if (IsReal)
+        if (!IsReal)
             return false;
 
         if ((HmdCaps & ovrHmdCap_ExtendDesktop) != 0)
