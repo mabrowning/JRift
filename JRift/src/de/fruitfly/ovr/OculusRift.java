@@ -264,6 +264,14 @@ public class OculusRift //implements IOculusRift
         return _beginFrame(0);
     }
 
+    public FrameTiming beginFrameGetTiming(int frameIndex)
+    {
+        if (!initialized || !renderConfigured)
+            return new FrameTiming();
+
+        return _beginFrame(frameIndex);
+    }
+
     public Posef getEyePose(EyeType eye)
     {
         if (!initialized || !renderConfigured)
@@ -273,8 +281,25 @@ public class OculusRift //implements IOculusRift
         return lastPose[eye.value()];
     }
 
+    public FullPoseState getEyePoses(int frameIndex)
+    {
+        if (!initialized || !renderConfigured)
+            return new FullPoseState();
+
+        return _getEyePoses(frameIndex,
+                erp.Eyes[0].ViewAdjust.x,
+                erp.Eyes[0].ViewAdjust.y,
+                erp.Eyes[0].ViewAdjust.z,
+                erp.Eyes[1].ViewAdjust.x,
+                erp.Eyes[1].ViewAdjust.y,
+                erp.Eyes[1].ViewAdjust.z);
+    }
+
     public Vector3f getEyePos(EyeType eye)
     {
+        if (!isInitialized())
+            return new Vector3f();
+
         Posef pose = lastPose[eye.value()];
         return new Vector3f(pose.Position.x, pose.Position.y, pose.Position.z);
     }
@@ -362,6 +387,14 @@ public class OculusRift //implements IOculusRift
         return _getUserProfileData();
     }
 
+    public void dismissHSW()
+    {
+        if (!isInitialized())
+            return;
+
+        _dismissHSW();
+    }
+
     public static double getCurrentTimeSeconds()
     {
         double time = 0f;
@@ -426,6 +459,13 @@ public class OculusRift //implements IOculusRift
 
     protected native FrameTiming     _beginFrame(int frameIndex);
     protected native Posef           _getEyePose(int eye);
+    protected native FullPoseState   _getEyePoses(int frameIndex,
+                                                  float leftEyeViewAdjustX,
+                                                  float leftEyeViewAdjustY,
+                                                  float leftEyeViewAdjustZ,
+                                                  float rightEyeViewAdjustX,
+                                                  float rightEyeViewAdjustY,
+                                                  float rightEyeViewAdjustZ);
     protected native Matrix4f        _getMatrix4fProjection(float EyeFovPortUpTan,
                                                             float EyeFovPortDownTan,
                                                             float EyeFovPortLeftTan,
@@ -461,6 +501,7 @@ public class OculusRift //implements IOculusRift
                                                             int rotationDir);
 
     protected native UserProfileData _getUserProfileData();
+    protected native void            _dismissHSW();
     protected native static String   _getVersionString();
     protected native static double   _getCurrentTimeSecs();
 

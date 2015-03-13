@@ -151,6 +151,14 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1beginFrame
 
 /*
  * Class:     de_fruitfly_ovr_OculusRift
+ * Method:    getEyePoses
+ * Signature: (I)Lde/fruitfly/ovr/structs/Posef;
+ */
+JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getEyePoses
+	(JNIEnv *env, jobject, jint FrameIndex);
+
+/*
+ * Class:     de_fruitfly_ovr_OculusRift
  * Method:    getEyePose
  * Signature: (I)Lde/fruitfly/ovr/structs/Posef;
  */

@@ -85,7 +85,7 @@ JNIEXPORT jboolean JNICALL Java_de_fruitfly_ovr_OculusRift__1initSubsystem(JNIEn
 JNIEXPORT void JNICALL Java_de_fruitfly_ovr_OculusRift__1destroySubsystem(JNIEnv *env, jobject jobj) 
 {
 	printf("Destroying Oculus Rift device interface.\n");	
-		
+
 	if (_initialised)
 	{
 		Reset();
@@ -626,6 +626,93 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1beginFrame(JNIEnv *e
 
     return jframeTiming;
 }
+
+JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getEyePoses(
+	JNIEnv *env, 
+	jobject, 
+	jint FrameIndex,
+	jfloat HmdToLeftEyeViewOffsetX,
+	jfloat HmdToLeftEyeViewOffsetY,
+	jfloat HmdToLeftEyeViewOffsetZ,
+	jfloat HmdToRightEyeViewOffsetX,
+	jfloat HmdToRightEyeViewOffsetY,
+	jfloat HmdToRightEyeViewOffsetZ
+	)
+{
+    if (!_initialised)
+        return 0;
+
+    if (!_renderConfigured)
+    {
+        printf("getEyePoses() - ERROR: Render config not set!\n");
+        return 0;
+    }
+
+	ovrVector3f ViewOffsets[2];
+	ViewOffsets[0].x = HmdToLeftEyeViewOffsetX;
+	ViewOffsets[0].y = HmdToLeftEyeViewOffsetY;
+	ViewOffsets[0].z = HmdToLeftEyeViewOffsetZ;
+	ViewOffsets[1].x = HmdToRightEyeViewOffsetX;
+	ViewOffsets[1].y = HmdToRightEyeViewOffsetY;
+	ViewOffsets[1].z = HmdToRightEyeViewOffsetZ;
+
+	ovrTrackingState ss;
+
+	// Get both eye poses, and the tracking state in one hit
+	ovrHmd_GetEyePoses(_pHmd, FrameIndex, ViewOffsets, _eyeRenderPose, &ss);
+
+    ClearException(env);
+    jobject jss = env->NewObject(trackerState_Class, trackerState_constructor_MethodID,
+                                 ss.HeadPose.ThePose.Orientation.x,   
+                                 ss.HeadPose.ThePose.Orientation.y,  
+                                 ss.HeadPose.ThePose.Orientation.z,   
+                                 ss.HeadPose.ThePose.Orientation.w,   
+                                 ss.HeadPose.ThePose.Position.x,      
+                                 ss.HeadPose.ThePose.Position.y,      
+                                 ss.HeadPose.ThePose.Position.z,      
+                                 ss.HeadPose.AngularVelocity.x,    
+                                 ss.HeadPose.AngularVelocity.y,    
+                                 ss.HeadPose.AngularVelocity.z,    
+                                 ss.HeadPose.LinearVelocity.x,     
+                                 ss.HeadPose.LinearVelocity.y,     
+                                 ss.HeadPose.LinearVelocity.z,     
+                                 ss.HeadPose.AngularAcceleration.x,
+                                 ss.HeadPose.AngularAcceleration.y,
+                                 ss.HeadPose.AngularAcceleration.z,
+                                 ss.HeadPose.LinearAcceleration.x, 
+                                 ss.HeadPose.LinearAcceleration.y, 
+                                 ss.HeadPose.LinearAcceleration.z, 
+                                 ss.HeadPose.TimeInSeconds,        
+                                 ss.RawSensorData.Temperature,
+                                 ss.StatusFlags
+                                 );
+    if (jss == 0) PrintNewObjectException(env, "TrackerState");
+
+	ClearException(env);
+	jobject jleftEyePosef = env->NewObject(posef_Class, posef_constructor_MethodID,
+                                _eyeRenderPose[0].Orientation.x,
+                                _eyeRenderPose[0].Orientation.y,
+                                _eyeRenderPose[0].Orientation.z,
+                                _eyeRenderPose[0].Orientation.w,
+                                _eyeRenderPose[0].Position.x,
+                                _eyeRenderPose[0].Position.y,
+                                _eyeRenderPose[0].Position.z);
+	jobject jrightEyePosef = env->NewObject(posef_Class, posef_constructor_MethodID,
+                                _eyeRenderPose[1].Orientation.x,
+                                _eyeRenderPose[1].Orientation.y,
+                                _eyeRenderPose[1].Orientation.z,
+                                _eyeRenderPose[1].Orientation.w,
+                                _eyeRenderPose[1].Position.x,
+                                _eyeRenderPose[1].Position.y,
+                                _eyeRenderPose[1].Position.z);
+	if (jleftEyePosef == 0 || jrightEyePosef == 0) PrintNewObjectException(env, "Posef");
+
+	// TODO: Create new container object, return
+
+	return 0;
+}
+
+// TODO: Dismiss HSW, Show HSW
 
 JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getEyePose(JNIEnv *env, jobject, jint Eye)
 {
