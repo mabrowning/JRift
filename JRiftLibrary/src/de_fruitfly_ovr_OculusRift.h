@@ -127,6 +127,22 @@ JNIEXPORT void JNICALL Java_de_fruitfly_ovr_OculusRift__1resetRenderConfig
 
 /*
  * Class:     de_fruitfly_ovr_OculusRift
+ * Method:    getEyePoses
+ * Signature: (I)Lde/fruitfly/ovr/FullPoseState;
+ */
+JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getEyePoses(
+	JNIEnv *env, 
+	jobject, 
+	jint FrameIndex,
+	jfloat HmdToLeftEyeViewOffsetX,
+	jfloat HmdToLeftEyeViewOffsetY,
+	jfloat HmdToLeftEyeViewOffsetZ,
+	jfloat HmdToRightEyeViewOffsetX,
+	jfloat HmdToRightEyeViewOffsetY,
+	jfloat HmdToRightEyeViewOffsetZ);
+
+/*
+ * Class:     de_fruitfly_ovr_OculusRift
  * Method:    beginFrame
  * Signature: (I)Lde/fruitfly/ovr/structs/FrameTiming;
  */
@@ -239,12 +255,20 @@ JNIEXPORT void JNICALL Java_de_fruitfly_ovr_OculusRift__1initRenderingShim(
 JNIEXPORT jdouble JNICALL Java_de_fruitfly_ovr_OculusRift__1getCurrentTimeSecs(
    JNIEnv *env, jobject);
 
+/*
+ * Class:     de_fruitfly_ovr_OculusRift
+ * Method:    _dismissHSW
+ * Signature: ()V
+ */
+JNIEXPORT void JNICALL Java_de_fruitfly_ovr_OculusRift__1dismissHSW(
+   JNIEnv *env, jobject);
 
 /* Helpers */
 void DEBUGLOG(std::string s);
 void LogHmdDesc(ovrHmd pHmd);
 void Reset();
 void ResetRenderConfig();
+void DismissHSW();
 bool CacheJNIGlobals(JNIEnv *env);
 bool CreateHmdAndConfigureTracker(int hmdIndex);
 bool LookupJNIGlobal(JNIEnv *env,
