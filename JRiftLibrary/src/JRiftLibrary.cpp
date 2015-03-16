@@ -438,24 +438,11 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1configureRendering(
         ResetRenderConfig();
 		return 0;
 	}
-
-//	unsigned sensorCaps = ovrTrackingCap_Orientation|ovrTrackingCap_MagYawCorrection|ovrTrackingCap_Position;
-//    ovrHmd_ConfigureTracking(_pHmd, sensorCaps, 0);
 	
 	// Nuke HSW
 	DismissHSW();
 	
     _renderConfigured = true;
-
-    if (LogDebug)
-    {
-        printf("EyeRenderDesc[0].HmdToEyeViewOffset.x=%f\n", EyeRenderDesc[0].HmdToEyeViewOffset.x);
-        printf("EyeRenderDesc[0].HmdToEyeViewOffset.y=%f\n", EyeRenderDesc[0].HmdToEyeViewOffset.y);
-        printf("EyeRenderDesc[0].HmdToEyeViewOffset.z=%f\n", EyeRenderDesc[0].HmdToEyeViewOffset.z);
-        printf("EyeRenderDesc[1].HmdToEyeViewOffset.x=%f\n", EyeRenderDesc[1].HmdToEyeViewOffset.x);
-        printf("EyeRenderDesc[1].HmdToEyeViewOffset.y=%f\n", EyeRenderDesc[1].HmdToEyeViewOffset.y);
-        printf("EyeRenderDesc[1].HmdToEyeViewOffset.z=%f\n", EyeRenderDesc[1].HmdToEyeViewOffset.z);
-    }
 
 	jobject eyeRenderDesc = env->NewObject(eyeRenderParams_Class, eyeRenderParams_constructor_MethodID,
                                            EyeRenderDesc[0].Eye,
@@ -519,12 +506,6 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getEyePoses(
     if (!_initialised)
         return 0;
 
-    //if (!_renderConfigured)
-    //{
-    //    printf("getEyePoses() - ERROR: Render config not set!\n");
-    //    return 0;
-    //}
-
 	ovrVector3f ViewOffsets[2];
 	ViewOffsets[0].x = HmdToLeftEyeViewOffsetX;
 	ViewOffsets[0].y = HmdToLeftEyeViewOffsetY;
@@ -537,31 +518,6 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getEyePoses(
 
 	// Get both eye poses, and the tracking state in one hit
 	ovrHmd_GetEyePoses(_pHmd, (unsigned int)FrameIndex, ViewOffsets, _eyeRenderPose, &ss);
-
-/*
-w	        x	        y	        z	        Description
-1	        0	        0	        0	        Identity quaternion, no rotation
-0	        1	        0	        0	        180° turn around X axis
-0	        0	        1	        0	        180° turn around Y axis
-0	        0	        0	        1	        180° turn around Z axis
-sqrt(0.5)	sqrt(0.5)	0	        0	        90° rotation around X axis
-
-sqrt(0.5)	0	        sqrt(0.5)	0	        90° rotation around Y axis
-
-sqrt(0.5)	0	        0	        sqrt(0.5)	90° rotation around Z axis
-sqrt(0.5)	-sqrt(0.5)	0	        0	       -90° rotation around X axis
-sqrt(0.5)	0	        -sqrt(0.5)	0	       -90° rotation around Y axis
-sqrt(0.5)	0	        0	        -sqrt(0.5) -90° rotation around Z axis
-*/
-
-	//_eyeRenderPose[0].Orientation.w = (float)sqrt(0.5);
-	//_eyeRenderPose[0].Orientation.x = (float)0;
-	//_eyeRenderPose[0].Orientation.y = (float)sqrt(0.5);
-	//_eyeRenderPose[0].Orientation.z = (float)0;
-	//_eyeRenderPose[1].Orientation.w = (float)sqrt(0.5);
-	//_eyeRenderPose[1].Orientation.x = (float)0;
-	//_eyeRenderPose[1].Orientation.y = (float)sqrt(0.5);
-	//_eyeRenderPose[1].Orientation.z = (float)0;
 
     ClearException(env);
 	jobject jfullposestate = env->NewObject(fullPoseState_Class, fullPoseState_constructor_MethodID,
@@ -639,11 +595,11 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getEyePose(JNIEnv *e
     if (!_initialised)
         return 0;
 
-    //if (!_renderConfigured)
-    //{
-    //    printf("getEyePose() - ERROR: Render config not set!\n");
-    //    return 0;
-    //}
+    if (!_renderConfigured)
+    {
+        printf("getEyePose() - ERROR: Render config not set!\n");
+        return 0;
+    }
 
     ovrEyeType eye = ovrEye_Left;
     if (Eye > 0)
