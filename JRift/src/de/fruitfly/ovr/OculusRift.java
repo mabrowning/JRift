@@ -1,12 +1,10 @@
 package de.fruitfly.ovr;
 
-import de.fruitfly.ovr.enums.Axis;
-import de.fruitfly.ovr.enums.EyeType;
-import de.fruitfly.ovr.enums.HandedSystem;
-import de.fruitfly.ovr.enums.RotateDirection;
+import de.fruitfly.ovr.enums.*;
 import de.fruitfly.ovr.structs.*;
 
 import java.io.File;
+import java.text.DecimalFormat;
 
 public class OculusRift //implements IOculusRift
 {
@@ -15,7 +13,7 @@ public class OculusRift //implements IOculusRift
 
 	private HmdDesc hmdDesc = new HmdDesc();
     private TrackerState trackerState = new TrackerState();
-    private Posef lastPose[] = new Posef[2];
+    private Posef lastPose[] = new Posef[3];
 
     public String _initSummary = "Not initialised";
 
@@ -27,6 +25,7 @@ public class OculusRift //implements IOculusRift
     {
         lastPose[0] = new Posef();
         lastPose[1] = new Posef();
+        lastPose[2] = new Posef();
         resetHMDInfo();
 	}
 
@@ -274,7 +273,7 @@ public class OculusRift //implements IOculusRift
 
     public Posef getEyePose(EyeType eye)
     {
-        if (!initialized || !renderConfigured)
+        if (!initialized)
             return new Posef();
 
         lastPose[eye.value()] = _getEyePose(eye.value());
@@ -283,16 +282,46 @@ public class OculusRift //implements IOculusRift
 
     public FullPoseState getEyePoses(int frameIndex)
     {
-        if (!initialized || !renderConfigured)
+        if (!initialized)
             return new FullPoseState();
 
-        return _getEyePoses(frameIndex,
+        FullPoseState fullPoseState = _getEyePoses(frameIndex,
                 erp.Eyes[0].ViewAdjust.x,
                 erp.Eyes[0].ViewAdjust.y,
                 erp.Eyes[0].ViewAdjust.z,
                 erp.Eyes[1].ViewAdjust.x,
                 erp.Eyes[1].ViewAdjust.y,
                 erp.Eyes[1].ViewAdjust.z);
+
+        if (fullPoseState == null)
+            fullPoseState = new FullPoseState();
+
+        lastPose[EyeType.ovrEye_Left.value()] = fullPoseState.getPose(EyeType.ovrEye_Left);
+        lastPose[EyeType.ovrEye_Right.value()] = fullPoseState.getPose(EyeType.ovrEye_Right);
+
+        return fullPoseState;
+    }
+
+    public FullPoseState getEyePoses(int frameIndex, Vector3f leftEyeViewAdjust, Vector3f RightEyeViewAdjust)
+    {
+        if (!initialized)
+            return new FullPoseState();
+
+        FullPoseState fullPoseState = _getEyePoses(frameIndex,
+                leftEyeViewAdjust.x,
+                leftEyeViewAdjust.y,
+                leftEyeViewAdjust.z,
+                RightEyeViewAdjust.x,
+                RightEyeViewAdjust.y,
+                RightEyeViewAdjust.z);
+
+        if (fullPoseState == null)
+            fullPoseState = new FullPoseState();
+
+        lastPose[EyeType.ovrEye_Left.value()] = fullPoseState.getPose(EyeType.ovrEye_Left);
+        lastPose[EyeType.ovrEye_Right.value()] = fullPoseState.getPose(EyeType.ovrEye_Right);
+
+        return fullPoseState;
     }
 
     public Vector3f getEyePos(EyeType eye)
@@ -528,44 +557,110 @@ public class OculusRift //implements IOculusRift
 
     public static void main(String[] args)
     {
+        int frameIndex = 0;
+
+        // Will need to add the natives dir to your Java VM args: -Djava.library.path="<path to natives dir>"
+
+        // Load the JRift library
         OculusRift.LoadLibrary();
         OculusRift or = new OculusRift();
 
+        // Initialise the Rift
         if (!or.init())
         {
             System.out.println("Failed to initialise OR lib");
             return;
         }
 
+        // Get the HMD information
         HmdDesc hmdDesc = or.getHmdDesc();
         System.out.println(hmdDesc.toString());
 
+        // Determine render target size based on recommended sizes calculated by the Oculus SDK
         FovTextureInfo recommendedFovTextureSize = or.getFovTextureSize(hmdDesc.DefaultEyeFov[0], hmdDesc.DefaultEyeFov[1], 1.0f);
         System.out.println("Render target size: " + recommendedFovTextureSize.CombinedTextureResolution.w + "x" + recommendedFovTextureSize.CombinedTextureResolution.h);
 
+        // Setup render parameters
+        GLConfig glConfig = new GLConfig();
+
+        // IMPORTANT: Configure settings / window handles etc. in glConfig as per platform and Oculus SDK instructions e.g.
+        //glConfig.TexId = <OpenGL renderTarget texture Id>
+        //glConfig.Window = <Get HWND> // on windows etc.
+
+        // Configure the rendering
+        //or.configureRendering(recommendedFovTextureSize.CombinedTextureResolution,
+        //        recommendedFovTextureSize.HmdNativeResolution,
+        //        glConfig,
+        //        hmdDesc.DefaultEyeFov[0],
+        //        hmdDesc.DefaultEyeFov[1]);
+        Vector3f leftEyeViewOffsets = new Vector3f();
+        Vector3f rightEyeViewOffsets = new Vector3f();
+        leftEyeViewOffsets.x = -0.032f;
+        rightEyeViewOffsets.x = +0.032f;
+
         while (or.isInitialized())
         {
-            or.poll(0.0d);
-            TrackerState state = or.getLastTrackerState();
-            EulerOrient euler = or.getEulerAnglesDeg(state.HeadPose.ThePose.Orientation,
+            ///frameIndex++;
+
+            // Get tracker and eye pose information before beginFrame - if rendering configured
+            FullPoseState eyePoses = or.getEyePoses(frameIndex, leftEyeViewOffsets, rightEyeViewOffsets);
+            Posef leyePose = eyePoses.leftEyePose;
+            Posef reyePose = eyePoses.rightEyePose;
+
+            // If you need a Quatf to Euler conversion...
+            EulerOrient Leuler = or.getEulerAnglesDeg(leyePose.Orientation.inverted(),
                                                1.0f,
                                                Axis.Axis_Y,
                                                Axis.Axis_X,
                                                Axis.Axis_Z,
                                                HandedSystem.Handed_L,
                                                RotateDirection.Rotate_CCW);
+            EulerOrient Reuler = or.getEulerAnglesDeg(reyePose.Orientation.inverted(),
+                    1.0f,
+                    Axis.Axis_Y,
+                    Axis.Axis_X,
+                    Axis.Axis_Z,
+                    HandedSystem.Handed_L,
+                    RotateDirection.Rotate_CCW);
 
-            Vector3f pos = state.HeadPose.ThePose.Position;
+            Vector3f Lpos = eyePoses.leftEyePose.Position;
+            Vector3f Rpos = eyePoses.rightEyePose.Position;
 
-            System.out.println("Yaw: " + euler.yaw + " Pitch: " + euler.pitch + " Roll: " + euler.roll + " PosX: " + pos.x+ " PosY: " + pos.y + " PosZ: " + pos.z);
+            // In game render loop, would call (needed to have called configureRendering first):
+            //or._beginFrame(frameIndex);
+
+            //EyeType firstEyeToRender = hmdDesc.EyeRenderOrder[0];
+
+            // Pseudo code
+            //<"RenderEye(eyePoses.getPose(firstEyeToRender))">     (should be <5ms for DK2)
+
+            //EyeType secondEyeToRender = hmdDesc.EyeRenderOrder[1];
+
+            // Pseudo code
+            //<"RenderEye(eyePoses.getPose(secondEyeToRender))">     (should be <5ms for DK2)
+
+            //or.endFrame();
 
             try {
-                Thread.sleep(200);
-            } catch (InterruptedException e) {
+
+                System.out.println("\n");
+                dumpPose("L Eye: ", Leuler, Lpos);
+                dumpPose("R Eye: ", Reuler, Rpos);
+
+                // Obviously you wouldn't sleep in your normal poll / render loop! You'd poll every frame.
+                Thread.sleep(1000);
+            } catch (Exception e) {
                 e.printStackTrace();
             }
         }
 
         or.destroy();
+    }
+
+    public static void dumpPose(String prefix, EulerOrient euler, Vector3f pos)
+    {
+        DecimalFormat fmt = new DecimalFormat("+#,000.0000;-#");
+        System.out.println(prefix + "Yaw: " + fmt.format(euler.yaw) + "\u0176 Pitch: " + fmt.format(euler.pitch) + "\u0176 Roll: " + fmt.format(euler.roll) + "\u0176" +
+                " PosX: " + fmt.format(pos.x) + "m PosY: " + fmt.format(pos.y) + "m PosZ: " + fmt.format(pos.z) + "m");
     }
 }

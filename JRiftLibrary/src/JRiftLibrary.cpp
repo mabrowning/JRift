@@ -439,8 +439,8 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1configureRendering(
 		return 0;
 	}
 
-	unsigned sensorCaps = ovrTrackingCap_Orientation|ovrTrackingCap_MagYawCorrection|ovrTrackingCap_Position;
-    ovrHmd_ConfigureTracking(_pHmd, sensorCaps, 0);
+//	unsigned sensorCaps = ovrTrackingCap_Orientation|ovrTrackingCap_MagYawCorrection|ovrTrackingCap_Position;
+//    ovrHmd_ConfigureTracking(_pHmd, sensorCaps, 0);
 	
 	// Nuke HSW
 	DismissHSW();
@@ -519,11 +519,11 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getEyePoses(
     if (!_initialised)
         return 0;
 
-    if (!_renderConfigured)
-    {
-        printf("getEyePoses() - ERROR: Render config not set!\n");
-        return 0;
-    }
+    //if (!_renderConfigured)
+    //{
+    //    printf("getEyePoses() - ERROR: Render config not set!\n");
+    //    return 0;
+    //}
 
 	ovrVector3f ViewOffsets[2];
 	ViewOffsets[0].x = HmdToLeftEyeViewOffsetX;
@@ -538,61 +538,70 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getEyePoses(
 	// Get both eye poses, and the tracking state in one hit
 	ovrHmd_GetEyePoses(_pHmd, (unsigned int)FrameIndex, ViewOffsets, _eyeRenderPose, &ss);
 
-	// Set left and right poses...
-	ClearException(env);
-	jobject jleftEyePosef = env->NewObject(posef_Class, posef_constructor_MethodID,
-                                _eyeRenderPose[0].Orientation.x,
-                                _eyeRenderPose[0].Orientation.y,
-                                _eyeRenderPose[0].Orientation.z,
-                                _eyeRenderPose[0].Orientation.w,
-                                _eyeRenderPose[0].Position.x,
-                                _eyeRenderPose[0].Position.y,
-                                _eyeRenderPose[0].Position.z);
-	jobject jrightEyePosef = env->NewObject(posef_Class, posef_constructor_MethodID,
-                                _eyeRenderPose[1].Orientation.x,
-                                _eyeRenderPose[1].Orientation.y,
-                                _eyeRenderPose[1].Orientation.z,
-                                _eyeRenderPose[1].Orientation.w,
-                                _eyeRenderPose[1].Position.x,
-                                _eyeRenderPose[1].Position.y,
-                                _eyeRenderPose[1].Position.z);
-	if (jleftEyePosef == 0 || jrightEyePosef == 0) PrintNewObjectException(env, "Posef");
+/*
+w	        x	        y	        z	        Description
+1	        0	        0	        0	        Identity quaternion, no rotation
+0	        1	        0	        0	        180° turn around X axis
+0	        0	        1	        0	        180° turn around Y axis
+0	        0	        0	        1	        180° turn around Z axis
+sqrt(0.5)	sqrt(0.5)	0	        0	        90° rotation around X axis
 
-	// ...and the tracker state
-    ClearException(env);
-    jobject jss = env->NewObject(trackerState_Class, trackerState_constructor_MethodID,
-                                 ss.HeadPose.ThePose.Orientation.x,   
-                                 ss.HeadPose.ThePose.Orientation.y,  
-                                 ss.HeadPose.ThePose.Orientation.z,   
-                                 ss.HeadPose.ThePose.Orientation.w,   
-                                 ss.HeadPose.ThePose.Position.x,      
-                                 ss.HeadPose.ThePose.Position.y,      
-                                 ss.HeadPose.ThePose.Position.z,      
-                                 ss.HeadPose.AngularVelocity.x,    
-                                 ss.HeadPose.AngularVelocity.y,    
-                                 ss.HeadPose.AngularVelocity.z,    
-                                 ss.HeadPose.LinearVelocity.x,     
-                                 ss.HeadPose.LinearVelocity.y,     
-                                 ss.HeadPose.LinearVelocity.z,     
-                                 ss.HeadPose.AngularAcceleration.x,
-                                 ss.HeadPose.AngularAcceleration.y,
-                                 ss.HeadPose.AngularAcceleration.z,
-                                 ss.HeadPose.LinearAcceleration.x, 
-                                 ss.HeadPose.LinearAcceleration.y, 
-                                 ss.HeadPose.LinearAcceleration.z, 
-                                 ss.HeadPose.TimeInSeconds,        
-                                 ss.RawSensorData.Temperature,
-                                 ss.StatusFlags
-                                 );
-    if (jss == 0) PrintNewObjectException(env, "TrackerState");
+sqrt(0.5)	0	        sqrt(0.5)	0	        90° rotation around Y axis
 
-	// Create the container
+sqrt(0.5)	0	        0	        sqrt(0.5)	90° rotation around Z axis
+sqrt(0.5)	-sqrt(0.5)	0	        0	       -90° rotation around X axis
+sqrt(0.5)	0	        -sqrt(0.5)	0	       -90° rotation around Y axis
+sqrt(0.5)	0	        0	        -sqrt(0.5) -90° rotation around Z axis
+*/
+
+	//_eyeRenderPose[0].Orientation.w = (float)sqrt(0.5);
+	//_eyeRenderPose[0].Orientation.x = (float)0;
+	//_eyeRenderPose[0].Orientation.y = (float)sqrt(0.5);
+	//_eyeRenderPose[0].Orientation.z = (float)0;
+	//_eyeRenderPose[1].Orientation.w = (float)sqrt(0.5);
+	//_eyeRenderPose[1].Orientation.x = (float)0;
+	//_eyeRenderPose[1].Orientation.y = (float)sqrt(0.5);
+	//_eyeRenderPose[1].Orientation.z = (float)0;
+
     ClearException(env);
 	jobject jfullposestate = env->NewObject(fullPoseState_Class, fullPoseState_constructor_MethodID,
                                  FrameIndex,
-								 jleftEyePosef,
-								 jrightEyePosef,
-								 jss
+								 _eyeRenderPose[0].Orientation.x,
+								 _eyeRenderPose[0].Orientation.y,
+								 _eyeRenderPose[0].Orientation.z,
+								 _eyeRenderPose[0].Orientation.w,
+								 _eyeRenderPose[0].Position.x,
+								 _eyeRenderPose[0].Position.y,
+								 _eyeRenderPose[0].Position.z,
+								 _eyeRenderPose[1].Orientation.x,
+								 _eyeRenderPose[1].Orientation.y,
+								 _eyeRenderPose[1].Orientation.z,
+								 _eyeRenderPose[1].Orientation.w,
+								 _eyeRenderPose[1].Position.x,
+								 _eyeRenderPose[1].Position.y,
+								 _eyeRenderPose[1].Position.z,
+								 ss.HeadPose.ThePose.Orientation.x,   
+								 ss.HeadPose.ThePose.Orientation.y,  
+								 ss.HeadPose.ThePose.Orientation.z,   
+								 ss.HeadPose.ThePose.Orientation.w,   
+								 ss.HeadPose.ThePose.Position.x,      
+								 ss.HeadPose.ThePose.Position.y,      
+								 ss.HeadPose.ThePose.Position.z,      
+								 ss.HeadPose.AngularVelocity.x,    
+								 ss.HeadPose.AngularVelocity.y,    
+								 ss.HeadPose.AngularVelocity.z,    
+								 ss.HeadPose.LinearVelocity.x,     
+								 ss.HeadPose.LinearVelocity.y,     
+								 ss.HeadPose.LinearVelocity.z,     
+								 ss.HeadPose.AngularAcceleration.x,
+								 ss.HeadPose.AngularAcceleration.y,
+								 ss.HeadPose.AngularAcceleration.z,
+								 ss.HeadPose.LinearAcceleration.x, 
+								 ss.HeadPose.LinearAcceleration.y, 
+								 ss.HeadPose.LinearAcceleration.z, 
+								 ss.HeadPose.TimeInSeconds,        
+								 ss.RawSensorData.Temperature,
+								 ss.StatusFlags
 								 );
     if (jfullposestate == 0) PrintNewObjectException(env, "FullPoseState");
 
@@ -610,8 +619,6 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1beginFrame(JNIEnv *e
         return 0;
     }
 
-    // A FrameIndex of 0 should be used if GetFrameTiming was not used.
-    // TODO: Support GetFrameTiming!
     ovrFrameTiming frameTiming = ovrHmd_BeginFrame(_pHmd, FrameIndex);
 
 	jobject jframeTiming = env->NewObject(frameTiming_Class, frameTiming_constructor_MethodID,
@@ -632,11 +639,11 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getEyePose(JNIEnv *e
     if (!_initialised)
         return 0;
 
-    if (!_renderConfigured)
-    {
-        printf("getEyePose() - ERROR: Render config not set!\n");
-        return 0;
-    }
+    //if (!_renderConfigured)
+    //{
+    //    printf("getEyePose() - ERROR: Render config not set!\n");
+    //    return 0;
+    //}
 
     ovrEyeType eye = ovrEye_Left;
     if (Eye > 0)
@@ -1105,17 +1112,17 @@ bool CreateHmdAndConfigureTracker(int hmdIndex)
   //      // Set hmd caps
   //      ovrHmd_SetEnabledCaps(_pHmd, ovrHmdCap_LowPersistence);
 
-		//// Configure tracking
-  //      ovrBool trackerResult = ovrHmd_ConfigureTracking(_pHmd,
-		//	    ovrTrackingCap_Orientation | ovrTrackingCap_MagYawCorrection | ovrTrackingCap_Position,
-		//	    0);
+		// Configure tracking
+        ovrBool trackerResult = ovrHmd_ConfigureTracking(_pHmd,
+			    ovrTrackingCap_Orientation | ovrTrackingCap_MagYawCorrection | ovrTrackingCap_Position,
+			    0);
 
-		//if (trackerResult)
-		//{
+		if (trackerResult)
+		{
 			// Initialised successfully
 			printf("Oculus Rift Device Interface initialized.\n");
             result = true;
-		//}
+		}
 	}
 
     return result;
@@ -1283,9 +1290,9 @@ bool CacheJNIGlobals(JNIEnv *env)
 
     if (!LookupJNIGlobal(env,
                          fullPoseState_Class,
-                         "de/fruitfly/ovr/FullPoseState",
+                         "de/fruitfly/ovr/structs/FullPoseState",
                          fullPoseState_constructor_MethodID,
-                         "(ILde/fruitfly/ovr/structs/Posef;Lde/fruitfly/ovr/structs/Posef;Lde/fruitfly/ovr/structs/TrackerState;)V"))
+                         "(IFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFDFI)V"))
     {
         return false;
     }
