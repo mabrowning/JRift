@@ -68,7 +68,7 @@ endforeach( OUTPUTCONFIG CMAKE_CONFIGURATION_TYPES )
 
 set( JRIFT_DYNLIB_NAME JRiftLibrary${BITS} )
 add_library(${JRIFT_DYNLIB_NAME} SHARED ${CMAKE_CURRENT_SOURCE_DIR}/src/JRiftLibrary.cpp)
-target_link_libraries (${JRIFT_DYNLIB_NAME} general ${OVR_LIBRARIES})
+#target_link_libraries (${JRIFT_DYNLIB_NAME} general ${OVR_LIBRARIES})
 target_link_libraries (${JRIFT_DYNLIB_NAME} debug ovrd)
 target_link_libraries (${JRIFT_DYNLIB_NAME} optimized ovr)
 
