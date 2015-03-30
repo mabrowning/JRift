@@ -6,7 +6,7 @@
 
   <groupId>de.fruitfly.ovr</groupId>
   <artifactId>JRift</artifactId>
-  <version>0.4.4.3</version>
+  <version>0.5.0.1.1</version>
 
   <name>JRift</name>
   <description>Java Wrapper (JNI) for the Oculus Rift HMD and Sensors under Windows, OSX, and Linux.</description>
