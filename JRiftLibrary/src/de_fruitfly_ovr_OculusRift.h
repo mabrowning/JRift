@@ -1,7 +1,7 @@
 #include <jni.h>
 #include <string>
 #include <memory>
-#include "OVR.h"
+#include "OVR_Math.h"
 
 /* Header for class de_fruitfly_ovr_OculusRift */
 
@@ -104,6 +104,7 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1configureRendering(
     jboolean,
 	jboolean,
     jboolean,
+	jboolean,
 	jboolean,
 	jboolean,
 	jboolean,

@@ -15,7 +15,7 @@ add_subdirectory (OculusSDK)
  
 include_directories(Include ${CMAKE_CURRENT_SOURCE_DIR}/src)
 include_directories(Include ${CMAKE_CURRENT_SOURCE_DIR}/OculusSDK/LibOVR/Include)
-include_directories(Include ${CMAKE_CURRENT_SOURCE_DIR}/OculusSDK/LibOVR/Src)
+include_directories(Include ${CMAKE_CURRENT_SOURCE_DIR}/OculusSDK/LibOVR/Include/Extras)
 include_directories(Include ${JNI_INCLUDE_DIRS})
 link_directories(Include ${CMAKE_BINARY_DIR}/output)
 

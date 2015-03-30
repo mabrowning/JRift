@@ -285,14 +285,15 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1configureRendering(
 	jlong Displ,
 	jboolean VSyncEnabled,
     jint MultiSample,
-    jboolean UseChromAbCorrection,
     jboolean UseTimewarp,
-    jboolean UseVignette,
+	jboolean UseTimewarpJitDelay,
+	jboolean UseVignette,
 	jboolean UseLowPersistence,
     jboolean MirrorDisplay,
     jboolean UseDisplayOverdrive,
 	jboolean DynamicPrediction,
 	jboolean UseHighQualityDistortion,
+	jboolean UseProfileNoSpinWaits,
 	jfloat leftFovUpTan,
 	jfloat leftFovDownTan,
 	jfloat leftFovLeftTan,
@@ -384,16 +385,18 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1configureRendering(
 #endif
 	 
 	unsigned int DistortionCaps = 0;
-    if (UseChromAbCorrection)
-        DistortionCaps |= ovrDistortionCap_Chromatic;
     if (UseTimewarp)
         DistortionCaps |= ovrDistortionCap_TimeWarp;
-    if (UseVignette)
+	if (UseTimewarpJitDelay)
+        DistortionCaps |= ovrDistortionCap_TimewarpJitDelay;
+	if (UseVignette)
         DistortionCaps |= ovrDistortionCap_Vignette;
     if (UseDisplayOverdrive)  
         DistortionCaps |= ovrDistortionCap_Overdrive;
 	if (UseHighQualityDistortion)
 		DistortionCaps |= ovrDistortionCap_HqDistortion;
+	if (UseProfileNoSpinWaits)
+        DistortionCaps |= ovrDistortionCap_ProfileNoSpinWaits;
 
 #if defined(OVR_OS_LINUX)
     DistortionCaps |= ovrDistortionCap_LinuxDevFullscreen;

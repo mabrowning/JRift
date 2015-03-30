@@ -142,10 +142,11 @@ public class HmdDesc
 
     // HMD capability bits reported by device.
     // Read-only flags.
-    public static int ovrHmdCap_Present           = 0x0001;   //  This HMD exists (as opposed to being unplugged).
-    public static int ovrHmdCap_Available         = 0x0002;   //  HMD and is sensor is available for use
-                                                              //  (if not owned by another app).
-    public static int ovrHmdCap_Captured          = 0x0004;   /// Set to 'true' if we captured ownership of this HMD.
+    public static int ovrHmdCap_Present           = 0x0001;   // This HMD exists (as opposed to being unplugged).
+    public static int ovrHmdCap_Available         = 0x0002;   // HMD and is sensor is available for use
+                                                              // (if not owned by another app).
+    public static int ovrHmdCap_Captured          = 0x0004;   // Set to 'true' if we captured ownership of this HMD.
+    public static int ovrHmdCap_DebugDevice       = 0x0010;   // (read only) Means HMD device is a virtual debug device.
 
     // These flags are intended for use with the new driver display mode.
     public static int ovrHmdCap_ExtendDesktop     = 0x0008;   // (read only) Means the display driver is in compatibility mode.
@@ -175,7 +176,6 @@ public class HmdDesc
 
     // Distortion capability bits reported by device.
     // Used with ovrHmd_ConfigureRendering and ovrHmd_CreateDistortionMesh.
-    public static int ovrDistortion_Chromatic                      = 0x01;    // Supports chromatic aberration correction.
     public static int ovrDistortion_TimeWarp                       = 0x02;    // Supports timewarp.
     public static int ovrDistortion_Vignette                       = 0x08;    // Supports vignetting around the edges of the view.
     public static int ovrDistortionCap_NoRestore                   = 0x10;    // Do not save and restore the graphics state when rendering distortion.
@@ -184,7 +184,11 @@ public class HmdDesc
     public static int ovrDistortionCap_Overdrive                   = 0x80;    // Overdrive brightness transitions to reduce artifacts on DK2+ displays
     public static int ovrDistortionCap_HqDistortion                = 0x100;   // High-quality sampling of distortion buffer for anti-aliasing
     public static int ovrDistortionCap_LinuxDevFullscreen          = 0x200;   // Indicates window is fullscreen on a device when set. The SDK will automatically apply distortion mesh rotation if needed.
-    public static int ovrDistortionCap_ProfileNoTimewarpSpinWaits  = 0x10000; // Use when profiling with timewarp to remove false positives
+    public static int ovrDistortionCap_ComputeShader               = 0x400;   // Using compute shader (DX11+ only)
+    //public static int ovrDistortionCap_NoTimewarpJit               = 0x800;   // RETIRED - do not reuse this bit without major versioning changes.
+    public static int ovrDistortionCap_TimewarpJitDelay            = 0x1000;  // Enables a spin-wait that tries to push time-warp to be as close to V-sync as possible. WARNING - this may backfire and cause framerate loss - use with caution.
+
+    public static int ovrDistortionCap_ProfileNoSpinWaits          = 0x10000; // Use when profiling with timewarp to remove false positives
 
 
     public static String HmdCapsToString(int caps)
@@ -199,6 +203,9 @@ public class HmdDesc
 
         if ((caps & ovrHmdCap_Captured) != 0)
             sb.append(" ovrHmdCap_Captured\n");
+
+        if ((caps & ovrHmdCap_DebugDevice) != 0)
+            sb.append(" ovrHmdCap_DebugDevice\n");
 
         if ((caps & ovrHmdCap_LowPersistence) != 0)
             sb.append(" ovrHmdCap_LowPersistence\n");
@@ -253,9 +260,6 @@ public class HmdDesc
     {
         StringBuilder sb = new StringBuilder();
 
-        if ((caps & ovrDistortion_Chromatic) != 0)
-            sb.append(" ovrDistortion_Chromatic\n");
-
         if ((caps & ovrDistortion_TimeWarp) != 0)
             sb.append(" ovrDistortion_TimeWarp\n");
 
@@ -280,8 +284,11 @@ public class HmdDesc
         if ((caps & ovrDistortionCap_LinuxDevFullscreen) != 0)
             sb.append(" ovrDistortionCap_LinuxDevFullscreen\n");
 
-        if ((caps & ovrDistortionCap_ProfileNoTimewarpSpinWaits) != 0)
-            sb.append(" ovrDistortionCap_ProfileNoTimewarpSpinWaits\n");
+        if ((caps & ovrDistortionCap_TimewarpJitDelay) != 0)
+            sb.append(" ovrDistortionCap_TimewarpJitDelay\n");
+
+        if ((caps & ovrDistortionCap_ProfileNoSpinWaits) != 0)
+            sb.append(" ovrDistortionCap_ProfileNoSpinWaits\n");
 
         return sb.toString();
     }
