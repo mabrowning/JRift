@@ -154,7 +154,8 @@ public class OculusRift //implements IOculusRift
                                               Sizei OutDisplaySize,
                                               GLConfig glConfig,
                                               FovPort LeftFov,
-                                              FovPort RightFov)
+                                              FovPort RightFov,
+                                              float worldScale)
     {
         if (!initialized)
             return null;
@@ -188,7 +189,8 @@ public class OculusRift //implements IOculusRift
                                    RightFov.UpTan,
                                    RightFov.DownTan,
                                    RightFov.LeftTan,
-                                   RightFov.RightTan);
+                                   RightFov.RightTan,
+                                   worldScale);
 
         if (erp != null)
             renderConfigured = true;
@@ -201,7 +203,8 @@ public class OculusRift //implements IOculusRift
                                                          Sizei OutDisplaySize,
                                                          GLConfig glConfig,
                                                          FovPort LeftFov,
-                                                         FovPort RightFov)
+                                                         FovPort RightFov,
+                                                         float worldScale)
     {
         if (!initialized)
             return null;
@@ -235,7 +238,8 @@ public class OculusRift //implements IOculusRift
                                    RightFov.UpTan,
                                    RightFov.DownTan,
                                    RightFov.LeftTan,
-                                   RightFov.RightTan);
+                                   RightFov.RightTan,
+                                   worldScale);
 
         if (erp != null)
             renderConfigured = true;
@@ -486,7 +490,8 @@ public class OculusRift //implements IOculusRift
                                                          float RightFovUpTan,
                                                          float RightFovDownTan,
                                                          float RightFovLeftTan,
-                                                         float RightFovRightTan);
+                                                         float RightFovRightTan,
+                                                         float worldScale);
     protected native void            _resetRenderConfig();
 
     protected native FrameTiming     _beginFrame(int frameIndex);

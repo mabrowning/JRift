@@ -301,7 +301,8 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1configureRendering(
 	jfloat rightFovUpTan,
 	jfloat rightFovDownTan,
 	jfloat rightFovLeftTan,
-	jfloat rightFovRightTan
+	jfloat rightFovRightTan,
+	jfloat worldScale
 	)
 {
 	if (!_initialised)
@@ -447,6 +448,14 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1configureRendering(
 	
     _renderConfigured = true;
 
+	// Set worldScale
+	EyeRenderDesc[0].HmdToEyeViewOffset.x *= worldScale;
+	EyeRenderDesc[0].HmdToEyeViewOffset.y *= worldScale;
+    EyeRenderDesc[0].HmdToEyeViewOffset.z *= worldScale;
+	EyeRenderDesc[1].HmdToEyeViewOffset.x *= worldScale;
+	EyeRenderDesc[1].HmdToEyeViewOffset.y *= worldScale;
+    EyeRenderDesc[1].HmdToEyeViewOffset.z *= worldScale;
+
 	jobject eyeRenderDesc = env->NewObject(eyeRenderParams_Class, eyeRenderParams_constructor_MethodID,
                                            EyeRenderDesc[0].Eye,
                                            EyeRenderViewport[0].Pos.x,
@@ -483,7 +492,8 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1configureRendering(
                                            EyeRenderDesc[1].PixelsPerTanAngleAtCenter.y,
                                            EyeRenderDesc[1].HmdToEyeViewOffset.x,
                                            EyeRenderDesc[1].HmdToEyeViewOffset.y,
-                                           EyeRenderDesc[1].HmdToEyeViewOffset.z
+                                           EyeRenderDesc[1].HmdToEyeViewOffset.z,
+										   worldScale
 										);
 
     return eyeRenderDesc;
@@ -1206,7 +1216,7 @@ bool CacheJNIGlobals(JNIEnv *env)
                          eyeRenderParams_Class,
                          "de/fruitfly/ovr/EyeRenderParams",
                          eyeRenderParams_constructor_MethodID,
-                         "(IIIIIFFFFIIIIFFFFFIIIIIFFFFIIIIFFFFF)V"))
+                         "(IIIIIFFFFIIIIFFFFFIIIIIFFFFIIIIFFFFFF)V"))
     {
         return false;
     }

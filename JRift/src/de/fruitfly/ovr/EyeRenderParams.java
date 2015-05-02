@@ -7,6 +7,7 @@ public class EyeRenderParams
 {
     public EyeRenderDesc[] Eyes = new EyeRenderDesc[2];
     public boolean valid = false;
+    public float worldScale = 1f;
 
     public EyeRenderParams()
     {
@@ -50,7 +51,8 @@ public class EyeRenderParams
             float eye2PixelsPerTanAngleAtCentery,
             float eye2ViewAdjustx,
             float eye2ViewAdjusty,
-            float eye2ViewAdjustz
+            float eye2ViewAdjustz,
+            float worldScale
         )
     {
         Eyes[0] = new EyeRenderDesc();
@@ -91,7 +93,7 @@ public class EyeRenderParams
         Eyes[1].ViewAdjust.x = eye2ViewAdjustx;
         Eyes[1].ViewAdjust.y = eye2ViewAdjusty;
         Eyes[1].ViewAdjust.z = eye2ViewAdjustz;       
-
+        this.worldScale = worldScale;
         valid = true;
     }
 }
