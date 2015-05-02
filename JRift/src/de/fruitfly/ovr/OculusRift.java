@@ -14,6 +14,7 @@ public class OculusRift //implements IOculusRift
 	private HmdDesc hmdDesc = new HmdDesc();
     private TrackerState trackerState = new TrackerState();
     private Posef lastPose[] = new Posef[3];
+    private FullPoseState fps = new FullPoseState();
 
     public String _initSummary = "Not initialised";
 
@@ -23,15 +24,20 @@ public class OculusRift //implements IOculusRift
 	
 	public OculusRift()
     {
-        lastPose[0] = new Posef();
-        lastPose[1] = new Posef();
-        lastPose[2] = new Posef();
         resetHMDInfo();
 	}
 
     private void resetHMDInfo()
     {
         hmdDesc = new HmdDesc();
+    }
+
+    private void resetTrackerInfo()
+    {
+        lastPose[0] = new Posef();
+        lastPose[1] = new Posef();
+        lastPose[2] = new Posef();
+        fps = new FullPoseState();
         trackerState = new TrackerState();
     }
 
@@ -114,25 +120,26 @@ public class OculusRift //implements IOculusRift
         return hmdDesc;
     }
 
-    public TrackerState poll(double futureDelta)
-    {
-        if (initialized)
-        {
-            // Get tracking state as of now
-            trackerState = _getTrackerState(futureDelta);
-        }
+//    public TrackerState poll(double futureDelta)
+//    {
+//        if (initialized)
+//        {
+//            // Get tracking state as of now
+//            trackerState = _getTrackerState(futureDelta);
+//        }
+//
+//        return trackerState;
+//    }
 
-        return trackerState;
-    }
-
-    public TrackerState getLastTrackerState()
-    {
-        return trackerState;
-    }
+//    public TrackerState getLastTrackerState()
+//    {
+//        return trackerState;
+//    }
 
     public void resetTracking()
     {
         _resetTracking();
+        resetTrackerInfo();
     }
 
     public FovTextureInfo getFovTextureSize(FovPort leftFov,
@@ -283,7 +290,7 @@ public class OculusRift //implements IOculusRift
             return new Posef();
 
         lastPose[eye.value()] = _getEyePose(eye.value());
-        return lastPose[eye.value()];
+        return lastPose[eye.value()].clone();
     }
 
     public FullPoseState getEyePoses(int frameIndex)
@@ -291,7 +298,7 @@ public class OculusRift //implements IOculusRift
         if (!initialized)
             return new FullPoseState();
 
-        FullPoseState fullPoseState = _getEyePoses(frameIndex,
+        fps = _getEyePoses(frameIndex,
                 erp.Eyes[0].ViewAdjust.x,
                 erp.Eyes[0].ViewAdjust.y,
                 erp.Eyes[0].ViewAdjust.z,
@@ -299,13 +306,13 @@ public class OculusRift //implements IOculusRift
                 erp.Eyes[1].ViewAdjust.y,
                 erp.Eyes[1].ViewAdjust.z);
 
-        if (fullPoseState == null)
-            fullPoseState = new FullPoseState();
+        if (fps == null)
+            fps = new FullPoseState();
 
-        lastPose[EyeType.ovrEye_Left.value()] = fullPoseState.getPose(EyeType.ovrEye_Left);
-        lastPose[EyeType.ovrEye_Right.value()] = fullPoseState.getPose(EyeType.ovrEye_Right);
+        lastPose[EyeType.ovrEye_Left.value()] = fps.getPose(EyeType.ovrEye_Left);
+        lastPose[EyeType.ovrEye_Right.value()] = fps.getPose(EyeType.ovrEye_Right);
 
-        return fullPoseState;
+        return fps.clone();
     }
 
     public FullPoseState getEyePoses(int frameIndex, Vector3f leftEyeViewAdjust, Vector3f RightEyeViewAdjust)
@@ -313,7 +320,7 @@ public class OculusRift //implements IOculusRift
         if (!initialized)
             return new FullPoseState();
 
-        FullPoseState fullPoseState = _getEyePoses(frameIndex,
+        fps = _getEyePoses(frameIndex,
                 leftEyeViewAdjust.x,
                 leftEyeViewAdjust.y,
                 leftEyeViewAdjust.z,
@@ -321,13 +328,19 @@ public class OculusRift //implements IOculusRift
                 RightEyeViewAdjust.y,
                 RightEyeViewAdjust.z);
 
-        if (fullPoseState == null)
-            fullPoseState = new FullPoseState();
+        if (fps == null)
+            fps = new FullPoseState();
 
-        lastPose[EyeType.ovrEye_Left.value()] = fullPoseState.getPose(EyeType.ovrEye_Left);
-        lastPose[EyeType.ovrEye_Right.value()] = fullPoseState.getPose(EyeType.ovrEye_Right);
+        // Account for the need for negated y position values
+        fps.leftEyePose.Position.y *= -1f;
+        fps.rightEyePose.Position.y *= -1f;
+        fps.trackerState.HeadPose.ThePose.Position.y *= -1f;
 
-        return fullPoseState;
+        lastPose[EyeType.ovrEye_Left.value()] = fps.getPose(EyeType.ovrEye_Left);
+        lastPose[EyeType.ovrEye_Right.value()] = fps.getPose(EyeType.ovrEye_Right);
+        lastPose[EyeType.ovrEye_Center.value()] = fps.getPose(EyeType.ovrEye_Center);
+
+        return fps.clone();
     }
 
     public Vector3f getEyePos(EyeType eye)
