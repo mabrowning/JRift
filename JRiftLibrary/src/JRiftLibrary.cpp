@@ -378,11 +378,7 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1configureRendering(
 	cfg.OGL.DC     = ::GetDC(cfg.OGL.Window);
 #elif defined(OVR_OS_LINUX)
     cfg.OGL.Disp   = (_XDisplay*)(intptr_t)Displ;
-#if OVR_MINOR_VERSION == 4
-#if OVR_BUILD_VERSION == 3
     cfg.OGL.Win    = (Window)(intptr_t)Win;
-#endif
-#endif
 #endif
 	 
 	unsigned int DistortionCaps = 0;

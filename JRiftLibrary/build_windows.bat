@@ -1,9 +1,8 @@
 @ECHO OFF
 SET CURDIR=%CD%
 
-:: Visual Studio 10 (2010) not currently working.
-:: Using VS 11 (2012)
-SET VISUALSTUDIO_VER=11
+:: Visual Studio 10 (2010)
+SET VISUALSTUDIO_VER=10
 
 :: Note: %~dp0 gives the current directory containing build_windows.bat
 :: In this case it's also the cmake root source directory.,
