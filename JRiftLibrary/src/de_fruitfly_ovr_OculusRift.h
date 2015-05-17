@@ -80,8 +80,32 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getFovTextureSize(
 
 /*
  * Class:     de_fruitfly_ovr_OculusRift
+ * Method:    createSwapTextureSet
+ * Signature: (II)LTBD;
+ */
+JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1createSwapTextureSet(
+	JNIEnv *env, 
+	jobject,
+	jint width,
+	jint height
+	);
+
+/*
+ * Class:     de_fruitfly_ovr_OculusRift
+ * Method:    createMirrorTexture
+ * Signature: (II)I;
+ */
+JNIEXPORT jint JNICALL Java_de_fruitfly_ovr_OculusRift__1createMirrorTexture(
+	JNIEnv *env, 
+	jobject,
+	jint width,
+	jint height
+	);
+
+/*
+ * Class:     de_fruitfly_ovr_OculusRift
  * Method:    configureRendering
- * Signature: (IIIIIJJZIZZZZZZZFFFFFFFFF)Lde/fruitfly/ovr/EyeRenderParams;
+ * Signature: (ZIIIIIJJZIZZZZZZZFFFFFFFFF)Lde/fruitfly/ovr/EyeRenderParams;
  */
 JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1configureRendering(
 	JNIEnv *, 
@@ -130,7 +154,7 @@ JNIEXPORT void JNICALL Java_de_fruitfly_ovr_OculusRift__1resetRenderConfig
 /*
  * Class:     de_fruitfly_ovr_OculusRift
  * Method:    getEyePoses
- * Signature: (I)Lde/fruitfly/ovr/FullPoseState;
+ * Signature: (IFFFFFF)Lde/fruitfly/ovr/FullPoseState;
  */
 JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getEyePoses(
 	JNIEnv *env, 
@@ -145,22 +169,6 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getEyePoses(
 
 /*
  * Class:     de_fruitfly_ovr_OculusRift
- * Method:    beginFrame
- * Signature: (I)Lde/fruitfly/ovr/structs/FrameTiming;
- */
-JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1beginFrame
-    (JNIEnv *, jobject, jint);
-
-/*
- * Class:     de_fruitfly_ovr_OculusRift
- * Method:    getEyePose
- * Signature: (I)Lde/fruitfly/ovr/structs/Posef;
- */
-JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getEyePose
-    (JNIEnv *, jobject, jint);
-
-/*
- * Class:     de_fruitfly_ovr_OculusRift
  * Method:    getMatrix4fProjection
  * Signature: (FFFFFF)Lde/fruitfly/ovr/structs/Matrix4f;
  */
@@ -171,30 +179,6 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getMatrix4fProjectio
     jfloat,
     jfloat,
     jfloat,
-    jfloat,
-    jfloat);
-
-/*
- * Class:     de_fruitfly_ovr_OculusRift
- * Method:    getViewFromEyePose
- * Signature: (FFFFFFFFFFFFFFF)Lde/fruitfly/ovr/structs/Matrix4f;
- */
-JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getViewFromEyePose(
-    JNIEnv *, 
-    jobject, 
-    jfloat,
-    jfloat,
-    jfloat,
-    jfloat,
-    jfloat,
-    jfloat,
-	jfloat,
-    jfloat,
-    jfloat,
-    jfloat,
-    jfloat,
-    jfloat,
-	jfloat,
     jfloat,
     jfloat);
 
@@ -243,34 +227,20 @@ JNIEXPORT jstring JNICALL Java_de_fruitfly_ovr_OculusRift__1getVersionString(
 
 /*
  * Class:     de_fruitfly_ovr_OculusRift
- * Method:    _initRenderingShim
- * Signature: ()V
- */
-JNIEXPORT void JNICALL Java_de_fruitfly_ovr_OculusRift__1initRenderingShim(
-   JNIEnv *env, jobject);
-
-/*
- * Class:     de_fruitfly_ovr_OculusRift
  * Method:    _getCurrentTimeSecs
  * Signature: ()D
  */
 JNIEXPORT jdouble JNICALL Java_de_fruitfly_ovr_OculusRift__1getCurrentTimeSecs(
    JNIEnv *env, jobject);
 
-/*
- * Class:     de_fruitfly_ovr_OculusRift
- * Method:    _dismissHSW
- * Signature: ()V
- */
-JNIEXPORT void JNICALL Java_de_fruitfly_ovr_OculusRift__1dismissHSW(
-   JNIEnv *env, jobject);
 
 /* Helpers */
 void DEBUGLOG(std::string s);
 void LogHmdDesc(ovrHmd pHmd);
 void Reset();
 void ResetRenderConfig();
-void DismissHSW();
+void DestroySwapTextureSet();
+void DestroyMirrorTexture();
 bool CacheJNIGlobals(JNIEnv *env);
 bool CreateHmdAndConfigureTracker(int hmdIndex);
 bool LookupJNIGlobal(JNIEnv *env,
