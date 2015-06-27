@@ -50,10 +50,20 @@ static jclass       userProfileData_Class                = 0;
 static jmethodID    userProfileData_constructor_MethodID = 0;
 static jclass       fullPoseState_Class                  = 0;
 static jmethodID    fullPoseState_constructor_MethodID   = 0;
-
-// These may be used by static functions, so are not initialised within CacheJNIGlobals()
+static jclass       swapTextureSet_Class                 = 0;
+static jmethodID    swapTextureSet_constructor_MethodID  = 0;
 static jclass       eulerOrient_Class                    = 0;
-static jmethodID    eulerOrient_constructor_MethodID     = 0; 
+static jmethodID    eulerOrient_constructor_MethodID     = 0;
+static jclass       arrayListClass						 = 0;
+static jmethodID    method_arrayList_init                = 0;
+static jmethodID    method_arrayList_add                 = 0;
+static jclass       integerClass                         = 0;
+static jmethodID    method_integer_init                  = 0;
+
+static jfieldID     field_swapTextureSet_leftEyeTextureIds   = 0;
+static jfieldID     field_swapTextureSet_rightEyeTextureIds  = 0;
+
+
 
 JNIEXPORT jboolean JNICALL Java_de_fruitfly_ovr_OculusRift__1initSubsystem(JNIEnv *env, jobject jobj) 
 {
@@ -306,7 +316,31 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1createSwapTextureSet
 		DestroySwapTextureSet();
 	}
 
-	// TODO: Ok, so what will actually need to be returned here? An array of texture IDs only?
+	if (result)
+	{
+		// Construct a new SwapTextureSet object
+		ClearException(env);
+		jobject jswapTextureSet = env->NewObject(swapTextureSet_Class, swapTextureSet_constructor_MethodID);
+		if (jswapTextureSet == 0) PrintNewObjectException(env, "SwapTextureSet");
+
+		jobject leftEyeTextureIds = env->GetObjectField(jswapTextureSet, field_swapTextureSet_leftEyeTextureIds);
+		jobject rightEyeTextureIds = env->GetObjectField(jswapTextureSet, field_swapTextureSet_rightEyeTextureIds);
+
+		// Add the texture IDs
+		for (int i = 0; i < _pSwapTextureSet[0]->TextureCount; i++)
+		{
+			ovrGLTexture* tex = (ovrGLTexture*)&_pSwapTextureSet[0]->Textures[i];
+			jobject texIdInt = env->NewObject(integerClass, method_integer_init, (jint)tex->OGL.TexId);
+			jboolean jbool = env->CallBooleanMethod(leftEyeTextureIds, method_arrayList_add, texIdInt);
+		}
+		for (int i = 0; i < _pSwapTextureSet[1]->TextureCount; i++)
+		{
+			ovrGLTexture* tex = (ovrGLTexture*)&_pSwapTextureSet[1]->Textures[i];
+			jobject texIdInt = env->NewObject(integerClass, method_integer_init, (jint)tex->OGL.TexId);
+			jboolean jbool = env->CallBooleanMethod(rightEyeTextureIds, method_arrayList_add, texIdInt);
+		}
+	}
+
 	return 0;
 }
 
@@ -652,6 +686,21 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getMatrix4fProjectio
                                    );
 
     return jproj;
+}
+
+JNIEXPORT void JNICALL Java_de_fruitfly_ovr_OculusRift__1endFrame(JNIEnv *env, jobject)
+{
+    if (!_initialised)
+        return;
+
+    if (!_renderConfigured)
+    {
+        printf("endFrame() - ERROR: Render config not set!\n");
+        return;
+    }
+
+    // Let OVR do distortion rendering, present and flush/sync
+    ovrHmd_EndFrame(_pHmd, _eyeRenderPose, &_GLEyeTexture[0].Texture);
 }
 
 JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1convertQuatToEuler
@@ -1204,6 +1253,62 @@ bool CacheJNIGlobals(JNIEnv *env)
     {
         return false;
     }
+	field_swapTextureSet_leftEyeTextureIds = env->GetFieldID(swapTextureSet_Class, "leftEyeTextureIds", "Lde/fruitfly/ovr/structs/SwapTextureSet;");
+	if (field_swapTextureSet_leftEyeTextureIds == 0)
+    {
+		printf("Failed to find field 'Lde/fruitfly/ovr/structs/SwapTextureSet;' leftEyeTextureIds");
+        return false; 
+    }
+	field_swapTextureSet_rightEyeTextureIds = env->GetFieldID(swapTextureSet_Class, "rightEyeTextureIds", "Lde/fruitfly/ovr/structs/SwapTextureSet;");
+	if (field_swapTextureSet_rightEyeTextureIds == 0)
+    {
+		printf("Failed to find field 'Lde/fruitfly/ovr/structs/SwapTextureSet;' rightEyeTextureIds");
+        return false; 
+    }
+
+	if (!LookupJNIGlobal(env,
+                         swapTextureSet_Class,
+                         "de/fruitfly/ovr/structs/SwapTextureSet",
+                         swapTextureSet_constructor_MethodID,
+                         "()V"))
+    {
+        return false;
+    }
+
+	// Lookup some standard java classes / methods
+    arrayListClass = env->FindClass("java/util/ArrayList");
+	if (arrayListClass == 0) 
+	{
+		printf("Failed to find class 'java/util/ArrayList'");
+		return false;
+	}
+
+	method_arrayList_init = env->GetMethodID(arrayListClass, "<init>", "()V");
+	if (method_arrayList_init == 0) 
+	{
+		printf("Failed to find method 'java/util/ArrayList' <init>()V");
+		return false;
+	}
+
+	method_arrayList_add = env->GetMethodID(arrayListClass, "add", "(Ljava/lang/Object;)Z");
+	if (method_arrayList_add == 0) 
+	{
+		printf("Failed to find method 'java/util/ArrayList' add(Ljava/lang/Object;)Z");
+		return false;
+	}
+
+	jclass integerClass = env->FindClass("java/lang/Integer");
+	if (integerClass == 0) 
+	{
+		printf("Failed to find class 'java/lang/Integer'");
+		return false;
+	}
+    jmethodID method_integer_init = env->GetMethodID(integerClass, "<init>", "(I)V");
+	if (method_integer_init == 0) 
+	{
+		printf("Failed to find method 'java/lang/Integer' <init>(I)V");
+		return false;
+	}
 
     return true;
 }
