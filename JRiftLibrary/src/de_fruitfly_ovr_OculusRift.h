@@ -81,7 +81,7 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getFovTextureSize(
 /*
  * Class:     de_fruitfly_ovr_OculusRift
  * Method:    createSwapTextureSet
- * Signature: (II)LTBD;
+ * Signature: (II)Lde/fruitfly/ovr/SwapTextureSet;
  */
 JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1createSwapTextureSet(
 	JNIEnv *env, 
@@ -89,6 +89,24 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1createSwapTextureSet
 	jint width,
 	jint height
 	);
+    
+/*
+ * Class:     de_fruitfly_ovr_OculusRift
+ * Method:    setCurrentSwapTextureIndex
+ * Signature: (I)Z;
+ */
+JNIEXPORT jboolean JNICALL Java_de_fruitfly_ovr_OculusRift__1setCurrentSwapTextureIndex
+    (JNIEnv *env,
+     jobject,
+     jint index);
+    
+/*
+ * Class:     de_fruitfly_ovr_OculusRift
+ * Method:    destroySwapTextureSet
+ * Signature: ()V;
+ */
+JNIEXPORT void JNICALL Java_de_fruitfly_ovr_OculusRift__1destroySwapTextureSet
+    (JNIEnv *env, jobject);
 
 /*
  * Class:     de_fruitfly_ovr_OculusRift
@@ -102,6 +120,14 @@ JNIEXPORT jint JNICALL Java_de_fruitfly_ovr_OculusRift__1createMirrorTexture(
 	jint height
 	);
 
+/*
+ * Class:     de_fruitfly_ovr_OculusRift
+ * Method:    destroyMirrorTexture
+ * Signature: ()V;
+ */
+JNIEXPORT void JNICALL Java_de_fruitfly_ovr_OculusRift__1destroyMirrorTexture
+    (JNIEnv *env, jobject);
+    
 /*
  * Class:     de_fruitfly_ovr_OculusRift
  * Method:    configureRendering
@@ -184,10 +210,10 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getMatrix4fProjectio
 
 /*
  * Class:     de_fruitfly_ovr_OculusRift
- * Method:    endFrame
+ * Method:    submitFrame
  * Signature: ()V
  */
-JNIEXPORT void JNICALL Java_de_fruitfly_ovr_OculusRift__1endFrame
+JNIEXPORT void JNICALL Java_de_fruitfly_ovr_OculusRift__1submitFrame
     (JNIEnv *, jobject);
 
 /*

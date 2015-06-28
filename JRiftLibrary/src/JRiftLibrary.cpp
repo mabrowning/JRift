@@ -344,6 +344,40 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1createSwapTextureSet
 	return 0;
 }
 
+JNIEXPORT jboolean JNICALL Java_de_fruitfly_ovr_OculusRift__1setCurrentSwapTextureIndex
+(JNIEnv *env,
+ jobject,
+ jint index)
+{
+    if (!_initialised)
+    {
+        return false;
+    }
+    
+    if (_pSwapTextureSet[0] == 0 || _pSwapTextureSet[1] == 0)
+    {
+        return false;
+    }
+    
+    if (index < 0 ||
+        index > (_pSwapTextureSet[0]->TextureCount - 1) ||
+        index > (_pSwapTextureSet[1]->TextureCount - 1))
+    {
+        return false;
+    }
+    
+    _pSwapTextureSet[0]->CurrentIndex = index;
+    _pSwapTextureSet[1]->CurrentIndex = index;
+    
+    return true;
+}
+
+JNIEXPORT void JNICALL Java_de_fruitfly_ovr_OculusRift__1destroySwapTextureSet
+(JNIEnv *env, jobject)
+{
+    DestroySwapTextureSet();
+}
+
 JNIEXPORT jint JNICALL Java_de_fruitfly_ovr_OculusRift__1createMirrorTexture(
 	JNIEnv *env, 
 	jobject,
@@ -363,8 +397,14 @@ JNIEXPORT jint JNICALL Java_de_fruitfly_ovr_OculusRift__1createMirrorTexture(
 		return -1;
 	}
 
-	// TODO: Ok, so what will actually need to be returned here? Just the texture ID?
+	// Just return the texture ID
 	return _pMirrorTexture->OGL.TexId;
+}
+
+JNIEXPORT void JNICALL Java_de_fruitfly_ovr_OculusRift__1destroyMirrorTexture
+(JNIEnv *env, jobject)
+{
+    DestroyMirrorTexture();
 }
 
 JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1configureRendering(
@@ -688,7 +728,7 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getMatrix4fProjectio
     return jproj;
 }
 
-JNIEXPORT void JNICALL Java_de_fruitfly_ovr_OculusRift__1endFrame(JNIEnv *env, jobject)
+JNIEXPORT void JNICALL Java_de_fruitfly_ovr_OculusRift__1submitFrame(JNIEnv *env, jobject)
 {
     if (!_initialised)
         return;
@@ -698,9 +738,24 @@ JNIEXPORT void JNICALL Java_de_fruitfly_ovr_OculusRift__1endFrame(JNIEnv *env, j
         printf("endFrame() - ERROR: Render config not set!\n");
         return;
     }
+    
+    ovrLayerEyeFov ld;
+    ld.Header.Type  = ovrLayerType_EyeFov;
+    ld.Header.Flags = ovrLayerFlag_TextureOriginAtBottomLeft;   // Because OpenGL.
+    
+    for (int eye = 0; eye < 2; eye++)
+    {
+        ld.ColorTexture[eye] = eyeRenderTexture[eye]->TextureSet;
+        ld.Viewport[eye]     = Recti(eyeRenderTexture[eye]->GetSize());
+        ld.Fov[eye]          = HMD->DefaultEyeFov[eye];
+        ld.RenderPose[eye]   = EyeRenderPose[eye];
+    }
+    
+    ovrLayerHeader* layers = &ld.Header;
+    ovrResult result = ovrHmd_SubmitFrame(HMD, 0, &viewScaleDesc, &layers, 1);
 
     // Let OVR do distortion rendering, present and flush/sync
-    ovrHmd_EndFrame(_pHmd, _eyeRenderPose, &_GLEyeTexture[0].Texture);
+    //ovrHmd_EndFrame(_pHmd, _eyeRenderPose, &_GLEyeTexture[0].Texture);
 }
 
 JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1convertQuatToEuler
