@@ -12,6 +12,7 @@
 using namespace OVR;
 
 ovrHmd              _pHmd             = 0;
+ovrHmdDesc          _hmdDesc; 
 int                 _hmdIndex         = -1;
 bool                _initialised      = false;
 bool                _renderConfigured = false;
@@ -85,10 +86,8 @@ JNIEXPORT jboolean JNICALL Java_de_fruitfly_ovr_OculusRift__1initSubsystem(JNIEn
 		return false;
 	}
 
-    // Try first HMD index
-    _hmdIndex = 0;
-
-    if (CreateHmdAndConfigureTracker(_hmdIndex))
+    // Create HMD
+    if (CreateHmdAndConfigureTracker())
         _initialised = true;
 	
 	if (!_initialised)
@@ -114,42 +113,42 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getHmdDesc(JNIEnv *e
 	if (!_initialised) 
         return 0;
 
-    jstring productName = env->NewStringUTF( _pHmd->ProductName == NULL ? "" : _pHmd->ProductName );
-    jstring manufacturer = env->NewStringUTF( _pHmd->Manufacturer == NULL ? "" : _pHmd->Manufacturer );
+    jstring productName = env->NewStringUTF( _hmdDesc.ProductName == NULL ? "" : _hmdDesc.ProductName );
+    jstring manufacturer = env->NewStringUTF( _hmdDesc.Manufacturer == NULL ? "" : _hmdDesc.Manufacturer );
     jstring displayDeviceName = env->NewStringUTF( "Not set" );
     
     ClearException(env);
 
 	// TODO: Sync with updated hmdDesc struct
     jobject jHmdDesc = env->NewObject(hmdDesc_Class, hmdDesc_constructor_MethodID,
-                                      (int)_pHmd->Type,
+                                      (int)_hmdDesc.Type,
                                       productName,
                                       manufacturer,
-                                      (int)_pHmd->HmdCaps,
-                                      (int)_pHmd->TrackingCaps,
+                                      (int)_hmdDesc.AvailableHmdCaps,
+                                      (int)_hmdDesc.AvailableTrackingCaps,
                                       0, // Distortion caps no longer used, remove
-                                      _pHmd->Resolution.w,
-                                      _pHmd->Resolution.h,
+                                      _hmdDesc.Resolution.w,
+                                      _hmdDesc.Resolution.h,
                                       0, // Window pos no longer used, remove
                                       0, // Window pos no longer used, remove
-                                      _pHmd->DefaultEyeFov[0].UpTan,
-                                      _pHmd->DefaultEyeFov[0].DownTan,
-                                      _pHmd->DefaultEyeFov[0].LeftTan,
-                                      _pHmd->DefaultEyeFov[0].RightTan,
-                                      _pHmd->DefaultEyeFov[1].UpTan,
-                                      _pHmd->DefaultEyeFov[1].DownTan,
-                                      _pHmd->DefaultEyeFov[1].LeftTan,
-                                      _pHmd->DefaultEyeFov[1].RightTan,
-                                      _pHmd->MaxEyeFov[0].UpTan,
-                                      _pHmd->MaxEyeFov[0].DownTan,
-                                      _pHmd->MaxEyeFov[0].LeftTan,
-                                      _pHmd->MaxEyeFov[0].RightTan,
-                                      _pHmd->MaxEyeFov[1].UpTan,
-                                      _pHmd->MaxEyeFov[1].DownTan,
-                                      _pHmd->MaxEyeFov[1].LeftTan,
-                                      _pHmd->MaxEyeFov[1].RightTan,
+                                      _hmdDesc.DefaultEyeFov[0].UpTan,
+                                      _hmdDesc.DefaultEyeFov[0].DownTan,
+                                      _hmdDesc.DefaultEyeFov[0].LeftTan,
+                                      _hmdDesc.DefaultEyeFov[0].RightTan,
+                                      _hmdDesc.DefaultEyeFov[1].UpTan,
+                                      _hmdDesc.DefaultEyeFov[1].DownTan,
+                                      _hmdDesc.DefaultEyeFov[1].LeftTan,
+                                      _hmdDesc.DefaultEyeFov[1].RightTan,
+                                      _hmdDesc.MaxEyeFov[0].UpTan,
+                                      _hmdDesc.MaxEyeFov[0].DownTan,
+                                      _hmdDesc.MaxEyeFov[0].LeftTan,
+                                      _hmdDesc.MaxEyeFov[0].RightTan,
+                                      _hmdDesc.MaxEyeFov[1].UpTan,
+                                      _hmdDesc.MaxEyeFov[1].DownTan,
+                                      _hmdDesc.MaxEyeFov[1].LeftTan,
+                                      _hmdDesc.MaxEyeFov[1].RightTan,
                                       (int)_pHmd->EyeRenderOrder[0],
-                                      (int)_pHmd->EyeRenderOrder[1],
+                                      (int)_hmdDesc.EyeRenderOrder[1],
                                       displayDeviceName,  // DisplayDeviceName no longer used, remove,
                                       0, // Display ID no longer used, remove,
                                       _realDevice
@@ -164,35 +163,13 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getHmdDesc(JNIEnv *e
     return jHmdDesc;
 }
 
-JNIEXPORT jboolean JNICALL Java_de_fruitfly_ovr_OculusRift__1getNextHmd(JNIEnv *env, jobject jobj) 
-{
-    if (!_initialised)
-        return false;
-
-    // Reset render config
-    ResetRenderConfig();
-
-	// Cleanup HMD
-	if (_pHmd)
-		ovrHmd_Destroy(_pHmd);
-
-    _pHmd = 0;
-
-    const int hmdCount = ovrHmd_Detect();
-    _hmdIndex++;
-    if (_hmdIndex >= hmdCount)
-        _hmdIndex = 0;
-
-    return CreateHmdAndConfigureTracker(_hmdIndex);
-}
-
 JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getTrackerState(JNIEnv *env, jobject, jdouble time) 
 {
 	if (!_initialised) 
         return 0;
 
 	// Get sensorstate at the specified time in the future from now (0.0 means 'now')
-	ovrTrackingState ss = ovrHmd_GetTrackingState(_pHmd, time);
+	ovrTrackingState ss = ovr_GetTrackingState(_pHmd, time);
 
     ClearException(env);
 
@@ -231,7 +208,7 @@ JNIEXPORT void JNICALL Java_de_fruitfly_ovr_OculusRift__1resetTracking(JNIEnv *e
 	if (!_initialised)
 		return;
 
-    ovrHmd_RecenterPose(_pHmd);
+    ovr_RecenterPose(_pHmd);
 }
 
 JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getFovTextureSize(
@@ -262,8 +239,8 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getFovTextureSize(
 	rightFov.RightTan = rightFovRightTan;
 
 	// A RenderScaleFactor of 1.0f signifies default (non-scaled) operation
-    Sizei recommendedTex0Size = ovrHmd_GetFovTextureSize(_pHmd, ovrEye_Left,  leftFov, RenderScaleFactor);
-    Sizei recommendedTex1Size = ovrHmd_GetFovTextureSize(_pHmd, ovrEye_Right, rightFov, RenderScaleFactor);
+    Sizei recommendedTex0Size = ovr_GetFovTextureSize(_pHmd, ovrEye_Left,  leftFov, RenderScaleFactor);
+    Sizei recommendedTex1Size = ovr_GetFovTextureSize(_pHmd, ovrEye_Right, rightFov, RenderScaleFactor);
     Sizei RenderTargetSize;
     RenderTargetSize.w = recommendedTex0Size.w + recommendedTex1Size.w;
     RenderTargetSize.h = (std::max) ( recommendedTex0Size.h, recommendedTex1Size.h );
@@ -301,11 +278,11 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1createSwapTextureSet
 
 	boolean result = true;
 
-	if (result && ovrHmd_CreateSwapTextureSetGL(_pHmd, GL_RGBA, width, height, &_pSwapTextureSet[0]) != ovrSuccess)
+	if (result && ovr_CreateSwapTextureSetGL(_pHmd, GL_RGBA, width, height, &_pSwapTextureSet[0]) != ovrSuccess)
 	{
 		result = false;	
 	}
-	if (result && ovrHmd_CreateSwapTextureSetGL(_pHmd, GL_RGBA, width, height, &_pSwapTextureSet[1]) != ovrSuccess)
+	if (result && ovr_CreateSwapTextureSetGL(_pHmd, GL_RGBA, width, height, &_pSwapTextureSet[1]) != ovrSuccess)
 	{
 		result = false;	
 	}
@@ -390,7 +367,7 @@ JNIEXPORT jint JNICALL Java_de_fruitfly_ovr_OculusRift__1createMirrorTexture(
 
 	DestroyMirrorTexture();
 
-	if (ovrHmd_CreateMirrorTextureGL(_pHmd, GL_RGBA, width, height, (ovrTexture**)&_pMirrorTexture) != ovrSuccess)
+	if (ovr_CreateMirrorTextureGL(_pHmd, GL_RGBA, width, height, (ovrTexture**)&_pMirrorTexture) != ovrSuccess)
 	{
 		printf("Unable to create mirror texture!\n");
 		_pMirrorTexture = 0;
@@ -549,10 +526,10 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1configureRendering(
     if (DynamicPrediction)  
         HmdCaps |= ovrHmdCap_DynamicPrediction;
 
-	ovrHmd_SetEnabledCaps(_pHmd, HmdCaps); 
+	ovr_SetEnabledCaps(_pHmd, HmdCaps); 
 
     // Configure render setup
-    ovrBool result = ovrHmd_ConfigureRendering(_pHmd, &cfg.Config, DistortionCaps, eyeFov, EyeRenderDesc);
+    ovrBool result = ovr_ConfigureRendering(_pHmd, &cfg.Config, DistortionCaps, eyeFov, EyeRenderDesc);
 	if (!result)
 	{
 		printf("ovrHmd_ConfigureRendering() - ERROR: failure\n");
@@ -644,7 +621,7 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getEyePoses(
 	ovrTrackingState ss;
 
 	// Get both eye poses, and the tracking state in one hit
-	ovrHmd_GetEyePoses(_pHmd, (unsigned int)FrameIndex, ViewOffsets, _eyeRenderPose, &ss);
+	ovr_GetEyePoses(_pHmd, (unsigned int)FrameIndex, ViewOffsets, _eyeRenderPose, &ss);
 
     ClearException(env);
 	jobject jfullposestate = env->NewObject(fullPoseState_Class, fullPoseState_constructor_MethodID,
@@ -752,7 +729,7 @@ JNIEXPORT void JNICALL Java_de_fruitfly_ovr_OculusRift__1submitFrame(JNIEnv *env
     }
     
     ovrLayerHeader* layers = &ld.Header;
-    ovrResult result = ovrHmd_SubmitFrame(HMD, 0, &viewScaleDesc, &layers, 1);
+    ovrResult result = ovr_SubmitFrame(HMD, 0, &viewScaleDesc, &layers, 1);
 
     // Let OVR do distortion rendering, present and flush/sync
     //ovrHmd_EndFrame(_pHmd, _eyeRenderPose, &_GLEyeTexture[0].Texture);
@@ -1041,7 +1018,7 @@ void ResetRenderConfig()
 {
     if (_initialised)
     {
-        ovrHmd_ConfigureRendering(_pHmd, 0, 0, 0, 0);
+        ovr_ConfigureRendering(_pHmd, 0, 0, 0, 0);
     }
 
     // Reset texture data
@@ -1058,25 +1035,33 @@ void ResetRenderConfig()
     _renderConfigured = false;
 }
 
-bool CreateHmdAndConfigureTracker(int hmdIndex)
+bool CreateHmdAndConfigureTracker()
 {
     _pHmd = 0;
 
     bool result = false;
     _realDevice = false;
 
+	ovrGraphicsLuid luid;
+
 	// Get HMD
-	if (ovrHmd_Create(_hmdIndex, &_pHmd) == ovrSuccess)
+	if (ovr_Create(&_pHmd, &luid) == ovrSuccess)
 	{
 		printf("Oculus Rift device found!\n");
         _realDevice = true;
 		result = true;
+
+		_hmdDesc = ovr_GetHmdDesc(_pHmd);
 	}
 	else 
 	{
+
+		// TODO: No debug device
+
+
 		// Create debug Rift
         _hmdIndex = -1;
-		if (ovrHmd_CreateDebug(ovrHmd_DK2, &_pHmd) == ovrSuccess)
+		if (ovr_CreateDebug(ovrHmd_DK2, &_pHmd) == ovrSuccess)
 		{
 			printf("No Oculus Rift devices found, creating dummy device...\n");
 			result = true;
@@ -1089,10 +1074,10 @@ bool CreateHmdAndConfigureTracker(int hmdIndex)
 		LogHmdDesc(_pHmd);
 
         // Set initial hmd caps
-		ovrHmd_SetEnabledCaps(_pHmd, ovrHmdCap_LowPersistence | ovrHmdCap_DynamicPrediction);
+		ovr_SetEnabledCaps(_pHmd, ovrHmdCap_LowPersistence | ovrHmdCap_DynamicPrediction);
 
 		// Configure tracking
-        int trackerResult = ovrHmd_ConfigureTracking(_pHmd,
+        int trackerResult = ovr_ConfigureTracking(_pHmd,
 			    ovrTrackingCap_Orientation | ovrTrackingCap_MagYawCorrection | ovrTrackingCap_Position,
 			    0);
 
@@ -1128,9 +1113,9 @@ void PrintNewObjectException(JNIEnv *env, std::string objectName)
 void LogHmdDesc(ovrHmd pHmd)
 {
 	// Chuck out some basic HMD info
-	printf(" Product Name:      %s\n", pHmd->ProductName);
-	printf(" Manufacturer:      %s\n", pHmd->Manufacturer);
-	printf(" Native Resolution: %d X %d\n", pHmd->Resolution.w, pHmd->Resolution.h);
+	printf(" Product Name:      %s\n", _hmdDesc.ProductName);
+	printf(" Manufacturer:      %s\n", _hmdDesc.Manufacturer);
+	printf(" Native Resolution: %d X %d\n", _hmdDesc.Resolution.w, _hmdDesc.Resolution.h);
 }
 
 void Reset()
@@ -1146,7 +1131,7 @@ void Reset()
 
 		// Cleanup HMD
 		if (_pHmd)
-			ovrHmd_Destroy(_pHmd);
+			ovr_Destroy(_pHmd);
 
 		// Shutdown LibOVR
 		ovr_Shutdown();
@@ -1183,12 +1168,12 @@ void DestroySwapTextureSet()
 
 	if (_pSwapTextureSet[0] != 0)
 	{		    
-		ovrHmd_DestroySwapTextureSet(_pHmd, _pSwapTextureSet[0]);
+		ovr_DestroySwapTextureSet(_pHmd, _pSwapTextureSet[0]);
 		_pSwapTextureSet[0] = 0;
 	}
 	if (_pSwapTextureSet[1] != 0)
 	{
-		ovrHmd_DestroySwapTextureSet(_pHmd, _pSwapTextureSet[1]);
+		ovr_DestroySwapTextureSet(_pHmd, _pSwapTextureSet[1]);
 		_pSwapTextureSet[1] = 0;
 	}
 }
@@ -1203,7 +1188,7 @@ void DestroyMirrorTexture()
 
 	if (_pMirrorTexture != 0)
 	{
-		ovrHmd_DestroyMirrorTexture(_pHmd, (ovrTexture*)_pMirrorTexture);
+		ovr_DestroyMirrorTexture(_pHmd, (ovrTexture*)_pMirrorTexture);
 		_pMirrorTexture = 0;
 	}
 }

@@ -33,14 +33,6 @@ JNIEXPORT void JNICALL Java_de_fruitfly_ovr_OculusRift__1destroySubsystem
  * Signature: (F)Lde/fruitfly/ovr/struct/HmdDesc;
  */
 JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getHmdDesc
-    (JNIEnv *, jobject);
-
-/*
- * Class:     de_fruitfly_ovr_OculusRift
- * Method:    getNextHmd
- * Signature: ()Z
- */
-JNIEXPORT jboolean JNICALL Java_de_fruitfly_ovr_OculusRift__1getNextHmd
     (JNIEnv *, jobject); 
 
 /*
@@ -268,7 +260,7 @@ void ResetRenderConfig();
 void DestroySwapTextureSet();
 void DestroyMirrorTexture();
 bool CacheJNIGlobals(JNIEnv *env);
-bool CreateHmdAndConfigureTracker(int hmdIndex);
+bool CreateHmdAndConfigureTracker();
 bool LookupJNIGlobal(JNIEnv *env,
                      jclass& clazz,
                      std::string className,
