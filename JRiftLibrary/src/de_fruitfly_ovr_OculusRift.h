@@ -119,47 +119,6 @@ JNIEXPORT jint JNICALL Java_de_fruitfly_ovr_OculusRift__1createMirrorTexture(
  */
 JNIEXPORT void JNICALL Java_de_fruitfly_ovr_OculusRift__1destroyMirrorTexture
     (JNIEnv *env, jobject);
-    
-/*
- * Class:     de_fruitfly_ovr_OculusRift
- * Method:    configureRendering
- * Signature: (ZIIIIIJJZIZZZZZZZFFFFFFFFF)Lde/fruitfly/ovr/EyeRenderParams;
- */
-JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1configureRendering(
-	JNIEnv *, 
-	jobject,
-	jboolean,
-    jint,
-    jint,
-	jint,
-	jint,
-	jint,
-	jint,
-	jint,
-	jint,
-	jlong, 
-	jlong,
-	jboolean,
-    jint,
-    jboolean,
-    jboolean,
-    jboolean,
-	jboolean,
-    jboolean,
-	jboolean,
-	jboolean,
-	jboolean,
-	jboolean,
-	jfloat,
-	jfloat,
-	jfloat,
-	jfloat,
-	jfloat,
-	jfloat,
-	jfloat,
-	jfloat,
-	jfloat
-	);
 
 /*
  * Class:     de_fruitfly_ovr_OculusRift

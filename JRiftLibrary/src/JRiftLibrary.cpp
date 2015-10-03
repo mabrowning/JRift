@@ -8,6 +8,7 @@
 #include "Windows.h"
 #endif
 #include "OVR_CAPI_GL.h"
+#include "GL\CAPI_GLE_GL.h"
 
 using namespace OVR;
 
@@ -147,10 +148,10 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getHmdDesc(JNIEnv *e
                                       _hmdDesc.MaxEyeFov[1].DownTan,
                                       _hmdDesc.MaxEyeFov[1].LeftTan,
                                       _hmdDesc.MaxEyeFov[1].RightTan,
-                                      (int)_pHmd->EyeRenderOrder[0],
-                                      (int)_hmdDesc.EyeRenderOrder[1],
-                                      displayDeviceName,  // DisplayDeviceName no longer used, remove,
-                                      0, // Display ID no longer used, remove,
+                                      0, // Eye render order no longer used, remove
+                                      0, // Eye render order no longer used, remove
+                                      displayDeviceName,  // DisplayDeviceName no longer used, remove
+                                      0, // Display ID no longer used, remove
                                       _realDevice
             );
 
@@ -254,8 +255,8 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getFovTextureSize(
 									recommendedTex1Size.h,
                                     RenderTargetSize.w,
                                     RenderTargetSize.h,
-									_pHmd->Resolution.w,
-									_pHmd->Resolution.h,
+									_hmdDesc.Resolution.w,
+									_hmdDesc.Resolution.h,
                                     (float)RenderScaleFactor
                                     );
 
@@ -278,11 +279,11 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1createSwapTextureSet
 
 	boolean result = true;
 
-	if (result && ovr_CreateSwapTextureSetGL(_pHmd, GL_RGBA, width, height, &_pSwapTextureSet[0]) != ovrSuccess)
+	if (result && ovr_CreateSwapTextureSetGL(_pHmd, GL_SRGB8_ALPHA8, width, height, &_pSwapTextureSet[0]) != ovrSuccess)
 	{
 		result = false;	
 	}
-	if (result && ovr_CreateSwapTextureSetGL(_pHmd, GL_RGBA, width, height, &_pSwapTextureSet[1]) != ovrSuccess)
+	if (result && ovr_CreateSwapTextureSetGL(_pHmd, GL_SRGB8_ALPHA8, width, height, &_pSwapTextureSet[1]) != ovrSuccess)
 	{
 		result = false;	
 	}
@@ -367,7 +368,7 @@ JNIEXPORT jint JNICALL Java_de_fruitfly_ovr_OculusRift__1createMirrorTexture(
 
 	DestroyMirrorTexture();
 
-	if (ovr_CreateMirrorTextureGL(_pHmd, GL_RGBA, width, height, (ovrTexture**)&_pMirrorTexture) != ovrSuccess)
+	if (ovr_CreateMirrorTextureGL(_pHmd, GL_SRGB8_ALPHA8, width, height, (ovrTexture**)&_pMirrorTexture) != ovrSuccess)
 	{
 		printf("Unable to create mirror texture!\n");
 		_pMirrorTexture = 0;
@@ -382,212 +383,6 @@ JNIEXPORT void JNICALL Java_de_fruitfly_ovr_OculusRift__1destroyMirrorTexture
 (JNIEnv *env, jobject)
 {
     DestroyMirrorTexture();
-}
-
-JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1configureRendering(
-	JNIEnv *env, 
-	jobject, 
-	jboolean UsesInputTexture1Only,
-	jint InTexture1Width,
-	jint InTexture1Height,
-	jint InTexture1GLId,
-	jint InTexture2Width,
-	jint InTexture2Height,
-	jint InTexture2GLId,
-	jint OutDisplayWidth,
-	jint OutDisplayHeight,
-	jlong Win, 
-	jlong Displ,
-	jboolean VSyncEnabled,
-    jint MultiSample,
-    jboolean UseTimewarp,
-	jboolean UseTimewarpJitDelay,
-	jboolean UseVignette,
-	jboolean UseLowPersistence,
-    jboolean MirrorDisplay,
-    jboolean UseDisplayOverdrive,
-	jboolean DynamicPrediction,
-	jboolean UseHighQualityDistortion,
-	jboolean UseProfileNoSpinWaits,
-	jfloat leftFovUpTan,
-	jfloat leftFovDownTan,
-	jfloat leftFovLeftTan,
-	jfloat leftFovRightTan,
-	jfloat rightFovUpTan,
-	jfloat rightFovDownTan,
-	jfloat rightFovLeftTan,
-	jfloat rightFovRightTan,
-	jfloat worldScale
-	)
-{
-	if (!_initialised)
-		return 0;
-
-    // Initialize eye rendering information for ovrHmd_Configure.
-    // The viewport sizes are re-computed in case RenderTargetSize changed due to HW limitations.
-	
-	ovrFovPort leftFov;
-	ovrFovPort rightFov;
-	leftFov.UpTan     = leftFovUpTan;
-	leftFov.DownTan   = leftFovDownTan;
-	leftFov.LeftTan   = leftFovLeftTan;
-	leftFov.RightTan  = leftFovRightTan;
-	rightFov.UpTan    = rightFovUpTan;
-	rightFov.DownTan  = rightFovDownTan;
-	rightFov.LeftTan  = rightFovLeftTan;
-	rightFov.RightTan = rightFovRightTan;
-
-    ovrRecti   EyeRenderViewport[2];
-	ovrFovPort eyeFov[2] = { leftFov, rightFov } ;
-
-	if (UsesInputTexture1Only) // Same texture used, has both views
-	{
-		EyeRenderViewport[0].Pos  = Vector2i(0,0);
-		EyeRenderViewport[0].Size = Sizei(InTexture1Width / 2, InTexture1Height);
-		EyeRenderViewport[1].Pos  = Vector2i((InTexture1Width + 1) / 2, 0);
-		EyeRenderViewport[1].Size = EyeRenderViewport[0].Size;
-
-		// Setup GL texture data.
-		_GLEyeTexture[0].OGL.Header.API            = ovrRenderAPI_OpenGL;
-		_GLEyeTexture[0].OGL.Header.TextureSize.w  = InTexture1Width;
-		_GLEyeTexture[0].OGL.Header.TextureSize.h  = InTexture1Height;
-//		_GLEyeTexture[0].OGL.Header.RenderViewport = EyeRenderViewport[0];
-		_GLEyeTexture[0].OGL.TexId                 = (GLuint)InTexture1GLId;
-    
-		// Right eye uses the same texture, but different rendering viewport.
-		_GLEyeTexture[1] = _GLEyeTexture[0];
-//		_GLEyeTexture[1].OGL.Header.RenderViewport = EyeRenderViewport[1];
-	}
-	else // Uses individual input textures for each view
-	{
-		EyeRenderViewport[0].Pos  = Vector2i(0,0);
-		EyeRenderViewport[0].Size = Sizei(InTexture1Width, InTexture1Height);
-		EyeRenderViewport[1].Pos  = Vector2i(0, 0);
-		EyeRenderViewport[1].Size = Sizei(InTexture2Width, InTexture2Height);
-
-		// Setup GL texture data.
-		_GLEyeTexture[0].OGL.Header.API            = ovrRenderAPI_OpenGL;
-		_GLEyeTexture[0].OGL.Header.TextureSize.w  = InTexture1Width;
-		_GLEyeTexture[0].OGL.Header.TextureSize.h  = InTexture1Height;
-//		_GLEyeTexture[0].OGL.Header.RenderViewport = EyeRenderViewport[0];
-		_GLEyeTexture[0].OGL.TexId                 = (GLuint)InTexture1GLId;
-
-		_GLEyeTexture[1].OGL.Header.API            = ovrRenderAPI_OpenGL;
-		_GLEyeTexture[1].OGL.Header.TextureSize.w  = InTexture2Width;
-		_GLEyeTexture[1].OGL.Header.TextureSize.h  = InTexture2Height;
-//		_GLEyeTexture[1].OGL.Header.RenderViewport = EyeRenderViewport[1];
-		_GLEyeTexture[1].OGL.TexId                 = (GLuint)InTexture2GLId;
-	}
-
-	// Configure OpenGL. 
-	ovrGLConfig cfg; 
-	cfg.OGL.Header.API            = ovrRenderAPI_OpenGL; 
-	cfg.OGL.Header.BackBufferSize = Sizei(OutDisplayWidth, OutDisplayHeight); 
-	cfg.OGL.Header.Multisample    = MultiSample; 
-
-	// Cast context pointers to 32 / 64 bit as appropriate
-#if defined(OVR_OS_WIN32)
-    cfg.OGL.Window = (HWND)(intptr_t)Win;
-	cfg.OGL.DC     = ::GetDC(cfg.OGL.Window);
-#elif defined(OVR_OS_LINUX)
-    cfg.OGL.Disp   = (_XDisplay*)(intptr_t)Displ;
-#endif
-	 
-	unsigned int DistortionCaps = 0;
-    if (UseTimewarp)
-        DistortionCaps |= ovrDistortionCap_TimeWarp;
-	if (UseTimewarpJitDelay)
-        DistortionCaps |= ovrDistortionCap_TimewarpJitDelay;
-	if (UseVignette)
-        DistortionCaps |= ovrDistortionCap_Vignette;
-    if (UseDisplayOverdrive)  
-        DistortionCaps |= ovrDistortionCap_Overdrive;
-	if (UseHighQualityDistortion)
-		DistortionCaps |= ovrDistortionCap_HqDistortion;
-	if (UseProfileNoSpinWaits)
-        DistortionCaps |= ovrDistortionCap_ProfileNoSpinWaits;
-
-#if defined(OVR_OS_LINUX)
-    DistortionCaps |= ovrDistortionCap_LinuxDevFullscreen;
-#endif
-
-	//DistortionCaps |= ovrDistortionCap_SRGB;
-    
-	ovrEyeRenderDesc EyeRenderDesc[2];
-
-    // Set VSync and low persistence etc.
-    unsigned int HmdCaps = 0;
-    if (!VSyncEnabled)
-        HmdCaps |= ovrHmdCap_NoVSync;
-    if (UseLowPersistence)
-        HmdCaps |= ovrHmdCap_LowPersistence;
-    if (!MirrorDisplay)
-        HmdCaps |= ovrHmdCap_NoMirrorToWindow;
-    if (DynamicPrediction)  
-        HmdCaps |= ovrHmdCap_DynamicPrediction;
-
-	ovr_SetEnabledCaps(_pHmd, HmdCaps); 
-
-    // Configure render setup
-    ovrBool result = ovr_ConfigureRendering(_pHmd, &cfg.Config, DistortionCaps, eyeFov, EyeRenderDesc);
-	if (!result)
-	{
-		printf("ovrHmd_ConfigureRendering() - ERROR: failure\n");
-        ResetRenderConfig();
-		return 0;
-	}
-	
-    _renderConfigured = true;
-
-	// Set worldScale
-	EyeRenderDesc[0].HmdToEyeViewOffset.x *= worldScale;
-	EyeRenderDesc[0].HmdToEyeViewOffset.y *= worldScale;
-    EyeRenderDesc[0].HmdToEyeViewOffset.z *= worldScale;
-	EyeRenderDesc[1].HmdToEyeViewOffset.x *= worldScale;
-	EyeRenderDesc[1].HmdToEyeViewOffset.y *= worldScale;
-    EyeRenderDesc[1].HmdToEyeViewOffset.z *= worldScale;
-
-	jobject eyeRenderDesc = env->NewObject(eyeRenderParams_Class, eyeRenderParams_constructor_MethodID,
-                                           EyeRenderDesc[0].Eye,
-                                           EyeRenderViewport[0].Pos.x,
-                                           EyeRenderViewport[0].Pos.y,
-                                           EyeRenderViewport[0].Size.w,
-                                           EyeRenderViewport[0].Size.h,
-                                           EyeRenderDesc[0].Fov.UpTan,
-                                           EyeRenderDesc[0].Fov.DownTan,
-                                           EyeRenderDesc[0].Fov.LeftTan,
-                                           EyeRenderDesc[0].Fov.RightTan,
-                                           EyeRenderDesc[0].DistortedViewport.Pos.x, 
-                                           EyeRenderDesc[0].DistortedViewport.Pos.y,
-                                           EyeRenderDesc[0].DistortedViewport.Size.w,
-                                           EyeRenderDesc[0].DistortedViewport.Size.h,
-                                           EyeRenderDesc[0].PixelsPerTanAngleAtCenter.x,
-                                           EyeRenderDesc[0].PixelsPerTanAngleAtCenter.y,
-                                           EyeRenderDesc[0].HmdToEyeViewOffset.x,
-                                           EyeRenderDesc[0].HmdToEyeViewOffset.y,
-                                           EyeRenderDesc[0].HmdToEyeViewOffset.z,
-                                           EyeRenderDesc[1].Eye,
-                                           EyeRenderViewport[1].Pos.x,
-                                           EyeRenderViewport[1].Pos.y,
-                                           EyeRenderViewport[1].Size.w,
-                                           EyeRenderViewport[1].Size.h,
-                                           EyeRenderDesc[1].Fov.UpTan,
-                                           EyeRenderDesc[1].Fov.DownTan,
-                                           EyeRenderDesc[1].Fov.LeftTan,
-                                           EyeRenderDesc[1].Fov.RightTan,
-                                           EyeRenderDesc[1].DistortedViewport.Pos.x, 
-                                           EyeRenderDesc[1].DistortedViewport.Pos.y,
-                                           EyeRenderDesc[1].DistortedViewport.Size.w,
-                                           EyeRenderDesc[1].DistortedViewport.Size.h,
-                                           EyeRenderDesc[1].PixelsPerTanAngleAtCenter.x,
-                                           EyeRenderDesc[1].PixelsPerTanAngleAtCenter.y,
-                                           EyeRenderDesc[1].HmdToEyeViewOffset.x,
-                                           EyeRenderDesc[1].HmdToEyeViewOffset.y,
-                                           EyeRenderDesc[1].HmdToEyeViewOffset.z,
-										   worldScale
-										);
-
-    return eyeRenderDesc;
 }
 
 JNIEXPORT void JNICALL Java_de_fruitfly_ovr_OculusRift__1resetRenderConfig(JNIEnv *env, jobject)
@@ -715,11 +510,19 @@ JNIEXPORT void JNICALL Java_de_fruitfly_ovr_OculusRift__1submitFrame(JNIEnv *env
         printf("endFrame() - ERROR: Render config not set!\n");
         return;
     }
+
+    ovrViewScaleDesc viewScaleDesc;
+    viewScaleDesc.HmdSpaceToWorldScaleInMeters = 1.0f;
+	/*
+    viewScaleDesc.HmdToEyeViewOffset[0] = ViewOffset[0];
+    viewScaleDesc.HmdToEyeViewOffset[1] = ViewOffset[1];
+	*/
     
     ovrLayerEyeFov ld;
     ld.Header.Type  = ovrLayerType_EyeFov;
     ld.Header.Flags = ovrLayerFlag_TextureOriginAtBottomLeft;   // Because OpenGL.
     
+	/*
     for (int eye = 0; eye < 2; eye++)
     {
         ld.ColorTexture[eye] = eyeRenderTexture[eye]->TextureSet;
@@ -727,9 +530,10 @@ JNIEXPORT void JNICALL Java_de_fruitfly_ovr_OculusRift__1submitFrame(JNIEnv *env
         ld.Fov[eye]          = HMD->DefaultEyeFov[eye];
         ld.RenderPose[eye]   = EyeRenderPose[eye];
     }
+	*/
     
     ovrLayerHeader* layers = &ld.Header;
-    ovrResult result = ovr_SubmitFrame(HMD, 0, &viewScaleDesc, &layers, 1);
+    ovrResult result = ovr_SubmitFrame(_pHmd, 0, &viewScaleDesc, &layers, 1);
 
     // Let OVR do distortion rendering, present and flush/sync
     //ovrHmd_EndFrame(_pHmd, _eyeRenderPose, &_GLEyeTexture[0].Texture);
@@ -974,11 +778,11 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getUserProfileData(
 #define OVR_DEFAULT_EYE_RELIEF_DIAL         3
 */
 
-	float playerHeight = ovrHmd_GetFloat( _pHmd, OVR_KEY_PLAYER_HEIGHT, OVR_DEFAULT_PLAYER_HEIGHT);
-	float eyeHeight    = ovrHmd_GetFloat( _pHmd, OVR_KEY_EYE_HEIGHT,    OVR_DEFAULT_EYE_HEIGHT); 
-	float ipd          = ovrHmd_GetFloat( _pHmd, OVR_KEY_IPD,           OVR_DEFAULT_IPD); 
-	std::string gender = ovrHmd_GetString(_pHmd, OVR_KEY_GENDER,        OVR_DEFAULT_GENDER);
-    std::string name   = ovrHmd_GetString(_pHmd, OVR_KEY_NAME,          "No Profile");
+	float playerHeight = ovr_GetFloat( _pHmd, OVR_KEY_PLAYER_HEIGHT, OVR_DEFAULT_PLAYER_HEIGHT);
+	float eyeHeight    = ovr_GetFloat( _pHmd, OVR_KEY_EYE_HEIGHT,    OVR_DEFAULT_EYE_HEIGHT); 
+	float ipd          = ovr_GetFloat( _pHmd, OVR_KEY_IPD,           OVR_DEFAULT_IPD); 
+	std::string gender = ovr_GetString(_pHmd, OVR_KEY_GENDER,        OVR_DEFAULT_GENDER);
+    std::string name   = ovr_GetString(_pHmd, OVR_KEY_NAME,          "No Profile");
 
 	jstring jname   = env->NewStringUTF(name.c_str());
     jstring jgender = env->NewStringUTF(gender.c_str());
@@ -1016,6 +820,7 @@ JNIEXPORT jdouble JNICALL Java_de_fruitfly_ovr_OculusRift__1getCurrentTimeSecs(
 
 void ResetRenderConfig()
 {
+/*
     if (_initialised)
     {
         ovr_ConfigureRendering(_pHmd, 0, 0, 0, 0);
@@ -1031,7 +836,7 @@ void ResetRenderConfig()
     _GLEyeTexture[0].OGL.Header.RenderViewport.Size.h = 0;
 	_GLEyeTexture[0].OGL.TexId                        = 0;
     _GLEyeTexture[1] = _GLEyeTexture[0];
-
+*/
     _renderConfigured = false;
 }
 
@@ -1048,12 +853,10 @@ bool CreateHmdAndConfigureTracker()
 	if (ovr_Create(&_pHmd, &luid) == ovrSuccess)
 	{
 		printf("Oculus Rift device found!\n");
-        _realDevice = true;
+        _realDevice = true; // TODO: How to detect real versus debug device?
 		result = true;
-
-		_hmdDesc = ovr_GetHmdDesc(_pHmd);
 	}
-	else 
+/*	else 
 	{
 
 		// TODO: No debug device
@@ -1067,14 +870,14 @@ bool CreateHmdAndConfigureTracker()
 			result = true;
 		}
 	}
+*/
 
 	if (result)
 	{
+		_hmdDesc = ovr_GetHmdDesc(_pHmd);
+
 		// Log description
 		LogHmdDesc(_pHmd);
-
-        // Set initial hmd caps
-		ovr_SetEnabledCaps(_pHmd, ovrHmdCap_LowPersistence | ovrHmdCap_DynamicPrediction);
 
 		// Configure tracking
         int trackerResult = ovr_ConfigureTracking(_pHmd,
