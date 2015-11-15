@@ -453,6 +453,14 @@ public class OculusRift //implements IOculusRift
         return time;
     }
 
+    public SwapTextureSet createSwapTextureSet(int width, int height)
+    {
+        if (!isInitialized())
+            return null;
+
+        return _createSwapTextureSet(width, height);
+    }
+
     // Native declarations
 
     protected native static void     _initRenderingShim();
@@ -464,6 +472,7 @@ public class OculusRift //implements IOculusRift
 
     protected native TrackerState    _getTrackerState(double timeFromNow);
     protected native void            _resetTracking();
+    protected native SwapTextureSet  _createSwapTextureSet(int width, int height);
 
     protected native FovTextureInfo  _getFovTextureSize(float LeftFovUpTan,
                                                         float LeftFovDownTan,
