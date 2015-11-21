@@ -453,12 +453,20 @@ public class OculusRift //implements IOculusRift
         return time;
     }
 
-    public SwapTextureSet createSwapTextureSet(int width, int height)
+    public SwapTextureSet createSwapTextureSet(int lwidth, int lheight, int rwidth, int rheight)
     {
         if (!isInitialized())
             return null;
 
-        return _createSwapTextureSet(width, height);
+        return _createSwapTextureSet(lwidth, lheight, rwidth, rheight);
+    }
+
+    public int createMirrorTexture(int width, int height)
+    {
+        if (!isInitialized())
+            return -1;
+
+        return _createMirrorTexture(width, height);
     }
 
     // Native declarations
@@ -472,8 +480,12 @@ public class OculusRift //implements IOculusRift
 
     protected native TrackerState    _getTrackerState(double timeFromNow);
     protected native void            _resetTracking();
-    protected native SwapTextureSet  _createSwapTextureSet(int width, int height);
-
+    protected native SwapTextureSet  _createSwapTextureSet(int lwidth,
+                                                           int lheight,
+                                                           int rwidth,
+                                                           int rheight);
+    protected native int             _createMirrorTexture(int width,
+                                                          int height);
     protected native FovTextureInfo  _getFovTextureSize(float LeftFovUpTan,
                                                         float LeftFovDownTan,
                                                         float LeftFovLeftTan,

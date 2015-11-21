@@ -73,13 +73,15 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getFovTextureSize(
 /*
  * Class:     de_fruitfly_ovr_OculusRift
  * Method:    createSwapTextureSet
- * Signature: (II)Lde/fruitfly/ovr/SwapTextureSet;
+ * Signature: (IIII)Lde/fruitfly/ovr/SwapTextureSet;
  */
 JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1createSwapTextureSet(
 	JNIEnv *env, 
 	jobject,
-	jint width,
-	jint height
+    jint lwidth,
+    jint lheight,
+    jint rwidth,
+    jint rheight
 	);
     
 /*

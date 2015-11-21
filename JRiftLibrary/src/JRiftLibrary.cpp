@@ -268,8 +268,10 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getFovTextureSize(
 JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1createSwapTextureSet(
 	JNIEnv *env, 
 	jobject,
-	jint width,
-	jint height
+	jint lwidth,
+	jint lheight,
+    jint rwidth,
+    jint rheight
 	)
 {
 	if (!_initialised)
@@ -279,11 +281,11 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1createSwapTextureSet
 
 	boolean result = true;
 
-	if (result && ovr_CreateSwapTextureSetGL(_pHmd, GL_SRGB8_ALPHA8, width, height, &_pSwapTextureSet[0]) != ovrSuccess)
+	if (result && ovr_CreateSwapTextureSetGL(_pHmd, GL_SRGB8_ALPHA8, lwidth, lheight, &_pSwapTextureSet[0]) != ovrSuccess)
 	{
 		result = false;	
 	}
-	if (result && ovr_CreateSwapTextureSetGL(_pHmd, GL_SRGB8_ALPHA8, width, height, &_pSwapTextureSet[1]) != ovrSuccess)
+	if (result && ovr_CreateSwapTextureSetGL(_pHmd, GL_SRGB8_ALPHA8, rwidth, rheight, &_pSwapTextureSet[1]) != ovrSuccess)
 	{
 		result = false;	
 	}
