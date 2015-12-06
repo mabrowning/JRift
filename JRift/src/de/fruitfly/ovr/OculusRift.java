@@ -9,7 +9,7 @@ import java.text.DecimalFormat;
 public class OculusRift //implements IOculusRift
 {
 	private boolean initialized = false;
-    private boolean renderConfigured = false;
+    private boolean renderConfigured = true;//TODO revert or read from dll?
 
 	private HmdDesc hmdDesc = new HmdDesc();
     private TrackerState trackerState = new TrackerState();
@@ -367,13 +367,13 @@ public class OculusRift //implements IOculusRift
                                       farClip);
     }
 
-    public void endFrame()
-    {
-        if (!initialized || !renderConfigured)
-            return;
-
-        _endFrame();
-    }
+//    public void endFrame()
+//    {
+//        if (!initialized || !renderConfigured)
+//            return;
+//
+//        _endFrame();
+//    }
 
     public static EulerOrient getEulerAnglesDeg(Quatf quat,
                                                 float scale,
@@ -460,6 +460,11 @@ public class OculusRift //implements IOculusRift
 
         return _createSwapTextureSet(lwidth, lheight, rwidth, rheight);
     }
+    
+    public boolean setCurrentSwapTextureIndex(int idx)
+    {
+    	return _setCurrentSwapTextureIndex(idx);
+    }
 
     public int createMirrorTexture(int width, int height)
     {
@@ -484,6 +489,7 @@ public class OculusRift //implements IOculusRift
                                                            int lheight,
                                                            int rwidth,
                                                            int rheight);
+    protected native boolean         _setCurrentSwapTextureIndex(int idx);
     protected native int             _createMirrorTexture(int width,
                                                           int height);
     protected native FovTextureInfo  _getFovTextureSize(float LeftFovUpTan,
@@ -558,7 +564,7 @@ public class OculusRift //implements IOculusRift
                                                          float viewAdjustX,
                                                          float viewAdjustY,
                                                          float viewAdjustZ);
-    protected native void            _endFrame();
+    public native void            submitFrame();
 
     protected native static EulerOrient _convertQuatToEuler(float quatx,
                                                             float quaty,

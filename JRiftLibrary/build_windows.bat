@@ -14,16 +14,16 @@ SET VISUALSTUDIO_VER=10
 :: to be installed and in your path for the JNI headers to be found.
 
 :: Out-of-source win64 cmake configuration
-rmdir %~dp0\win64 /S /Q
-mkdir %~dp0\win64
-cd /D %~dp0\win64
-cmake -G "Visual Studio %VISUALSTUDIO_VER% Win64" %~dp0 -Wno-dev
+rmdir "%~dp0\win64" /S /Q
+mkdir "%~dp0\win64"
+cd /D "%~dp0\win64"
+cmake -G "Visual Studio %VISUALSTUDIO_VER% Win64" ../ -Wno-dev
 
 :: Out-of-source win32 cmake configuration
-rmdir %~dp0\win32 /S /Q
-mkdir %~dp0\win32
-cd /D %~dp0\win32
-cmake -G "Visual Studio %VISUALSTUDIO_VER%" %~dp0 -Wno-dev
+rmdir "%~dp0\win32" /S /Q
+mkdir "%~dp0\win32"
+cd /D "%~dp0\win32"
+cmake -G "Visual Studio %VISUALSTUDIO_VER%" ../ -Wno-dev
 cd /D %CURDIR%
 
 :: MSbuild path finder shamelessly ripped from JJS, Stack-overflow. MSBuild 4 or higher required.
@@ -40,7 +40,7 @@ IF NOT EXIST %MSBUILDDIR%msbuild.exe goto MissingMSBuildExe
 
 :: Visual Studio 2012 or greater currently required.
 
-del /F /Q %~dp0\natives\windows\JRiftLibrary*.dll 
+del /F /Q "%~dp0\natives\windows\JRiftLibrary*.dll"
 
 :: Build Win64 dll
 "%MSBUILDDIR%msbuild.exe" "%~dp0\win64\JRiftLibrary.sln" /t:JRiftLibrary64:clean;rebuild /p:Configuration=Release;Platform=x64 /v:normal

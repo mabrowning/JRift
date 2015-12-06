@@ -21,8 +21,17 @@ bool                _realDevice       = false;
 ovrSwapTextureSet*  _pSwapTextureSet[2];
 ovrGLTexture*       _pMirrorTexture   = 0;
 
+ovrTrackingState _hmdState;
 ovrPosef            _eyeRenderPose[2];
 ovrGLTexture        _GLEyeTexture[2];
+ovrEyeRenderDesc    _EyeRenderDesc[2];
+double           _sensorSampleTime = 0.0;
+
+//sizes from last ovr_CreateSwapTextureSetGL
+int _lwidth=0;
+int _lheight=0;
+int _rwidth=0;
+int _rheight=0;
 
 const bool          LogDebug = false;
 
@@ -96,6 +105,8 @@ JNIEXPORT jboolean JNICALL Java_de_fruitfly_ovr_OculusRift__1initSubsystem(JNIEn
 		printf("Unable to create Oculus Rift device interface!\n");
 	}
 
+	InitRenderConfig();
+	
 	return _initialised;
 }
 
@@ -168,9 +179,9 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getTrackerState(JNIE
 {
 	if (!_initialised) 
         return 0;
-
+	
 	// Get sensorstate at the specified time in the future from now (0.0 means 'now')
-	ovrTrackingState ss = ovr_GetTrackingState(_pHmd, time);
+	ovrTrackingState ss = ovr_GetTrackingState(_pHmd, time, ovrTrue); //TODO_ add param to native?
 
     ClearException(env);
 
@@ -276,11 +287,14 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1createSwapTextureSet
 {
 	if (!_initialised)
 		return 0;
-
+	
 	DestroySwapTextureSet();
 
 	boolean result = true;
-
+	_lwidth=lwidth;
+	_lheight=lheight;
+	_rwidth=rwidth;
+	_rheight=rheight;
 	if (result && ovr_CreateSwapTextureSetGL(_pHmd, GL_SRGB8_ALPHA8, lwidth, lheight, &_pSwapTextureSet[0]) != ovrSuccess)
 	{
 		result = false;	
@@ -319,6 +333,7 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1createSwapTextureSet
 			jobject texIdInt = env->NewObject(integerClass, method_integer_init, (jint)tex->OGL.TexId);
 			jboolean jbool = env->CallBooleanMethod(rightEyeTextureIds, method_arrayList_add, texIdInt);
 		}
+		return jswapTextureSet;
 	}
 
 	return 0;
@@ -407,18 +422,19 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getEyePoses(
     if (!_initialised)
         return 0;
 
-	ovrVector3f ViewOffsets[2];
-	ViewOffsets[0].x = HmdToLeftEyeViewOffsetX;
-	ViewOffsets[0].y = HmdToLeftEyeViewOffsetY;
-	ViewOffsets[0].z = HmdToLeftEyeViewOffsetZ;
-	ViewOffsets[1].x = HmdToRightEyeViewOffsetX;
-	ViewOffsets[1].y = HmdToRightEyeViewOffsetY;
-	ViewOffsets[1].z = HmdToRightEyeViewOffsetZ;
+	//ovrVector3f ViewOffsets[2];
+	//ViewOffsets[0].x = HmdToLeftEyeViewOffsetX;
+	//ViewOffsets[0].y = HmdToLeftEyeViewOffsetY;
+	//ViewOffsets[0].z = HmdToLeftEyeViewOffsetZ;
+	//ViewOffsets[1].x = HmdToRightEyeViewOffsetX;
+	//ViewOffsets[1].y = HmdToRightEyeViewOffsetY;
+	//ViewOffsets[1].z = HmdToRightEyeViewOffsetZ;
 
-	ovrTrackingState ss;
-
-	// Get both eye poses, and the tracking state in one hit
-	ovr_GetEyePoses(_pHmd, (unsigned int)FrameIndex, ViewOffsets, _eyeRenderPose, &ss);
+	//double           ftiming = ovr_GetPredictedDisplayTime(_pHmd, 0);
+ //   // Keeping sensorSampleTime as close to ovr_GetTrackingState as possible - fed into the layer
+ //   double           sensorSampleTime = ovr_GetTimeInSeconds();
+ //   ovrTrackingState ss = ovr_GetTrackingState(_pHmd, ftiming, ovrTrue);
+ //   ovr_CalcEyePoses(ss.HeadPose.ThePose, ViewOffsets, _eyeRenderPose);
 
     ClearException(env);
 	jobject jfullposestate = env->NewObject(fullPoseState_Class, fullPoseState_constructor_MethodID,
@@ -437,28 +453,28 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getEyePoses(
 								 _eyeRenderPose[1].Position.x,
 								 _eyeRenderPose[1].Position.y,
 								 _eyeRenderPose[1].Position.z,
-								 ss.HeadPose.ThePose.Orientation.x,   
-								 ss.HeadPose.ThePose.Orientation.y,  
-								 ss.HeadPose.ThePose.Orientation.z,   
-								 ss.HeadPose.ThePose.Orientation.w,   
-								 ss.HeadPose.ThePose.Position.x,      
-								 ss.HeadPose.ThePose.Position.y,      
-								 ss.HeadPose.ThePose.Position.z,      
-								 ss.HeadPose.AngularVelocity.x,    
-								 ss.HeadPose.AngularVelocity.y,    
-								 ss.HeadPose.AngularVelocity.z,    
-								 ss.HeadPose.LinearVelocity.x,     
-								 ss.HeadPose.LinearVelocity.y,     
-								 ss.HeadPose.LinearVelocity.z,     
-								 ss.HeadPose.AngularAcceleration.x,
-								 ss.HeadPose.AngularAcceleration.y,
-								 ss.HeadPose.AngularAcceleration.z,
-								 ss.HeadPose.LinearAcceleration.x, 
-								 ss.HeadPose.LinearAcceleration.y, 
-								 ss.HeadPose.LinearAcceleration.z, 
-								 ss.HeadPose.TimeInSeconds,        
-								 ss.RawSensorData.Temperature,
-								 ss.StatusFlags
+								 _hmdState.HeadPose.ThePose.Orientation.x,   
+								 _hmdState.HeadPose.ThePose.Orientation.y,  
+								 _hmdState.HeadPose.ThePose.Orientation.z,   
+								 _hmdState.HeadPose.ThePose.Orientation.w,   
+								 _hmdState.HeadPose.ThePose.Position.x,      
+								 _hmdState.HeadPose.ThePose.Position.y,      
+								 _hmdState.HeadPose.ThePose.Position.z,      
+								 _hmdState.HeadPose.AngularVelocity.x,    
+								 _hmdState.HeadPose.AngularVelocity.y,    
+								 _hmdState.HeadPose.AngularVelocity.z,    
+								 _hmdState.HeadPose.LinearVelocity.x,     
+								 _hmdState.HeadPose.LinearVelocity.y,     
+								 _hmdState.HeadPose.LinearVelocity.z,     
+								 _hmdState.HeadPose.AngularAcceleration.x,
+								 _hmdState.HeadPose.AngularAcceleration.y,
+								 _hmdState.HeadPose.AngularAcceleration.z,
+								 _hmdState.HeadPose.LinearAcceleration.x, 
+								 _hmdState.HeadPose.LinearAcceleration.y, 
+								 _hmdState.HeadPose.LinearAcceleration.z, 
+								 _hmdState.HeadPose.TimeInSeconds,        
+								 _hmdState.RawSensorData.Temperature,
+								 _hmdState.StatusFlags
 								 );
     if (jfullposestate == 0) PrintNewObjectException(env, "FullPoseState");
 
@@ -502,7 +518,7 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getMatrix4fProjectio
     return jproj;
 }
 
-JNIEXPORT void JNICALL Java_de_fruitfly_ovr_OculusRift__1submitFrame(JNIEnv *env, jobject)
+JNIEXPORT void JNICALL Java_de_fruitfly_ovr_OculusRift_submitFrame(JNIEnv *env, jobject)
 {
     if (!_initialised)
         return;
@@ -515,30 +531,26 @@ JNIEXPORT void JNICALL Java_de_fruitfly_ovr_OculusRift__1submitFrame(JNIEnv *env
 
     ovrViewScaleDesc viewScaleDesc;
     viewScaleDesc.HmdSpaceToWorldScaleInMeters = 1.0f;
-	/*
-    viewScaleDesc.HmdToEyeViewOffset[0] = ViewOffset[0];
-    viewScaleDesc.HmdToEyeViewOffset[1] = ViewOffset[1];
-	*/
+    viewScaleDesc.HmdToEyeViewOffset[0] = _EyeRenderDesc[0].HmdToEyeViewOffset;
+    viewScaleDesc.HmdToEyeViewOffset[1] = _EyeRenderDesc[1].HmdToEyeViewOffset;
+
     
     ovrLayerEyeFov ld;
     ld.Header.Type  = ovrLayerType_EyeFov;
     ld.Header.Flags = ovrLayerFlag_TextureOriginAtBottomLeft;   // Because OpenGL.
     
-	/*
-    for (int eye = 0; eye < 2; eye++)
+    for (int eye = 0; eye < 2; ++eye)
     {
-        ld.ColorTexture[eye] = eyeRenderTexture[eye]->TextureSet;
-        ld.Viewport[eye]     = Recti(eyeRenderTexture[eye]->GetSize());
-        ld.Fov[eye]          = HMD->DefaultEyeFov[eye];
-        ld.RenderPose[eye]   = EyeRenderPose[eye];
+        ld.ColorTexture[eye] = _pSwapTextureSet[eye];
+        ld.Fov[eye]          = _hmdDesc.DefaultEyeFov[eye];
+        ld.RenderPose[eye]   = _eyeRenderPose[eye];
+        ld.SensorSampleTime  = _sensorSampleTime;
     }
-	*/
-    
+    ld.Viewport[0]     = Recti(0,0,_lwidth,_lheight);
+    ld.Viewport[1]     = Recti(0,0,_rwidth,_rheight);
+
     ovrLayerHeader* layers = &ld.Header;
     ovrResult result = ovr_SubmitFrame(_pHmd, 0, &viewScaleDesc, &layers, 1);
-
-    // Let OVR do distortion rendering, present and flush/sync
-    //ovrHmd_EndFrame(_pHmd, _eyeRenderPose, &_GLEyeTexture[0].Texture);
 }
 
 JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1convertQuatToEuler
@@ -751,6 +763,23 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1convertQuatToEuler
 	return jeulerOrient;
 }
 
+JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1beginFrame(JNIEnv* env, jobject, jint frameIndex)
+{
+	if (!_initialised) 
+        return 0;
+	
+    ovrVector3f               ViewOffset[2] = { _EyeRenderDesc[0].HmdToEyeViewOffset,
+                                                _EyeRenderDesc[1].HmdToEyeViewOffset };
+
+	double           ftiming = ovr_GetPredictedDisplayTime(_pHmd, 0);
+    // Keeping sensorSampleTime as close to ovr_GetTrackingState as possible - fed into the layer
+    _sensorSampleTime = ovr_GetTimeInSeconds();
+    _hmdState = ovr_GetTrackingState(_pHmd, ftiming, ovrTrue);
+    ovr_CalcEyePoses(_hmdState.HeadPose.ThePose, ViewOffset, _eyeRenderPose);
+
+	return 0;
+}
+
 JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getUserProfileData(
    JNIEnv *env, jobject)
 {
@@ -825,7 +854,7 @@ void ResetRenderConfig()
 /*
     if (_initialised)
     {
-        ovr_ConfigureRendering(_pHmd, 0, 0, 0, 0);
+        ovr_ConfigureRendering(_pHmd, 0, 0, 0, 0); //TODO_ continue here
     }
 
     // Reset texture data
@@ -840,6 +869,13 @@ void ResetRenderConfig()
     _GLEyeTexture[1] = _GLEyeTexture[0];
 */
     _renderConfigured = false;
+}
+
+void InitRenderConfig()
+{
+	_EyeRenderDesc[0] = ovr_GetRenderDesc(_pHmd, ovrEye_Left, _hmdDesc.DefaultEyeFov[0]);
+    _EyeRenderDesc[1] = ovr_GetRenderDesc(_pHmd, ovrEye_Right, _hmdDesc.DefaultEyeFov[1]);
+    _renderConfigured = true;
 }
 
 bool CreateHmdAndConfigureTracker()
@@ -1098,18 +1134,6 @@ bool CacheJNIGlobals(JNIEnv *env)
     {
         return false;
     }
-	field_swapTextureSet_leftEyeTextureIds = env->GetFieldID(swapTextureSet_Class, "leftEyeTextureIds", "Lde/fruitfly/ovr/structs/SwapTextureSet;");
-	if (field_swapTextureSet_leftEyeTextureIds == 0)
-    {
-		printf("Failed to find field 'Lde/fruitfly/ovr/structs/SwapTextureSet;' leftEyeTextureIds");
-        return false; 
-    }
-	field_swapTextureSet_rightEyeTextureIds = env->GetFieldID(swapTextureSet_Class, "rightEyeTextureIds", "Lde/fruitfly/ovr/structs/SwapTextureSet;");
-	if (field_swapTextureSet_rightEyeTextureIds == 0)
-    {
-		printf("Failed to find field 'Lde/fruitfly/ovr/structs/SwapTextureSet;' rightEyeTextureIds");
-        return false; 
-    }
 
 	if (!LookupJNIGlobal(env,
                          swapTextureSet_Class,
@@ -1119,21 +1143,28 @@ bool CacheJNIGlobals(JNIEnv *env)
     {
         return false;
     }
+	field_swapTextureSet_leftEyeTextureIds = env->GetFieldID(swapTextureSet_Class, "leftEyeTextureIds", "Ljava/util/ArrayList;");
+	if (field_swapTextureSet_leftEyeTextureIds == 0)
+    {
+		printf("Failed to find field 'Ljava/util/ArrayList;' leftEyeTextureIds");
+        return false; 
+    }
+	field_swapTextureSet_rightEyeTextureIds = env->GetFieldID(swapTextureSet_Class, "rightEyeTextureIds", "Ljava/util/ArrayList;");
+	if (field_swapTextureSet_rightEyeTextureIds == 0)
+    {
+		printf("Failed to find field 'Ljava/util/ArrayList;' rightEyeTextureIds");
+        return false; 
+    }
 
 	// Lookup some standard java classes / methods
-    arrayListClass = env->FindClass("java/util/ArrayList");
-	if (arrayListClass == 0) 
-	{
-		printf("Failed to find class 'java/util/ArrayList'");
-		return false;
-	}
-
-	method_arrayList_init = env->GetMethodID(arrayListClass, "<init>", "()V");
-	if (method_arrayList_init == 0) 
-	{
-		printf("Failed to find method 'java/util/ArrayList' <init>()V");
-		return false;
-	}
+	if (!LookupJNIGlobal(env,
+                         arrayListClass,
+                         "java/util/ArrayList",
+                         method_arrayList_init,
+                         "()V"))
+    {
+        return false;
+    }
 
 	method_arrayList_add = env->GetMethodID(arrayListClass, "add", "(Ljava/lang/Object;)Z");
 	if (method_arrayList_add == 0) 
@@ -1142,18 +1173,14 @@ bool CacheJNIGlobals(JNIEnv *env)
 		return false;
 	}
 
-	jclass integerClass = env->FindClass("java/lang/Integer");
-	if (integerClass == 0) 
-	{
-		printf("Failed to find class 'java/lang/Integer'");
-		return false;
-	}
-    jmethodID method_integer_init = env->GetMethodID(integerClass, "<init>", "(I)V");
-	if (method_integer_init == 0) 
-	{
-		printf("Failed to find method 'java/lang/Integer' <init>(I)V");
-		return false;
-	}
+	if (!LookupJNIGlobal(env,
+                         integerClass,
+                         "java/lang/Integer",
+                         method_integer_init,
+                         "(I)V"))
+    {
+        return false;
+    }
 
     return true;
 }

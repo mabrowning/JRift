@@ -166,7 +166,7 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getMatrix4fProjectio
  * Method:    submitFrame
  * Signature: ()V
  */
-JNIEXPORT void JNICALL Java_de_fruitfly_ovr_OculusRift__1submitFrame
+JNIEXPORT void JNICALL Java_de_fruitfly_ovr_OculusRift_submitFrame
     (JNIEnv *, jobject);
 
 /*
@@ -187,6 +187,14 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1convertQuatToEuler
   jint, 
   jint, 
   jint);
+
+/*
+ * Class:     de_fruitfly_ovr_OculusRift
+ * Method:    _beginFrame
+ * Signature: (I)Lde/fruitfly/ovr/structs/FrameTiming;
+ */
+JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1beginFrame
+  (JNIEnv *, jobject, jint);
 
 /*
  * Class:     de_fruitfly_ovr_OculusRift
@@ -221,6 +229,7 @@ void ResetRenderConfig();
 void DestroySwapTextureSet();
 void DestroyMirrorTexture();
 bool CacheJNIGlobals(JNIEnv *env);
+void InitRenderConfig();
 bool CreateHmdAndConfigureTracker();
 bool LookupJNIGlobal(JNIEnv *env,
                      jclass& clazz,
