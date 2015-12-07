@@ -480,7 +480,7 @@ JNIEXPORT void JNICALL Java_de_fruitfly_ovr_OculusRift__1submitFrame(JNIEnv *env
     }
 
     ovrViewScaleDesc viewScaleDesc;
-    viewScaleDesc.HmdSpaceToWorldScaleInMeters = 1.0f;
+    viewScaleDesc.HmdSpaceToWorldScaleInMeters = 1.0f;  // TODO: pass in as param
     viewScaleDesc.HmdToEyeViewOffset[0] = _EyeRenderDesc[0].HmdToEyeViewOffset;
     viewScaleDesc.HmdToEyeViewOffset[1] = _EyeRenderDesc[1].HmdToEyeViewOffset;
 
@@ -501,6 +501,7 @@ JNIEXPORT void JNICALL Java_de_fruitfly_ovr_OculusRift__1submitFrame(JNIEnv *env
 
     ovrLayerHeader* layers = &ld.Header;
     ovrResult result = ovr_SubmitFrame(_pHmd, 0, &viewScaleDesc, &layers, 1);
+	// TODO: Return result
 }
 
 JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1convertQuatToEuler
