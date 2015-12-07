@@ -268,22 +268,6 @@ public class OculusRift //implements IOculusRift
         return renderConfigured;
     }
 
-    public FrameTiming beginFrameGetTiming()
-    {
-        if (!initialized || !renderConfigured)
-            return new FrameTiming();
-
-        return _beginFrame(0);
-    }
-
-    public FrameTiming beginFrameGetTiming(int frameIndex)
-    {
-        if (!initialized || !renderConfigured)
-            return new FrameTiming();
-
-        return _beginFrame(frameIndex);
-    }
-
     public Posef getEyePose(EyeType eye)
     {
         if (!initialized)
@@ -293,40 +277,12 @@ public class OculusRift //implements IOculusRift
         return lastPose[eye.value()].clone();
     }
 
-    public FullPoseState getEyePoses(int frameIndex)
+    public FullPoseState getEyePoses(long frameIndex)
     {
         if (!initialized)
             return new FullPoseState();
 
-        fps = _getEyePoses(frameIndex,
-                erp.Eyes[0].ViewAdjust.x,
-                erp.Eyes[0].ViewAdjust.y,
-                erp.Eyes[0].ViewAdjust.z,
-                erp.Eyes[1].ViewAdjust.x,
-                erp.Eyes[1].ViewAdjust.y,
-                erp.Eyes[1].ViewAdjust.z);
-
-        if (fps == null)
-            fps = new FullPoseState();
-
-        lastPose[EyeType.ovrEye_Left.value()] = fps.getPose(EyeType.ovrEye_Left);
-        lastPose[EyeType.ovrEye_Right.value()] = fps.getPose(EyeType.ovrEye_Right);
-
-        return fps.clone();
-    }
-
-    public FullPoseState getEyePoses(int frameIndex, Vector3f leftEyeViewAdjust, Vector3f RightEyeViewAdjust)
-    {
-        if (!initialized)
-            return new FullPoseState();
-
-        fps = _getEyePoses(frameIndex,
-                leftEyeViewAdjust.x,
-                leftEyeViewAdjust.y,
-                leftEyeViewAdjust.z,
-                RightEyeViewAdjust.x,
-                RightEyeViewAdjust.y,
-                RightEyeViewAdjust.z);
+        fps = _getEyePoses(frameIndex);
 
         if (fps == null)
             fps = new FullPoseState();
@@ -474,6 +430,14 @@ public class OculusRift //implements IOculusRift
         return _createMirrorTexture(width, height);
     }
 
+    public void submitFrame()
+    {
+        if (!isInitialized())
+            return;
+
+        _submitFrame();
+    }
+
     // Native declarations
 
     protected native static void     _initRenderingShim();
@@ -483,7 +447,6 @@ public class OculusRift //implements IOculusRift
     protected native boolean         _getNextHmd();
     protected native HmdDesc         _getHmdDesc();
 
-    protected native TrackerState    _getTrackerState(double timeFromNow);
     protected native void            _resetTracking();
     protected native SwapTextureSet  _createSwapTextureSet(int lwidth,
                                                            int lheight,
@@ -534,15 +497,8 @@ public class OculusRift //implements IOculusRift
                                                          float worldScale);
     protected native void            _resetRenderConfig();
 
-    protected native FrameTiming     _beginFrame(int frameIndex);
     protected native Posef           _getEyePose(int eye);
-    protected native FullPoseState   _getEyePoses(int frameIndex,
-                                                  float leftEyeViewAdjustX,
-                                                  float leftEyeViewAdjustY,
-                                                  float leftEyeViewAdjustZ,
-                                                  float rightEyeViewAdjustX,
-                                                  float rightEyeViewAdjustY,
-                                                  float rightEyeViewAdjustZ);
+    protected native FullPoseState   _getEyePoses(long frameIndex);
     protected native Matrix4f        _getMatrix4fProjection(float EyeFovPortUpTan,
                                                             float EyeFovPortDownTan,
                                                             float EyeFovPortLeftTan,
@@ -564,7 +520,6 @@ public class OculusRift //implements IOculusRift
                                                          float viewAdjustX,
                                                          float viewAdjustY,
                                                          float viewAdjustZ);
-    public native void            submitFrame();
 
     protected native static EulerOrient _convertQuatToEuler(float quatx,
                                                             float quaty,
@@ -577,6 +532,7 @@ public class OculusRift //implements IOculusRift
                                                             int hand,
                                                             int rotationDir);
 
+    protected native void            _submitFrame();
     protected native UserProfileData _getUserProfileData();
     protected native void            _dismissHSW();
     protected native static String   _getVersionString();
@@ -605,7 +561,7 @@ public class OculusRift //implements IOculusRift
 
     public static void main(String[] args)
     {
-        int frameIndex = 0;
+        long frameIndex = 0;
 
         // Will need to add the natives dir to your Java VM args: -Djava.library.path="<path to natives dir>"
 
@@ -631,27 +587,14 @@ public class OculusRift //implements IOculusRift
         // Setup render parameters
         GLConfig glConfig = new GLConfig();
 
-        // IMPORTANT: Configure settings / window handles etc. in glConfig as per platform and Oculus SDK instructions e.g.
-        //glConfig.TexId = <OpenGL renderTarget texture Id>
-        //glConfig.Window = <Get HWND> // on windows etc.
-
-        // Configure the rendering
-        //or.configureRendering(recommendedFovTextureSize.CombinedTextureResolution,
-        //        recommendedFovTextureSize.HmdNativeResolution,
-        //        glConfig,
-        //        hmdDesc.DefaultEyeFov[0],
-        //        hmdDesc.DefaultEyeFov[1]);
-        Vector3f leftEyeViewOffsets = new Vector3f();
-        Vector3f rightEyeViewOffsets = new Vector3f();
-        leftEyeViewOffsets.x = -0.032f;
-        rightEyeViewOffsets.x = +0.032f;
+        // TODO: Update!
 
         while (or.isInitialized())
         {
             ///frameIndex++;
 
             // Get tracker and eye pose information before beginFrame - if rendering configured
-            FullPoseState eyePoses = or.getEyePoses(frameIndex, leftEyeViewOffsets, rightEyeViewOffsets);
+            FullPoseState eyePoses = or.getEyePoses(frameIndex);
             Posef leyePose = eyePoses.leftEyePose;
             Posef reyePose = eyePoses.rightEyePose;
 

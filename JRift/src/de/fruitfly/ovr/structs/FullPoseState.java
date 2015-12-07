@@ -6,14 +6,14 @@ import de.fruitfly.ovr.structs.TrackerState;
 
 public class FullPoseState
 {
-    public int frameIndex = 0;
+    public long frameIndex = 0;
     public Posef leftEyePose = new Posef();
     public Posef rightEyePose = new Posef();
     public TrackerState trackerState = new TrackerState();
 
     public FullPoseState() {}
 
-    public FullPoseState(int frameIndex,
+    public FullPoseState(long frameIndex,
                          float Lquatx,
                          float Lquaty,
                          float Lquatz,

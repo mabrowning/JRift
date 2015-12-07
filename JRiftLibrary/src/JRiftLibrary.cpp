@@ -21,11 +21,11 @@ bool                _realDevice       = false;
 ovrSwapTextureSet*  _pSwapTextureSet[2];
 ovrGLTexture*       _pMirrorTexture   = 0;
 
-ovrTrackingState _hmdState;
+ovrTrackingState    _hmdState;
 ovrPosef            _eyeRenderPose[2];
 ovrGLTexture        _GLEyeTexture[2];
 ovrEyeRenderDesc    _EyeRenderDesc[2];
-double           _sensorSampleTime = 0.0;
+double              _sensorSampleTime = 0.0;
 
 //sizes from last ovr_CreateSwapTextureSetGL
 int _lwidth=0;
@@ -173,46 +173,6 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getHmdDesc(JNIEnv *e
     if (jHmdDesc == 0) PrintNewObjectException(env, "HmdDesc");
 
     return jHmdDesc;
-}
-
-JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getTrackerState(JNIEnv *env, jobject, jdouble time) 
-{
-	if (!_initialised) 
-        return 0;
-	
-	// Get sensorstate at the specified time in the future from now (0.0 means 'now')
-	ovrTrackingState ss = ovr_GetTrackingState(_pHmd, time, ovrTrue); //TODO_ add param to native?
-
-    ClearException(env);
-
-    jobject jss = env->NewObject(trackerState_Class, trackerState_constructor_MethodID,
-                                 ss.HeadPose.ThePose.Orientation.x,   
-                                 ss.HeadPose.ThePose.Orientation.y,  
-                                 ss.HeadPose.ThePose.Orientation.z,   
-                                 ss.HeadPose.ThePose.Orientation.w,   
-                                 ss.HeadPose.ThePose.Position.x,      
-                                 ss.HeadPose.ThePose.Position.y,      
-                                 ss.HeadPose.ThePose.Position.z,      
-                                 ss.HeadPose.AngularVelocity.x,    
-                                 ss.HeadPose.AngularVelocity.y,    
-                                 ss.HeadPose.AngularVelocity.z,    
-                                 ss.HeadPose.LinearVelocity.x,     
-                                 ss.HeadPose.LinearVelocity.y,     
-                                 ss.HeadPose.LinearVelocity.z,     
-                                 ss.HeadPose.AngularAcceleration.x,
-                                 ss.HeadPose.AngularAcceleration.y,
-                                 ss.HeadPose.AngularAcceleration.z,
-                                 ss.HeadPose.LinearAcceleration.x, 
-                                 ss.HeadPose.LinearAcceleration.y, 
-                                 ss.HeadPose.LinearAcceleration.z, 
-                                 ss.HeadPose.TimeInSeconds,        
-                                 ss.RawSensorData.Temperature,
-                                 ss.StatusFlags
-                                 );
-
-    if (jss == 0) PrintNewObjectException(env, "TrackerState");
-
-    return jss;
 }
 
 JNIEXPORT void JNICALL Java_de_fruitfly_ovr_OculusRift__1resetTracking(JNIEnv *env, jobject) 
@@ -410,31 +370,21 @@ JNIEXPORT void JNICALL Java_de_fruitfly_ovr_OculusRift__1resetRenderConfig(JNIEn
 JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getEyePoses(
 	JNIEnv *env, 
 	jobject, 
-	jint FrameIndex,
-	jfloat HmdToLeftEyeViewOffsetX,
-	jfloat HmdToLeftEyeViewOffsetY,
-	jfloat HmdToLeftEyeViewOffsetZ,
-	jfloat HmdToRightEyeViewOffsetX,
-	jfloat HmdToRightEyeViewOffsetY,
-	jfloat HmdToRightEyeViewOffsetZ
+	jlong FrameIndex
 	)
 {
     if (!_initialised)
         return 0;
 
-	//ovrVector3f ViewOffsets[2];
-	//ViewOffsets[0].x = HmdToLeftEyeViewOffsetX;
-	//ViewOffsets[0].y = HmdToLeftEyeViewOffsetY;
-	//ViewOffsets[0].z = HmdToLeftEyeViewOffsetZ;
-	//ViewOffsets[1].x = HmdToRightEyeViewOffsetX;
-	//ViewOffsets[1].y = HmdToRightEyeViewOffsetY;
-	//ViewOffsets[1].z = HmdToRightEyeViewOffsetZ;
+	// Use mandated view offsets
+	ovrVector3f ViewOffsets[2] = { _EyeRenderDesc[0].HmdToEyeViewOffset,
+                                   _EyeRenderDesc[1].HmdToEyeViewOffset };
 
-	//double           ftiming = ovr_GetPredictedDisplayTime(_pHmd, 0);
- //   // Keeping sensorSampleTime as close to ovr_GetTrackingState as possible - fed into the layer
- //   double           sensorSampleTime = ovr_GetTimeInSeconds();
- //   ovrTrackingState ss = ovr_GetTrackingState(_pHmd, ftiming, ovrTrue);
- //   ovr_CalcEyePoses(ss.HeadPose.ThePose, ViewOffsets, _eyeRenderPose);
+	// Get eye poses at our predicted display times
+	double ftiming = ovr_GetPredictedDisplayTime(_pHmd, FrameIndex);
+    _sensorSampleTime = ovr_GetTimeInSeconds();
+    _hmdState = ovr_GetTrackingState(_pHmd, ftiming, ovrTrue);
+    ovr_CalcEyePoses(_hmdState.HeadPose.ThePose, ViewOffsets, _eyeRenderPose);
 
     ClearException(env);
 	jobject jfullposestate = env->NewObject(fullPoseState_Class, fullPoseState_constructor_MethodID,
@@ -518,7 +468,7 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getMatrix4fProjectio
     return jproj;
 }
 
-JNIEXPORT void JNICALL Java_de_fruitfly_ovr_OculusRift_submitFrame(JNIEnv *env, jobject)
+JNIEXPORT void JNICALL Java_de_fruitfly_ovr_OculusRift__1submitFrame(JNIEnv *env, jobject)
 {
     if (!_initialised)
         return;
@@ -761,23 +711,6 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1convertQuatToEuler
                                        );
 
 	return jeulerOrient;
-}
-
-JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1beginFrame(JNIEnv* env, jobject, jint frameIndex)
-{
-	if (!_initialised) 
-        return 0;
-	
-    ovrVector3f               ViewOffset[2] = { _EyeRenderDesc[0].HmdToEyeViewOffset,
-                                                _EyeRenderDesc[1].HmdToEyeViewOffset };
-
-	double           ftiming = ovr_GetPredictedDisplayTime(_pHmd, 0);
-    // Keeping sensorSampleTime as close to ovr_GetTrackingState as possible - fed into the layer
-    _sensorSampleTime = ovr_GetTimeInSeconds();
-    _hmdState = ovr_GetTrackingState(_pHmd, ftiming, ovrTrue);
-    ovr_CalcEyePoses(_hmdState.HeadPose.ThePose, ViewOffset, _eyeRenderPose);
-
-	return 0;
 }
 
 JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getUserProfileData(
@@ -1130,7 +1063,7 @@ bool CacheJNIGlobals(JNIEnv *env)
                          fullPoseState_Class,
                          "de/fruitfly/ovr/structs/FullPoseState",
                          fullPoseState_constructor_MethodID,
-                         "(IFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFDFI)V"))
+                         "(JFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFDFI)V"))
     {
         return false;
     }
