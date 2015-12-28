@@ -227,6 +227,8 @@ void SetEulerEnumValues(int firstRotationAxis,
 					    OVR::RotateDirection& D,
 					    OVR::HandedSystem& S);
 void SetAxisEnum(int value, OVR::Axis& A);
+void initOvrResultMaps();
+std::string getOvrResultString(ovrResult ovrResult);
 
 #ifdef __cplusplus
 }

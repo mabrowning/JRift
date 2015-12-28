@@ -4,6 +4,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <map>
 #if defined(OVR_OS_WIN32)
 #include "Windows.h"
 #endif
@@ -26,6 +27,11 @@ ovrPosef            _eyeRenderPose[2];
 ovrGLTexture        _GLEyeTexture[2];
 ovrEyeRenderDesc    _EyeRenderDesc[2];
 double              _sensorSampleTime = 0.0;
+
+ovrResult           _lastOvrResult = ovrSuccess;
+
+std::map<ovrErrorType,   std::string> _errorMap;
+std::map<ovrSuccessType, std::string> _successMap;
 
 //sizes from last ovr_CreateSwapTextureSetGL
 int _lwidth=0;
@@ -79,6 +85,7 @@ static jfieldID     field_swapTextureSet_rightEyeTextureIds  = 0;
 JNIEXPORT jboolean JNICALL Java_de_fruitfly_ovr_OculusRift__1initSubsystem(JNIEnv *env, jobject jobj) 
 {
     DEBUGLOG("Initialising Oculus Rift subsystem...");
+	initOvrResultMaps();
 
 	Reset();
 
@@ -90,9 +97,11 @@ JNIEXPORT jboolean JNICALL Java_de_fruitfly_ovr_OculusRift__1initSubsystem(JNIEn
 	// Initialise LibOVR - use default init params for now
 	ovrInitParams initParams;
 	memset(&initParams, 0, sizeof(ovrInitParams));
-	if (ovr_Initialize(&initParams) != ovrSuccess) 
+	_lastOvrResult = ovr_Initialize(&initParams);
+
+	if (OVR_FAILURE(_lastOvrResult)) 
 	{
-		printf("Unable to initialise LibOVR!\n");
+		printf("Unable to initialise LibOVR! ovr_Initialize() returned error code '%s' (%d)\n", getOvrResultString(_lastOvrResult).c_str(), _lastOvrResult);
 		return false;
 	}
 
@@ -1199,4 +1208,88 @@ void SetAxisEnum(int value, Axis& A)
 	default:
 		A = Axis_Z;
 	}
+}
+
+void initOvrResultMaps()
+{
+    /* General errors */
+    _errorMap[ovrError_MemoryAllocationFailure       ] = "ovrError_MemoryAllocationFailure";   
+    _errorMap[ovrError_SocketCreationFailure         ] = "ovrError_SocketCreationFailure";
+    _errorMap[ovrError_InvalidSession                ] = "ovrError_InvalidSession";   
+    _errorMap[ovrError_Timeout                       ] = "ovrError_Timeout";   
+    _errorMap[ovrError_NotInitialized                ] = "ovrError_NotInitialized";   
+    _errorMap[ovrError_InvalidParameter              ] = "ovrError_InvalidParameter";   
+    _errorMap[ovrError_ServiceError                  ] = "ovrError_ServiceError";   
+    _errorMap[ovrError_NoHmd                         ] = "ovrError_NoHmd";   
+    _errorMap[ovrError_AudioReservedBegin            ] = "ovrError_AudioReservedBegin";   
+    _errorMap[ovrError_AudioDeviceNotFound           ] = "ovrError_AudioDeviceNotFound";   
+    _errorMap[ovrError_AudioComError                 ] = "ovrError_AudioComError";   
+    _errorMap[ovrError_AudioReservedEnd              ] = "ovrError_AudioReservedEnd";   
+    _errorMap[ovrError_Initialize                    ] = "ovrError_Initialize";   
+    _errorMap[ovrError_LibLoad                       ] = "ovrError_LibLoad (No runtime found)";   
+    _errorMap[ovrError_LibVersion                    ] = "ovrError_LibVersion (Runtime version incompatibility)";   
+    _errorMap[ovrError_ServiceConnection             ] = "ovrError_ServiceConnection";   
+    _errorMap[ovrError_ServiceVersion                ] = "ovrError_ServiceVersion";   
+    _errorMap[ovrError_IncompatibleOS                ] = "ovrError_IncompatibleOS";   
+    _errorMap[ovrError_DisplayInit                   ] = "ovrError_DisplayInit";  
+    _errorMap[ovrError_ServerStart                   ] = "ovrError_ServerStart";  
+    _errorMap[ovrError_Reinitialization              ] = "ovrError_Reinitialization";  
+    _errorMap[ovrError_MismatchedAdapters            ] = "ovrError_MismatchedAdapters";  
+    _errorMap[ovrError_LeakingResources              ] = "ovrError_LeakingResources";  
+    _errorMap[ovrError_ClientVersion                 ] = "ovrError_ClientVersion";  
+    _errorMap[ovrError_OutOfDateOS                   ] = "ovrError_OutOfDateOS";  
+    _errorMap[ovrError_OutOfDateGfxDriver            ] = "ovrError_OutOfDateGfxDriver";  
+    _errorMap[ovrError_IncompatibleGPU               ] = "ovrError_IncompatibleGPU";  
+    _errorMap[ovrError_NoValidVRDisplaySystem        ] = "ovrError_NoValidVRDisplaySystem";  
+    _errorMap[ovrError_InvalidBundleAdjustment       ] = "ovrError_InvalidBundleAdjustment";  
+    _errorMap[ovrError_USBBandwidth                  ] = "ovrError_USBBandwidth";  
+    _errorMap[ovrError_USBEnumeratedSpeed            ] = "ovrError_USBEnumeratedSpeed";  
+    _errorMap[ovrError_ImageSensorCommError          ] = "ovrError_ImageSensorCommError";  
+    _errorMap[ovrError_GeneralTrackerFailure         ] = "ovrError_GeneralTrackerFailure";  
+    _errorMap[ovrError_ExcessiveFrameTruncation      ] = "ovrError_ExcessiveFrameTruncation";  
+    _errorMap[ovrError_ExcessiveFrameSkipping        ] = "ovrError_ExcessiveFrameSkipping";  
+    _errorMap[ovrError_SyncDisconnected              ] = "ovrError_SyncDisconnected";  
+    _errorMap[ovrError_TrackerMemoryReadFailure      ] = "ovrError_TrackerMemoryReadFailure";  
+    _errorMap[ovrError_TrackerMemoryWriteFailure     ] = "ovrError_TrackerMemoryWriteFailure";  
+    _errorMap[ovrError_TrackerFrameTimeout           ] = "ovrError_TrackerFrameTimeout";  
+    _errorMap[ovrError_TrackerTruncatedFrame         ] = "ovrError_TrackerTruncatedFrame";  
+    _errorMap[ovrError_HMDFirmwareMismatch           ] = "ovrError_HMDFirmwareMismatch";  
+    _errorMap[ovrError_TrackerFirmwareMismatch       ] = "ovrError_TrackerFirmwareMismatch";  
+    _errorMap[ovrError_BootloaderDeviceDetected      ] = "ovrError_BootloaderDeviceDetected";  
+    _errorMap[ovrError_TrackerCalibrationError       ] = "ovrError_TrackerCalibrationError";  
+    _errorMap[ovrError_ControllerFirmwareMismatch    ] = "ovrError_ControllerFirmwareMismatch";  
+    _errorMap[ovrError_Incomplete                    ] = "ovrError_Incomplete";  
+    _errorMap[ovrError_Abandoned                     ] = "ovrError_Abandoned";  
+    _errorMap[ovrError_DisplayLost                   ] = "ovrError_DisplayLost";  
+    _errorMap[ovrError_RuntimeException              ] = "ovrError_RuntimeException";
+
+    _successMap[ovrSuccess                           ] = "ovrSuccess"; 
+    _successMap[ovrSuccess_NotVisible                ] = "ovrSuccess_NotVisible";
+    _successMap[ovrSuccess_HMDFirmwareMismatch       ] = "ovrSuccess_HMDFirmwareMismatch";
+    _successMap[ovrSuccess_TrackerFirmwareMismatch   ] = "ovrSuccess_TrackerFirmwareMismatch";
+    _successMap[ovrSuccess_ControllerFirmwareMismatch] = "ovrSuccess_ControllerFirmwareMismatch";
+}
+
+std::string getOvrResultString(ovrResult ovrResult)
+{
+	std::string sError = "<unknown ovrResult code>";
+	
+	if (OVR_SUCCESS(ovrResult))
+	{
+		std::map<ovrSuccessType, std::string>::const_iterator it = _successMap.find((ovrSuccessType)ovrResult);
+		if (it != _successMap.end()) 
+		{
+			sError = it->second;
+		}
+	}
+	else
+	{
+		std::map<ovrErrorType, std::string>::const_iterator it = _errorMap.find((ovrErrorType)ovrResult);
+		if (it != _errorMap.end()) 
+		{
+			sError = it->second;
+		}
+	}
+
+	return sError;
 }
