@@ -3,6 +3,7 @@
 #include <cstring>
 #include <iostream>
 #include <string>
+#include <sstream>
 #include <vector>
 #include <map>
 #if defined(OVR_OS_WIN32)
@@ -13,33 +14,44 @@
 
 using namespace OVR;
 
-ovrHmd              _pHmd             = 0;
+ovrSession          _pHmdSession        = 0;
 ovrHmdDesc          _hmdDesc; 
-int                 _hmdIndex         = -1;
-bool                _initialised      = false;
-bool                _renderConfigured = false;
-bool                _realDevice       = false;
+bool                _initialised        = false;
+bool                _performedFirstInit = false;
+
+const std::string   UNKNOWN_RUNTIME_VER = "<Unknown>";
+const std::string   NO_OVR_ERROR        = "<No error>";
+std::string         _ovrRuntimeVersion  = UNKNOWN_RUNTIME_VER;
+
+struct ErrorInfo 
+{
+	ErrorInfo()
+	{
+		sError = NO_OVR_ERROR;
+		ovr_result = ovrSuccess;
+		Success = true;
+		UnqualifiedSuccess = true;
+	}
+
+	std::string sError;
+	ovrResult   ovr_result;
+	bool        Success;
+	bool        UnqualifiedSuccess;
+};
+
+ErrorInfo           _lastError;
 ovrSwapTextureSet*  _pSwapTextureSet[2];
-ovrGLTexture*       _pMirrorTexture   = 0;
+ovrSizei            _swapTextureSize[2];
+ovrGLTexture*       _pMirrorTexture    = 0;
 
 ovrTrackingState    _hmdState;
 ovrPosef            _eyeRenderPose[2];
 ovrGLTexture        _GLEyeTexture[2];
 ovrEyeRenderDesc    _EyeRenderDesc[2];
-double              _sensorSampleTime = 0.0;
+double              _sensorSampleTime  = 0.0;
 
-ovrResult           _lastOvrResult = ovrSuccess;
-
-std::map<ovrErrorType,   std::string> _errorMap;
-std::map<ovrSuccessType, std::string> _successMap;
-
-//sizes from last ovr_CreateSwapTextureSetGL
-int _lwidth=0;
-int _lheight=0;
-int _rwidth=0;
-int _rheight=0;
-
-const bool          LogDebug = false;
+std::map<ovrErrorType,   std::string> _ErrorMap;
+std::map<ovrSuccessType, std::string> _SuccessMap;
 
 const Vector3f		UpVector(0.0f, 1.0f, 0.0f);
 const Vector3f		ForwardVector(0.0f, 0.0f, -1.0f);
@@ -76,73 +88,89 @@ static jmethodID    method_arrayList_init                = 0;
 static jmethodID    method_arrayList_add                 = 0;
 static jclass       integerClass                         = 0;
 static jmethodID    method_integer_init                  = 0;
+static jclass       errorInfo_Class                      = 0;
+static jmethodID    errorInfo_constructor_MethodID       = 0;
 
 static jfieldID     field_swapTextureSet_leftEyeTextureIds   = 0;
 static jfieldID     field_swapTextureSet_rightEyeTextureIds  = 0;
 
-
-
+/* 
+Initialises 
+   - the LibOVR client -> RT connection
+   - the HMD device session
+   - gets the HMD parameters
+*/
 JNIEXPORT jboolean JNICALL Java_de_fruitfly_ovr_OculusRift__1initSubsystem(JNIEnv *env, jobject jobj) 
 {
-    DEBUGLOG("Initialising Oculus Rift subsystem...");
-	initOvrResultMaps();
-
-	Reset();
-
-    if (!CacheJNIGlobals(env))
-    {
-        return false;
-    }
-
-	// Initialise LibOVR - use default init params for now
+	jobject errorInfo = 0;
+	ovrGraphicsLuid luid;
 	ovrInitParams initParams;
 	memset(&initParams, 0, sizeof(ovrInitParams));
+	ovrResult ovr_result = ovrSuccess;
 
-	_lastOvrResult = ovr_Initialize(&initParams);
-	if (OVR_FAILURE(_lastOvrResult)) 
+	// Do any lib first init
+	if (!LibFirstInit(env))
 	{
-		ovrErrorInfo errorInfo;
-		ovr_GetLastErrorInfo(&errorInfo);
-		printf("Unable to initialise LibOVR! SDK version %s: ovr_Initialize() returned error code '%s' (%d) (%s)\n", 
-			OVR_VERSION_STRING, getOvrResultString(_lastOvrResult).c_str(), _lastOvrResult, errorInfo.ErrorString );
+		SetGenericOvrErrorInfo(env, "Failed libFirstInit()");
 		return false;
 	}
-	else
+
+
+	// Ensure we have a clean state
+	Reset();
+
+
+	// Initialise LibOVR with default params
+	ovr_result = ovr_Initialize(&initParams);
+	if (OVR_FAILURE(ovr_result)) 
 	{
-		std::string ovrRuntimeVersion = ovr_GetVersionString();
-		printf("Initialised LibOVR! SDK version %s, Runtime version %s", OVR_VERSION_STRING, ovrRuntimeVersion.c_str());
+		SetOvrErrorInfo(env, "Unable to initialise LibOVR!", ovr_result);
+		return false;
 	}
 
-	_pHmd = 0;
-	ovrGraphicsLuid luid;
-	_lastOvrResult = ovr_Create(&_pHmd, &luid);
-	if (OVR_SUCCESS(_lastOvrResult))
+
+	// Get RT version
+	_ovrRuntimeVersion = ovr_GetVersionString();
+	printf("Initialised LibOVR! Client SDK version %s, Runtime version %s\n", OVR_VERSION_STRING, _ovrRuntimeVersion.c_str());
+
+
+	// Create the HMD session (HMD must be present or a debug device enabled)
+	ovr_result = ovr_Create(&_pHmdSession, &luid);
+	if (OVR_FAILURE(ovr_result))
 	{
-		printf("Oculus Rift device found! %s (%d)\n", getOvrResultString(_lastOvrResult).c_str(), _lastOvrResult);
-		_initialised = true;
+		SetOvrErrorInfo(env, "Unable to connect to HMD!", ovr_result);
+		return false;
 	}
-	else
-	{
-		printf("Unable to create Oculus Rift device interface! ovr_Create() returned '%s' (%d)\n", 
-			getOvrResultString(_lastOvrResult).c_str(), _lastOvrResult);
-	}
-	
-	if (_initialised)
-	{
-		InitRenderConfig();
-	}
-	
-	return _initialised;
+
+
+	// Get the (default FOV) HMD configuration parameters
+	_hmdDesc = ovr_GetHmdDesc(_pHmdSession);
+	_EyeRenderDesc[0] = ovr_GetRenderDesc(_pHmdSession, ovrEye_Left,  _hmdDesc.DefaultEyeFov[0]);
+    _EyeRenderDesc[1] = ovr_GetRenderDesc(_pHmdSession, ovrEye_Right, _hmdDesc.DefaultEyeFov[1]);
+
+
+	printf("Rift device found!\n");
+	printf(" Product Name:      %s\n", _hmdDesc.ProductName);
+	printf(" Manufacturer:      %s\n", _hmdDesc.Manufacturer);
+	printf(" Native Resolution: %d X %d\n", _hmdDesc.Resolution.w, _hmdDesc.Resolution.h);
+
+
+	_initialised = true;
+
+
+	SetOvrErrorInfo(env, "Initialised Rift successfully!", ovr_result);
+	return true;
+}
+
+JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getLastError(JNIEnv *env, jobject jobj) 
+{
+	return GetLastOvrErrorInfo(env);
 }
 
 JNIEXPORT void JNICALL Java_de_fruitfly_ovr_OculusRift__1destroySubsystem(JNIEnv *env, jobject jobj) 
 {
 	printf("Destroying Oculus Rift device interface.\n");	
-
-	if (_initialised)
-	{
-		Reset();
-	}
+	Reset();
 }
 
 JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getHmdDesc(JNIEnv *env, jobject) 
@@ -188,7 +216,7 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getHmdDesc(JNIEnv *e
                                       0, // Eye render order no longer used, remove
                                       displayDeviceName,  // DisplayDeviceName no longer used, remove
                                       0, // Display ID no longer used, remove
-                                      _realDevice
+                                      true // realDevice true / false not known, controlled by the RunTime 
             );
 
     env->DeleteLocalRef( productName );
@@ -205,7 +233,7 @@ JNIEXPORT void JNICALL Java_de_fruitfly_ovr_OculusRift__1resetTracking(JNIEnv *e
 	if (!_initialised)
 		return;
 
-    ovr_RecenterPose(_pHmd);
+    ovr_RecenterPose(_pHmdSession);
 }
 
 JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getFovTextureSize(
@@ -236,8 +264,8 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getFovTextureSize(
 	rightFov.RightTan = rightFovRightTan;
 
 	// A RenderScaleFactor of 1.0f signifies default (non-scaled) operation
-    Sizei recommendedTex0Size = ovr_GetFovTextureSize(_pHmd, ovrEye_Left,  leftFov, RenderScaleFactor);
-    Sizei recommendedTex1Size = ovr_GetFovTextureSize(_pHmd, ovrEye_Right, rightFov, RenderScaleFactor);
+    Sizei recommendedTex0Size = ovr_GetFovTextureSize(_pHmdSession, ovrEye_Left,  leftFov, RenderScaleFactor);
+    Sizei recommendedTex1Size = ovr_GetFovTextureSize(_pHmdSession, ovrEye_Right, rightFov, RenderScaleFactor);
     Sizei RenderTargetSize;
     RenderTargetSize.w = recommendedTex0Size.w + recommendedTex1Size.w;
     RenderTargetSize.h = (std::max) ( recommendedTex0Size.h, recommendedTex1Size.h );
@@ -270,70 +298,73 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1createSwapTextureSet
     jint rheight
 	)
 {
+	ovrResult ovr_result = ovrSuccess;
+
 	if (!_initialised)
 		return 0;
 	
 	DestroySwapTextureSet();
 
-	boolean result = true;
-	_lwidth=lwidth;
-	_lheight=lheight;
-	_rwidth=rwidth;
-	_rheight=rheight;
-	_lastOvrResult = ovr_CreateSwapTextureSetGL(_pHmd, GL_SRGB8_ALPHA8, lwidth, lheight, &_pSwapTextureSet[0]);
-	if (OVR_FAILURE(_lastOvrResult))
+	boolean Result = true;
+
+	_swapTextureSize[0].w = lwidth;
+	_swapTextureSize[0].h = lheight;
+	_swapTextureSize[1].w = rwidth;
+	_swapTextureSize[1].h = rheight;
+
+	ovr_result = ovr_CreateSwapTextureSetGL(_pHmdSession, GL_SRGB8_ALPHA8, lwidth, lheight, &_pSwapTextureSet[0]);
+	if (OVR_FAILURE(ovr_result))
 	{
-		result = false;	
+		Result = false;	
 	}
-	if (result)
+
+	if (Result)
 	{
-		_lastOvrResult = ovr_CreateSwapTextureSetGL(_pHmd, GL_SRGB8_ALPHA8, rwidth, rheight, &_pSwapTextureSet[1]);
-		if (OVR_FAILURE(_lastOvrResult))
+		ovr_result = ovr_CreateSwapTextureSetGL(_pHmdSession, GL_SRGB8_ALPHA8, rwidth, rheight, &_pSwapTextureSet[1]);
+		if (OVR_FAILURE(ovr_result))
 		{
-			result = false;	
+			Result = false;	
 		}	
 	}
 
-	if (!result)
+	if (!Result)
 	{
-		printf("Unable to create swap texture set! ovr_CreateSwapTextureSetGL() returned '%s' (%d)\n",
-			getOvrResultString(_lastOvrResult).c_str(), _lastOvrResult);
+		SetOvrErrorInfo(env, "Unable to create swap texture set!", ovr_result);
+
 		DestroySwapTextureSet();
+		return 0;
 	}
 
-	if (result)
+	// Construct a new SwapTextureSet object
+	ClearException(env);
+	jobject jswapTextureSet = env->NewObject(swapTextureSet_Class, swapTextureSet_constructor_MethodID);
+	if (jswapTextureSet == 0) PrintNewObjectException(env, "SwapTextureSet");
+
+	jobject leftEyeTextureIds = env->GetObjectField(jswapTextureSet, field_swapTextureSet_leftEyeTextureIds);
+	jobject rightEyeTextureIds = env->GetObjectField(jswapTextureSet, field_swapTextureSet_rightEyeTextureIds);
+
+	// Add the texture IDs
+	for (int i = 0; i < _pSwapTextureSet[0]->TextureCount; i++)
 	{
-		// Construct a new SwapTextureSet object
-		ClearException(env);
-		jobject jswapTextureSet = env->NewObject(swapTextureSet_Class, swapTextureSet_constructor_MethodID);
-		if (jswapTextureSet == 0) PrintNewObjectException(env, "SwapTextureSet");
-
-		jobject leftEyeTextureIds = env->GetObjectField(jswapTextureSet, field_swapTextureSet_leftEyeTextureIds);
-		jobject rightEyeTextureIds = env->GetObjectField(jswapTextureSet, field_swapTextureSet_rightEyeTextureIds);
-
-		// Add the texture IDs
-		for (int i = 0; i < _pSwapTextureSet[0]->TextureCount; i++)
-		{
-			ovrGLTexture* tex = (ovrGLTexture*)&_pSwapTextureSet[0]->Textures[i];
-			jobject texIdInt = env->NewObject(integerClass, method_integer_init, (jint)tex->OGL.TexId);
-			jboolean jbool = env->CallBooleanMethod(leftEyeTextureIds, method_arrayList_add, texIdInt);
-		}
-		for (int i = 0; i < _pSwapTextureSet[1]->TextureCount; i++)
-		{
-			ovrGLTexture* tex = (ovrGLTexture*)&_pSwapTextureSet[1]->Textures[i];
-			jobject texIdInt = env->NewObject(integerClass, method_integer_init, (jint)tex->OGL.TexId);
-			jboolean jbool = env->CallBooleanMethod(rightEyeTextureIds, method_arrayList_add, texIdInt);
-		}
-		return jswapTextureSet;
+		ovrGLTexture* tex = (ovrGLTexture*)&_pSwapTextureSet[0]->Textures[i];
+		jobject texIdInt = env->NewObject(integerClass, method_integer_init, (jint)tex->OGL.TexId);
+		jboolean jbool = env->CallBooleanMethod(leftEyeTextureIds, method_arrayList_add, texIdInt);
+	}
+	for (int i = 0; i < _pSwapTextureSet[1]->TextureCount; i++)
+	{
+		ovrGLTexture* tex = (ovrGLTexture*)&_pSwapTextureSet[1]->Textures[i];
+		jobject texIdInt = env->NewObject(integerClass, method_integer_init, (jint)tex->OGL.TexId);
+		jboolean jbool = env->CallBooleanMethod(rightEyeTextureIds, method_arrayList_add, texIdInt);
 	}
 
-	return 0;
+	SetOvrErrorInfo(env, "Created swap texture set successfully!", ovr_result);
+	return jswapTextureSet;
 }
 
-JNIEXPORT jboolean JNICALL Java_de_fruitfly_ovr_OculusRift__1setCurrentSwapTextureIndex
-(JNIEnv *env,
- jobject,
- jint index)
+JNIEXPORT jboolean JNICALL Java_de_fruitfly_ovr_OculusRift__1setCurrentSwapTextureIndex(
+	JNIEnv *env,
+    jobject,
+    jint index)
 {
     if (!_initialised)
     {
@@ -376,14 +407,16 @@ JNIEXPORT jint JNICALL Java_de_fruitfly_ovr_OculusRift__1createMirrorTexture(
 
 	DestroyMirrorTexture();
 
-	_lastOvrResult = ovr_CreateMirrorTextureGL(_pHmd, GL_SRGB8_ALPHA8, width, height, (ovrTexture**)&_pMirrorTexture);
-	if (OVR_FAILURE(_lastOvrResult))
+	ovrResult ovr_result = ovr_CreateMirrorTextureGL(_pHmdSession, GL_SRGB8_ALPHA8, width, height, (ovrTexture**)&_pMirrorTexture);
+	if (OVR_FAILURE(ovr_result))
 	{
-		printf("Unable to create mirror texture! ovr_CreateMirrorTextureGL() returned error '%s' (%d)\n",
-			getOvrResultString(_lastOvrResult).c_str(), _lastOvrResult);
+		SetOvrErrorInfo(env, "Unable to create mirror texture!", ovr_result);
+
 		_pMirrorTexture = 0;
 		return -1;
 	}
+
+	SetOvrErrorInfo(env, "Created mirror texture successfully!", ovr_result);
 
 	// Just return the texture ID
 	return _pMirrorTexture->OGL.TexId;
@@ -393,11 +426,6 @@ JNIEXPORT void JNICALL Java_de_fruitfly_ovr_OculusRift__1destroyMirrorTexture
 (JNIEnv *env, jobject)
 {
     DestroyMirrorTexture();
-}
-
-JNIEXPORT void JNICALL Java_de_fruitfly_ovr_OculusRift__1resetRenderConfig(JNIEnv *env, jobject)
-{
-	ResetRenderConfig();
 }
 
 JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getEyePoses(
@@ -414,10 +442,12 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getEyePoses(
                                    _EyeRenderDesc[1].HmdToEyeViewOffset };
 
 	// Get eye poses at our predicted display times
-	double ftiming = ovr_GetPredictedDisplayTime(_pHmd, FrameIndex);
+	double ftiming = ovr_GetPredictedDisplayTime(_pHmdSession, FrameIndex);
     _sensorSampleTime = ovr_GetTimeInSeconds();
-    _hmdState = ovr_GetTrackingState(_pHmd, ftiming, ovrTrue);
+    _hmdState = ovr_GetTrackingState(_pHmdSession, ftiming, ovrTrue);
     ovr_CalcEyePoses(_hmdState.HeadPose.ThePose, ViewOffsets, _eyeRenderPose);
+
+	// TODO: Add HandPose info to this
 
     ClearException(env);
 	jobject jfullposestate = env->NewObject(fullPoseState_Class, fullPoseState_constructor_MethodID,
@@ -477,16 +507,10 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getMatrix4fProjectio
     if (!_initialised)
         return 0;
 
-    if (!_renderConfigured)
-    {
-        printf("getMatrix4fProjection() - ERROR: Render config not set!\n");
-        return 0;
-    }
-
     ovrFovPort fov;
-    fov.UpTan = EyeFovPortUpTan;
-    fov.DownTan = EyeFovPortDownTan;
-    fov.LeftTan = EyeFovPortLeftTan;
+    fov.UpTan    = EyeFovPortUpTan;
+    fov.DownTan  = EyeFovPortDownTan;
+    fov.LeftTan  = EyeFovPortLeftTan;
     fov.RightTan = EyeFovPortRightTan;
 
     Matrix4f proj = ovrMatrix4f_Projection(fov, nearClip, farClip, true); // true = RH for OGL
@@ -497,27 +521,24 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getMatrix4fProjectio
                                    proj.M[2][0], proj.M[2][1], proj.M[2][2], proj.M[2][3],
                                    proj.M[3][0], proj.M[3][1], proj.M[3][2], proj.M[3][3]
                                    );
+	if (jproj == 0) PrintNewObjectException(env, "Matrix4f");
 
     return jproj;
 }
 
-JNIEXPORT void JNICALL Java_de_fruitfly_ovr_OculusRift__1submitFrame(JNIEnv *env, jobject)
+JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1submitFrame(
+	JNIEnv *env,
+	jobject, 
+	jfloat HmdSpaceToWorldScaleInMeters)
 {
     if (!_initialised)
-        return;
-
-    if (!_renderConfigured)
-    {
-        printf("endFrame() - ERROR: Render config not set!\n");
-        return;
-    }
+        return 0;
 
     ovrViewScaleDesc viewScaleDesc;
-    viewScaleDesc.HmdSpaceToWorldScaleInMeters = 1.0f;  // TODO: pass in as param
+    viewScaleDesc.HmdSpaceToWorldScaleInMeters = HmdSpaceToWorldScaleInMeters;  
     viewScaleDesc.HmdToEyeViewOffset[0] = _EyeRenderDesc[0].HmdToEyeViewOffset;
     viewScaleDesc.HmdToEyeViewOffset[1] = _EyeRenderDesc[1].HmdToEyeViewOffset;
-
-    
+  
     ovrLayerEyeFov ld;
     ld.Header.Type  = ovrLayerType_EyeFov;
     ld.Header.Flags = ovrLayerFlag_TextureOriginAtBottomLeft;   // Because OpenGL.
@@ -529,12 +550,21 @@ JNIEXPORT void JNICALL Java_de_fruitfly_ovr_OculusRift__1submitFrame(JNIEnv *env
         ld.RenderPose[eye]   = _eyeRenderPose[eye];
         ld.SensorSampleTime  = _sensorSampleTime;
     }
-    ld.Viewport[0]     = Recti(0,0,_lwidth,_lheight);
-    ld.Viewport[1]     = Recti(0,0,_rwidth,_rheight);
+	ld.Viewport[0]     = Recti(0,0,_swapTextureSize[0].w,_swapTextureSize[0].h);
+    ld.Viewport[1]     = Recti(0,0,_swapTextureSize[1].w,_swapTextureSize[1].h);
 
     ovrLayerHeader* layers = &ld.Header;
-    ovrResult result = ovr_SubmitFrame(_pHmd, 0, &viewScaleDesc, &layers, 1);
-	// TODO: Return result
+    ovrResult ovr_result = ovr_SubmitFrame(_pHmdSession, 0, &viewScaleDesc, &layers, 1);
+	if (OVR_FAILURE(ovr_result))
+	{
+		SetOvrErrorInfo(env, "Failed to submit frame!", ovr_result);
+	}
+	else
+	{
+		SetOvrErrorInfo(env, "Submitted frame successfully!", ovr_result);
+	}
+	
+	return GetLastOvrErrorInfo(env);
 }
 
 JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1convertQuatToEuler
@@ -776,11 +806,11 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getUserProfileData(
 #define OVR_DEFAULT_EYE_RELIEF_DIAL         3
 */
 
-	float playerHeight = ovr_GetFloat( _pHmd, OVR_KEY_PLAYER_HEIGHT, OVR_DEFAULT_PLAYER_HEIGHT);
-	float eyeHeight    = ovr_GetFloat( _pHmd, OVR_KEY_EYE_HEIGHT,    OVR_DEFAULT_EYE_HEIGHT); 
-	float ipd          = ovr_GetFloat( _pHmd, OVR_KEY_IPD,           OVR_DEFAULT_IPD); 
-	std::string gender = ovr_GetString(_pHmd, OVR_KEY_GENDER,        OVR_DEFAULT_GENDER);
-    std::string name   = ovr_GetString(_pHmd, OVR_KEY_NAME,          "No Profile");
+	float playerHeight = ovr_GetFloat( _pHmdSession, OVR_KEY_PLAYER_HEIGHT, OVR_DEFAULT_PLAYER_HEIGHT);
+	float eyeHeight    = ovr_GetFloat( _pHmdSession, OVR_KEY_EYE_HEIGHT,    OVR_DEFAULT_EYE_HEIGHT); 
+	float ipd          = ovr_GetFloat( _pHmdSession, OVR_KEY_IPD,           OVR_DEFAULT_IPD); 
+	std::string gender = ovr_GetString(_pHmdSession, OVR_KEY_GENDER,        OVR_DEFAULT_GENDER);
+    std::string name   = ovr_GetString(_pHmdSession, OVR_KEY_NAME,          "No Profile");
 
 	jstring jname   = env->NewStringUTF(name.c_str());
     jstring jgender = env->NewStringUTF(gender.c_str());
@@ -816,96 +846,6 @@ JNIEXPORT jdouble JNICALL Java_de_fruitfly_ovr_OculusRift__1getCurrentTimeSecs(
 
 /**** HELPERS ****/
 
-void ResetRenderConfig()
-{
-/*
-    if (_initialised)
-    {
-        ovr_ConfigureRendering(_pHmd, 0, 0, 0, 0); //TODO_ continue here
-    }
-
-    // Reset texture data
-	_GLEyeTexture[0].OGL.Header.API                   = ovrRenderAPI_None;
-    _GLEyeTexture[0].OGL.Header.TextureSize.w         = 0;
-	_GLEyeTexture[0].OGL.Header.TextureSize.h         = 0;
-    _GLEyeTexture[0].OGL.Header.RenderViewport.Pos.x  = 0;
-    _GLEyeTexture[0].OGL.Header.RenderViewport.Pos.y  = 0;
-    _GLEyeTexture[0].OGL.Header.RenderViewport.Size.w = 0;
-    _GLEyeTexture[0].OGL.Header.RenderViewport.Size.h = 0;
-	_GLEyeTexture[0].OGL.TexId                        = 0;
-    _GLEyeTexture[1] = _GLEyeTexture[0];
-*/
-    _renderConfigured = false;
-}
-
-void InitRenderConfig()
-{
-	_EyeRenderDesc[0] = ovr_GetRenderDesc(_pHmd, ovrEye_Left, _hmdDesc.DefaultEyeFov[0]);
-    _EyeRenderDesc[1] = ovr_GetRenderDesc(_pHmd, ovrEye_Right, _hmdDesc.DefaultEyeFov[1]);
-    _renderConfigured = true;
-}
-
-bool CreateHmdAndConfigureTracker()
-{
-    _pHmd = 0;
-
-    bool result = false;
-    _realDevice = false;
-
-	ovrGraphicsLuid luid;
-
-	// Get HMD
-	if (ovr_Create(&_pHmd, &luid) == ovrSuccess)
-	{
-		printf("Oculus Rift device found!\n");
-        _realDevice = true; // TODO: How to detect real versus debug device?
-		result = true;
-	}
-/*	else 
-	{
-
-		// TODO: No debug device
-
-
-		// Create debug Rift
-        _hmdIndex = -1;
-		if (ovr_CreateDebug(ovrHmd_DK2, &_pHmd) == ovrSuccess)
-		{
-			printf("No Oculus Rift devices found, creating dummy device...\n");
-			result = true;
-		}
-	}
-*/
-
-	if (result)
-	{
-		_hmdDesc = ovr_GetHmdDesc(_pHmd);
-
-		// Log description
-		LogHmdDesc(_pHmd);
-
-		// Configure tracking
-        int trackerResult = ovr_ConfigureTracking(_pHmd,
-			    ovrTrackingCap_Orientation | ovrTrackingCap_MagYawCorrection | ovrTrackingCap_Position,
-			    0);
-
-		if (trackerResult != ovrSuccess)
-		{
-			// Initialised successfully
-			printf("FAILED to configure tracker!");
-            result = false;
-		}
-	}
-
-    return result;
-}
-
-void DEBUGLOG(std::string s)
-{
-	if (LogDebug)
-		printf("DEBUG: %s\n", s.c_str());
-}
-
 void ClearException(JNIEnv *env)
 {
     env->ExceptionClear();
@@ -918,35 +858,25 @@ void PrintNewObjectException(JNIEnv *env, std::string objectName)
     env->ExceptionClear();
 }
 
-void LogHmdDesc(ovrHmd pHmd)
-{
-	// Chuck out some basic HMD info
-	printf(" Product Name:      %s\n", _hmdDesc.ProductName);
-	printf(" Manufacturer:      %s\n", _hmdDesc.Manufacturer);
-	printf(" Native Resolution: %d X %d\n", _hmdDesc.Resolution.w, _hmdDesc.Resolution.h);
-}
-
 void Reset()
 {
 	if (_initialised)
 	{
-        // Reset render config
-        ResetRenderConfig();
-
-		// Destroy textures
+		// Destroy render textures
 		DestroySwapTextureSet();
+
+		// Destroy mirror texture
 		DestroyMirrorTexture();
 
 		// Cleanup HMD
-		if (_pHmd)
-			ovr_Destroy(_pHmd);
+		if (_pHmdSession)
+			ovr_Destroy(_pHmdSession);
 
 		// Shutdown LibOVR
 		ovr_Shutdown();
 	}
 
-	_pHmd = 0;
-	_hmdIndex = -1;
+	_pHmdSession = 0;
 
 	_pSwapTextureSet[0] = 0;
 	_pSwapTextureSet[1] = 0;
@@ -961,8 +891,13 @@ void Reset()
     _eyeRenderPose[0].Position.z = 0.0;
     _eyeRenderPose[1] = _eyeRenderPose[0];
 
+	_ovrRuntimeVersion            = UNKNOWN_RUNTIME_VER;
+	_lastError.sError             = "No error";
+	_lastError.ovr_result         = ovrSuccess;
+	_lastError.Success            = OVR_SUCCESS(ovrSuccess);
+	_lastError.UnqualifiedSuccess = OVR_UNQUALIFIED_SUCCESS(ovrSuccess);
+
 	_initialised = false;
-    _realDevice = false;
 }
 
 void DestroySwapTextureSet()
@@ -976,12 +911,12 @@ void DestroySwapTextureSet()
 
 	if (_pSwapTextureSet[0] != 0)
 	{		    
-		ovr_DestroySwapTextureSet(_pHmd, _pSwapTextureSet[0]);
+		ovr_DestroySwapTextureSet(_pHmdSession, _pSwapTextureSet[0]);
 		_pSwapTextureSet[0] = 0;
 	}
 	if (_pSwapTextureSet[1] != 0)
 	{
-		ovr_DestroySwapTextureSet(_pHmd, _pSwapTextureSet[1]);
+		ovr_DestroySwapTextureSet(_pHmdSession, _pSwapTextureSet[1]);
 		_pSwapTextureSet[1] = 0;
 	}
 }
@@ -996,7 +931,7 @@ void DestroyMirrorTexture()
 
 	if (_pMirrorTexture != 0)
 	{
-		ovr_DestroyMirrorTexture(_pHmd, (ovrTexture*)_pMirrorTexture);
+		ovr_DestroyMirrorTexture(_pHmdSession, (ovrTexture*)_pMirrorTexture);
 		_pMirrorTexture = 0;
 	}
 }
@@ -1110,6 +1045,17 @@ bool CacheJNIGlobals(JNIEnv *env)
     {
         return false;
     }
+
+	if (!LookupJNIGlobal(env,
+                         errorInfo_Class,
+                         "de/fruitfly/ovr/structs/ErrorInfo",
+                         errorInfo_constructor_MethodID,
+                         "(Ljava/lang/String;IZZ)V"))
+    {
+        return false;
+    }
+
+	// TODO: Is this required...?
 	field_swapTextureSet_leftEyeTextureIds = env->GetFieldID(swapTextureSet_Class, "leftEyeTextureIds", "Ljava/util/ArrayList;");
 	if (field_swapTextureSet_leftEyeTextureIds == 0)
     {
@@ -1234,89 +1180,148 @@ void SetAxisEnum(int value, Axis& A)
 	}
 }
 
-void initOvrResultMaps()
+bool LibFirstInit(JNIEnv *env)
 {
-	_errorMap.clear();
-	_successMap.clear();
+	bool Success = true;
+	if (!_performedFirstInit)
+	{
+		InitOvrResultMaps();
 
-    /* General errors */
-    _errorMap[ovrError_MemoryAllocationFailure       ] = "ovrError_MemoryAllocationFailure";   
-    _errorMap[ovrError_SocketCreationFailure         ] = "ovrError_SocketCreationFailure";
-    _errorMap[ovrError_InvalidSession                ] = "ovrError_InvalidSession";   
-    _errorMap[ovrError_Timeout                       ] = "ovrError_Timeout";   
-    _errorMap[ovrError_NotInitialized                ] = "ovrError_NotInitialized";   
-    _errorMap[ovrError_InvalidParameter              ] = "ovrError_InvalidParameter";   
-    _errorMap[ovrError_ServiceError                  ] = "ovrError_ServiceError";   
-    _errorMap[ovrError_NoHmd                         ] = "ovrError_NoHmd (Connect HMD or enable debug HMD device)";   
-    _errorMap[ovrError_AudioReservedBegin            ] = "ovrError_AudioReservedBegin";   
-    _errorMap[ovrError_AudioDeviceNotFound           ] = "ovrError_AudioDeviceNotFound";   
-    _errorMap[ovrError_AudioComError                 ] = "ovrError_AudioComError";   
-    _errorMap[ovrError_AudioReservedEnd              ] = "ovrError_AudioReservedEnd";   
-    _errorMap[ovrError_Initialize                    ] = "ovrError_Initialize";   
-    _errorMap[ovrError_LibLoad                       ] = "ovrError_LibLoad (No runtime found)";   
-    _errorMap[ovrError_LibVersion                    ] = "ovrError_LibVersion (Runtime version incompatibility)";   
-    _errorMap[ovrError_ServiceConnection             ] = "ovrError_ServiceConnection";   
-    _errorMap[ovrError_ServiceVersion                ] = "ovrError_ServiceVersion";   
-    _errorMap[ovrError_IncompatibleOS                ] = "ovrError_IncompatibleOS";   
-    _errorMap[ovrError_DisplayInit                   ] = "ovrError_DisplayInit (GPU does not meet minimum requirements)";  
-    _errorMap[ovrError_ServerStart                   ] = "ovrError_ServerStart";  
-    _errorMap[ovrError_Reinitialization              ] = "ovrError_Reinitialization";  
-    _errorMap[ovrError_MismatchedAdapters            ] = "ovrError_MismatchedAdapters";  
-    _errorMap[ovrError_LeakingResources              ] = "ovrError_LeakingResources";  
-    _errorMap[ovrError_ClientVersion                 ] = "ovrError_ClientVersion";  
-    _errorMap[ovrError_OutOfDateOS                   ] = "ovrError_OutOfDateOS";  
-    _errorMap[ovrError_OutOfDateGfxDriver            ] = "ovrError_OutOfDateGfxDriver";  
-    _errorMap[ovrError_IncompatibleGPU               ] = "ovrError_IncompatibleGPU";  
-    _errorMap[ovrError_NoValidVRDisplaySystem        ] = "ovrError_NoValidVRDisplaySystem";  
-    _errorMap[ovrError_InvalidBundleAdjustment       ] = "ovrError_InvalidBundleAdjustment";  
-    _errorMap[ovrError_USBBandwidth                  ] = "ovrError_USBBandwidth";  
-    _errorMap[ovrError_USBEnumeratedSpeed            ] = "ovrError_USBEnumeratedSpeed";  
-    _errorMap[ovrError_ImageSensorCommError          ] = "ovrError_ImageSensorCommError";  
-    _errorMap[ovrError_GeneralTrackerFailure         ] = "ovrError_GeneralTrackerFailure";  
-    _errorMap[ovrError_ExcessiveFrameTruncation      ] = "ovrError_ExcessiveFrameTruncation";  
-    _errorMap[ovrError_ExcessiveFrameSkipping        ] = "ovrError_ExcessiveFrameSkipping";  
-    _errorMap[ovrError_SyncDisconnected              ] = "ovrError_SyncDisconnected";  
-    _errorMap[ovrError_TrackerMemoryReadFailure      ] = "ovrError_TrackerMemoryReadFailure";  
-    _errorMap[ovrError_TrackerMemoryWriteFailure     ] = "ovrError_TrackerMemoryWriteFailure";  
-    _errorMap[ovrError_TrackerFrameTimeout           ] = "ovrError_TrackerFrameTimeout";  
-    _errorMap[ovrError_TrackerTruncatedFrame         ] = "ovrError_TrackerTruncatedFrame";  
-    _errorMap[ovrError_HMDFirmwareMismatch           ] = "ovrError_HMDFirmwareMismatch";  
-    _errorMap[ovrError_TrackerFirmwareMismatch       ] = "ovrError_TrackerFirmwareMismatch";  
-    _errorMap[ovrError_BootloaderDeviceDetected      ] = "ovrError_BootloaderDeviceDetected";  
-    _errorMap[ovrError_TrackerCalibrationError       ] = "ovrError_TrackerCalibrationError";  
-    _errorMap[ovrError_ControllerFirmwareMismatch    ] = "ovrError_ControllerFirmwareMismatch";  
-    _errorMap[ovrError_Incomplete                    ] = "ovrError_Incomplete";  
-    _errorMap[ovrError_Abandoned                     ] = "ovrError_Abandoned";  
-    _errorMap[ovrError_DisplayLost                   ] = "ovrError_DisplayLost";  
-    _errorMap[ovrError_RuntimeException              ] = "ovrError_RuntimeException";
-
-    _successMap[ovrSuccess                           ] = "ovrSuccess"; 
-    _successMap[ovrSuccess_NotVisible                ] = "ovrSuccess_NotVisible";
-    _successMap[ovrSuccess_HMDFirmwareMismatch       ] = "ovrSuccess_HMDFirmwareMismatch";
-    _successMap[ovrSuccess_TrackerFirmwareMismatch   ] = "ovrSuccess_TrackerFirmwareMismatch";
-    _successMap[ovrSuccess_ControllerFirmwareMismatch] = "ovrSuccess_ControllerFirmwareMismatch";
+		Success = CacheJNIGlobals(env);
+		if (Success) 
+		{
+			_performedFirstInit = true;
+		}
+	}
+	return Success;
 }
 
-std::string getOvrResultString(ovrResult ovrResult)
+void InitOvrResultMaps()
 {
-	std::string sError = "<unknown ovrResult code>";
+	_ErrorMap.clear();
+	_SuccessMap.clear();
+
+    /* General errors */
+    _ErrorMap[ovrError_MemoryAllocationFailure       ] = "ovrError_MemoryAllocationFailure";   
+    _ErrorMap[ovrError_SocketCreationFailure         ] = "ovrError_SocketCreationFailure";
+    _ErrorMap[ovrError_InvalidSession                ] = "ovrError_InvalidSession";   
+    _ErrorMap[ovrError_Timeout                       ] = "ovrError_Timeout";   
+    _ErrorMap[ovrError_NotInitialized                ] = "ovrError_NotInitialized";   
+    _ErrorMap[ovrError_InvalidParameter              ] = "ovrError_InvalidParameter";   
+    _ErrorMap[ovrError_ServiceError                  ] = "ovrError_ServiceError";   
+    _ErrorMap[ovrError_NoHmd                         ] = "ovrError_NoHmd (Connect HMD or enable debug HMD device)";   
+    _ErrorMap[ovrError_AudioReservedBegin            ] = "ovrError_AudioReservedBegin";   
+    _ErrorMap[ovrError_AudioDeviceNotFound           ] = "ovrError_AudioDeviceNotFound";   
+    _ErrorMap[ovrError_AudioComError                 ] = "ovrError_AudioComError";   
+    _ErrorMap[ovrError_AudioReservedEnd              ] = "ovrError_AudioReservedEnd";   
+    _ErrorMap[ovrError_Initialize                    ] = "ovrError_Initialize";   
+    _ErrorMap[ovrError_LibLoad                       ] = "ovrError_LibLoad (No runtime found)";   
+    _ErrorMap[ovrError_LibVersion                    ] = "ovrError_LibVersion (Runtime version incompatibility)";   
+    _ErrorMap[ovrError_ServiceConnection             ] = "ovrError_ServiceConnection";   
+    _ErrorMap[ovrError_ServiceVersion                ] = "ovrError_ServiceVersion";   
+    _ErrorMap[ovrError_IncompatibleOS                ] = "ovrError_IncompatibleOS";   
+    _ErrorMap[ovrError_DisplayInit                   ] = "ovrError_DisplayInit (GPU does not meet minimum requirements)";  
+    _ErrorMap[ovrError_ServerStart                   ] = "ovrError_ServerStart";  
+    _ErrorMap[ovrError_Reinitialization              ] = "ovrError_Reinitialization";  
+    _ErrorMap[ovrError_MismatchedAdapters            ] = "ovrError_MismatchedAdapters";  
+    _ErrorMap[ovrError_LeakingResources              ] = "ovrError_LeakingResources";  
+    _ErrorMap[ovrError_ClientVersion                 ] = "ovrError_ClientVersion";  
+    _ErrorMap[ovrError_OutOfDateOS                   ] = "ovrError_OutOfDateOS";  
+    _ErrorMap[ovrError_OutOfDateGfxDriver            ] = "ovrError_OutOfDateGfxDriver";  
+    _ErrorMap[ovrError_IncompatibleGPU               ] = "ovrError_IncompatibleGPU";  
+    _ErrorMap[ovrError_NoValidVRDisplaySystem        ] = "ovrError_NoValidVRDisplaySystem";  
+    _ErrorMap[ovrError_InvalidBundleAdjustment       ] = "ovrError_InvalidBundleAdjustment";  
+    _ErrorMap[ovrError_USBBandwidth                  ] = "ovrError_USBBandwidth";  
+    _ErrorMap[ovrError_USBEnumeratedSpeed            ] = "ovrError_USBEnumeratedSpeed";  
+    _ErrorMap[ovrError_ImageSensorCommError          ] = "ovrError_ImageSensorCommError";  
+    _ErrorMap[ovrError_GeneralTrackerFailure         ] = "ovrError_GeneralTrackerFailure";  
+    _ErrorMap[ovrError_ExcessiveFrameTruncation      ] = "ovrError_ExcessiveFrameTruncation";  
+    _ErrorMap[ovrError_ExcessiveFrameSkipping        ] = "ovrError_ExcessiveFrameSkipping";  
+    _ErrorMap[ovrError_SyncDisconnected              ] = "ovrError_SyncDisconnected";  
+    _ErrorMap[ovrError_TrackerMemoryReadFailure      ] = "ovrError_TrackerMemoryReadFailure";  
+    _ErrorMap[ovrError_TrackerMemoryWriteFailure     ] = "ovrError_TrackerMemoryWriteFailure";  
+    _ErrorMap[ovrError_TrackerFrameTimeout           ] = "ovrError_TrackerFrameTimeout";  
+    _ErrorMap[ovrError_TrackerTruncatedFrame         ] = "ovrError_TrackerTruncatedFrame";  
+    _ErrorMap[ovrError_HMDFirmwareMismatch           ] = "ovrError_HMDFirmwareMismatch";  
+    _ErrorMap[ovrError_TrackerFirmwareMismatch       ] = "ovrError_TrackerFirmwareMismatch";  
+    _ErrorMap[ovrError_BootloaderDeviceDetected      ] = "ovrError_BootloaderDeviceDetected";  
+    _ErrorMap[ovrError_TrackerCalibrationError       ] = "ovrError_TrackerCalibrationError";  
+    _ErrorMap[ovrError_ControllerFirmwareMismatch    ] = "ovrError_ControllerFirmwareMismatch";  
+    _ErrorMap[ovrError_Incomplete                    ] = "ovrError_Incomplete";  
+    _ErrorMap[ovrError_Abandoned                     ] = "ovrError_Abandoned";  
+    _ErrorMap[ovrError_DisplayLost                   ] = "ovrError_DisplayLost";  
+    _ErrorMap[ovrError_RuntimeException              ] = "ovrError_RuntimeException";
+
+    _SuccessMap[ovrSuccess                           ] = "ovrSuccess"; 
+    _SuccessMap[ovrSuccess_NotVisible                ] = "ovrSuccess_NotVisible";
+    _SuccessMap[ovrSuccess_HMDFirmwareMismatch       ] = "ovrSuccess_HMDFirmwareMismatch";
+    _SuccessMap[ovrSuccess_TrackerFirmwareMismatch   ] = "ovrSuccess_TrackerFirmwareMismatch";
+    _SuccessMap[ovrSuccess_ControllerFirmwareMismatch] = "ovrSuccess_ControllerFirmwareMismatch";
+}
+
+void SetOvrErrorInfo(JNIEnv *env, const char* error, ovrResult ovr_result)
+{	
+	/* 
+	TODO: Use 
+		ovrErrorInfo errorInfo;
+		ovr_GetLastOvrErrorInfo(&errorInfo);
+	when I can get it working...
+	*/
+
+	std::stringstream s;
+	std::string sOvrError = "<unknown ovrResult code>";
 	
-	if (OVR_SUCCESS(ovrResult))
+	if (OVR_SUCCESS(ovr_result))
 	{
-		std::map<ovrSuccessType, std::string>::const_iterator it = _successMap.find((ovrSuccessType)ovrResult);
-		if (it != _successMap.end()) 
+		std::map<ovrSuccessType, std::string>::const_iterator it = _SuccessMap.find((ovrSuccessType)ovr_result);
+		if (it != _SuccessMap.end()) 
 		{
-			sError = it->second;
+			sOvrError = it->second;
 		}
 	}
 	else
 	{
-		std::map<ovrErrorType, std::string>::const_iterator it = _errorMap.find((ovrErrorType)ovrResult);
-		if (it != _errorMap.end()) 
+		std::map<ovrErrorType, std::string>::const_iterator it = _ErrorMap.find((ovrErrorType)ovr_result);
+		if (it != _ErrorMap.end()) 
 		{
-			sError = it->second;
+			sOvrError = it->second;
 		}
 	}
 
-	return sError;
+	if (strlen(error) > 0)
+	{
+		s << error << " [Client SDK version " << OVR_VERSION_STRING << 
+			", Runtime version " << _ovrRuntimeVersion.c_str() << "]:";
+	}
+	s << sOvrError;
+
+	_lastError.sError             = s.str();
+	_lastError.ovr_result         = ovr_result;
+	_lastError.Success            = OVR_SUCCESS(ovr_result);
+	_lastError.UnqualifiedSuccess = OVR_UNQUALIFIED_SUCCESS(ovr_result);
+}
+
+void SetGenericOvrErrorInfo(JNIEnv *env, const char* error)
+{	
+    SetOvrErrorInfo(env, error, ovrError_Initialize);
+}
+
+jobject GetLastOvrErrorInfo(JNIEnv *env)
+{
+	if (!_performedFirstInit)
+	{
+		return 0;
+	}
+
+	ClearException(env);
+
+	jstring jerrorStr = env->NewStringUTF( _lastError.sError.c_str() );
+	jobject errorInfo = env->NewObject(errorInfo_Class, errorInfo_constructor_MethodID,
+                                      jerrorStr,
+									  (int)_lastError.ovr_result,
+									  _lastError.Success,
+									  _lastError.UnqualifiedSuccess);
+	env->DeleteLocalRef( jerrorStr );
+	if (errorInfo == 0) PrintNewObjectException(env, "ErrorInfo");
+	return errorInfo;
 }

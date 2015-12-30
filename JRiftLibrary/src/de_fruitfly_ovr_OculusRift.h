@@ -21,6 +21,14 @@ JNIEXPORT jboolean JNICALL Java_de_fruitfly_ovr_OculusRift__1initSubsystem
 
 /*
  * Class:     de_fruitfly_ovr_OculusRift
+ * Method:    _getLastError
+ * Signature: ()Lde/fruitfly/ovr/structs/ErrorInfo;
+ */
+JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getLastError
+	(JNIEnv *env, jobject jobj);
+
+/*
+ * Class:     de_fruitfly_ovr_OculusRift
  * Method:    _destroySubsystem
  * Signature: ()V
  */
@@ -30,7 +38,7 @@ JNIEXPORT void JNICALL Java_de_fruitfly_ovr_OculusRift__1destroySubsystem
 /*
  * Class:     de_fruitfly_ovr_OculusRift
  * Method:    _getHmdDesc
- * Signature: (F)Lde/fruitfly/ovr/struct/HmdDesc;
+ * Signature: (F)Lde/fruitfly/ovr/structs/HmdDesc;
  */
 JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getHmdDesc
     (JNIEnv *, jobject); 
@@ -116,14 +124,6 @@ JNIEXPORT void JNICALL Java_de_fruitfly_ovr_OculusRift__1destroyMirrorTexture
 
 /*
  * Class:     de_fruitfly_ovr_OculusRift
- * Method:    _resetRenderConfig
- * Signature: ()V;
- */
-JNIEXPORT void JNICALL Java_de_fruitfly_ovr_OculusRift__1resetRenderConfig
-	(JNIEnv *env, jobject);
-
-/*
- * Class:     de_fruitfly_ovr_OculusRift
  * Method:    _getEyePoses
  * Signature: (J)Lde/fruitfly/ovr/FullPoseState;
  */
@@ -150,15 +150,17 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getMatrix4fProjectio
 /*
  * Class:     de_fruitfly_ovr_OculusRift
  * Method:    _submitFrame
- * Signature: ()V
+ * Signature: (F)Lde/fruitfly/ovr/structs/ErrorInfo;
  */
-JNIEXPORT void JNICALL Java_de_fruitfly_ovr_OculusRift__1submitFrame
-    (JNIEnv *, jobject);
+JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1submitFrame(
+	JNIEnv *env,
+	jobject,
+	jfloat HmdSpaceToWorldScaleInMeters);
 
 /*
  * Class:     de_fruitfly_ovr_OculusRift
  * Method:    _convertQuatToEuler
- * Signature: (FFFFFIIIII)[Lde/fruitfly/ovr/structs/EulerOrient;
+ * Signature: (FFFFFIIIII)Lde/fruitfly/ovr/structs/EulerOrient;
  */
 JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1convertQuatToEuler
   (JNIEnv *, 
@@ -200,15 +202,11 @@ JNIEXPORT jdouble JNICALL Java_de_fruitfly_ovr_OculusRift__1getCurrentTimeSecs(
 
 
 /* Helpers */
-void DEBUGLOG(std::string s);
-void LogHmdDesc(ovrHmd pHmd);
+bool LibFirstInit(JNIEnv *env);
 void Reset();
-void ResetRenderConfig();
 void DestroySwapTextureSet();
 void DestroyMirrorTexture();
 bool CacheJNIGlobals(JNIEnv *env);
-void InitRenderConfig();
-bool CreateHmdAndConfigureTracker();
 bool LookupJNIGlobal(JNIEnv *env,
                      jclass& clazz,
                      std::string className,
@@ -227,8 +225,10 @@ void SetEulerEnumValues(int firstRotationAxis,
 					    OVR::RotateDirection& D,
 					    OVR::HandedSystem& S);
 void SetAxisEnum(int value, OVR::Axis& A);
-void initOvrResultMaps();
-std::string getOvrResultString(ovrResult ovrResult);
+void InitOvrResultMaps();
+void SetGenericOvrErrorInfo(JNIEnv *env, const char* error);
+void SetOvrErrorInfo(JNIEnv *env, const char* error, ovrResult ovr_result);
+jobject GetLastOvrErrorInfo(JNIEnv *env);
 
 #ifdef __cplusplus
 }
