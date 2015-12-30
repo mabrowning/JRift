@@ -9,7 +9,6 @@ import java.text.DecimalFormat;
 public class OculusRift //implements IOculusRift
 {
 	private boolean initialized = false;
-    private boolean renderConfigured = true;//TODO revert or read from dll?
 
 	private HmdDesc hmdDesc = new HmdDesc();
     private TrackerState trackerState = new TrackerState();
@@ -54,17 +53,11 @@ public class OculusRift //implements IOculusRift
         return _getVersionString();
     }
 
-	public boolean init( File nativeDir )
-	{
-		OculusRift.LoadLibrary();
-		return init();
-	}
-
 	public boolean init()
 	{
         _initSummary = "Load library failed";
 
-        LoadLibrary();
+        OculusRift.LoadLibrary();
 
         if( !libraryLoaded )
             return false;
@@ -101,34 +94,12 @@ public class OculusRift //implements IOculusRift
 
         _initSummary = "Not initialised";
         initialized = false;
-        renderConfigured = false;
-    }
-
-    public boolean getNextHmd()
-    {
-        return _getNextHmd();
     }
 
     public HmdDesc getHmdDesc()
     {
         return hmdDesc;
     }
-
-//    public TrackerState poll(double futureDelta)
-//    {
-//        if (initialized)
-//        {
-//            // Get tracking state as of now
-//            trackerState = _getTrackerState(futureDelta);
-//        }
-//
-//        return trackerState;
-//    }
-
-//    public TrackerState getLastTrackerState()
-//    {
-//        return trackerState;
-//    }
 
     public void resetTracking()
     {
@@ -149,126 +120,6 @@ public class OculusRift //implements IOculusRift
                                   rightFov.LeftTan,
                                   rightFov.RightTan,
                                   renderScaleFactor);
-    }
-
-    public EyeRenderParams configureRendering(Sizei InTexture1Size,
-                                              Sizei OutDisplaySize,
-                                              GLConfig glConfig,
-                                              FovPort LeftFov,
-                                              FovPort RightFov,
-                                              float worldScale)
-    {
-        if (!initialized)
-            return null;
-
-        erp = _configureRendering(true,
-                                   InTexture1Size.w,
-                                   InTexture1Size.h,
-                                   glConfig.TexId,
-                                   0,
-                                   0,
-                                   0,
-                                   OutDisplaySize.w,
-                                   OutDisplaySize.h,
-                                   glConfig.Window,
-                                   glConfig.Display,
-                                   glConfig.VSyncEnabled,
-                                   glConfig.MultiSampleCount,
-                                   glConfig.useTimewarp,
-                                   glConfig.useTimewarpJitDelay,
-                                   glConfig.useVignette,
-                                   glConfig.useLowPersistence,
-                                   glConfig.mirrorDisplay,
-                                   glConfig.useDisplayOverdrive,
-                                   glConfig.useDynamicPrediction,
-                                   glConfig.useHighQualityDistortion,
-                                   glConfig.useProfileNoSpinWaits,
-                                   LeftFov.UpTan,
-                                   LeftFov.DownTan,
-                                   LeftFov.LeftTan,
-                                   LeftFov.RightTan,
-                                   RightFov.UpTan,
-                                   RightFov.DownTan,
-                                   RightFov.LeftTan,
-                                   RightFov.RightTan,
-                                   worldScale);
-
-        if (erp != null)
-            renderConfigured = true;
-
-        return erp;
-    }
-
-    public EyeRenderParams configureRenderingDualTexture(Sizei InTexture1Size,
-                                                         Sizei InTexture2Size,
-                                                         Sizei OutDisplaySize,
-                                                         GLConfig glConfig,
-                                                         FovPort LeftFov,
-                                                         FovPort RightFov,
-                                                         float worldScale)
-    {
-        if (!initialized)
-            return null;
-
-        erp = _configureRendering(false,
-                                   InTexture1Size.w,
-                                   InTexture1Size.h,
-                                   glConfig.TexId,
-                                   InTexture2Size.w,
-                                   InTexture2Size.h,
-                                   glConfig.TexId2,
-                                   OutDisplaySize.w,
-                                   OutDisplaySize.h,
-                                   glConfig.Window,
-                                   glConfig.Display,
-                                   glConfig.VSyncEnabled,
-                                   glConfig.MultiSampleCount,
-                                   glConfig.useTimewarp,
-                                   glConfig.useTimewarpJitDelay,
-                                   glConfig.useVignette,
-                                   glConfig.useLowPersistence,
-                                   glConfig.mirrorDisplay,
-                                   glConfig.useDisplayOverdrive,
-                                   glConfig.useDynamicPrediction,
-                                   glConfig.useHighQualityDistortion,
-                                   glConfig.useProfileNoSpinWaits,
-                                   LeftFov.UpTan,
-                                   LeftFov.DownTan,
-                                   LeftFov.LeftTan,
-                                   LeftFov.RightTan,
-                                   RightFov.UpTan,
-                                   RightFov.DownTan,
-                                   RightFov.LeftTan,
-                                   RightFov.RightTan,
-                                   worldScale);
-
-        if (erp != null)
-            renderConfigured = true;
-
-        return erp;
-    }
-
-    public void resetRenderConfig()
-    {
-        if (!initialized)
-            return;
-
-        _resetRenderConfig();
-        renderConfigured = false;
-    }
-
-    public boolean isRenderConfigured()
-    {
-        return renderConfigured;
-    }
-
-    public Posef getEyePose(EyeType eye)
-    {
-        if (!initialized)
-            return new Posef();
-
-        lastPose[eye.value()] = _getEyePose(eye.value());
-        return lastPose[eye.value()].clone();
     }
 
     public FullPoseState getEyePoses(long frameIndex)
@@ -306,7 +157,7 @@ public class OculusRift //implements IOculusRift
                                           float nearClip,
                                           float farClip)
     {
-        if (!initialized || !renderConfigured)
+        if (!initialized)
             return null;
 
         return _getMatrix4fProjection(fov.UpTan,
@@ -316,14 +167,6 @@ public class OculusRift //implements IOculusRift
                                       nearClip,
                                       farClip);
     }
-
-//    public void endFrame()
-//    {
-//        if (!initialized || !renderConfigured)
-//            return;
-//
-//        _endFrame();
-//    }
 
     public static EulerOrient getEulerAnglesDeg(Quatf quat,
                                                 float scale,
@@ -350,47 +193,12 @@ public class OculusRift //implements IOculusRift
         return eulerAngles;
     }
 
-    public static Matrix4f getViewFromEyePose(float yawOffsetRads,
-                                              float pitchOffsetRads,
-                                              Vector3f headPos,
-                                              Quatf orientation,
-                                              Vector3f position,
-                                              Vector3f viewAdjust)
-    {
-        if( !libraryLoaded )
-            return null;
-
-        return _getViewFromEyePose(yawOffsetRads,
-                pitchOffsetRads,
-                headPos.x,
-                headPos.y,
-                headPos.z,
-                orientation.x,
-                orientation.y,
-                orientation.z,
-                orientation.w,
-                position.x,
-                position.y,
-                position.z,
-                viewAdjust.x,
-                viewAdjust.y,
-                viewAdjust.z);
-    }
-
     public UserProfileData getUserProfile()
     {
         if (!isInitialized())
             return null;
 
         return _getUserProfileData();
-    }
-
-    public void dismissHSW()
-    {
-        if (!isInitialized())
-            return;
-
-        _dismissHSW();
     }
 
     public static double getCurrentTimeSeconds()
@@ -434,9 +242,10 @@ public class OculusRift //implements IOculusRift
 
     // Native declarations
 
-    protected native static void     _initRenderingShim();
 	protected native boolean         _initSubsystem();
     protected native void            _destroySubsystem();
+
+    protected native ErrorInfo       _getLastError();
 
     protected native boolean         _getNextHmd();
     protected native HmdDesc         _getHmdDesc();
@@ -458,40 +267,7 @@ public class OculusRift //implements IOculusRift
                                                         float RightFovLeftTan,
                                                         float RightFovRightTan,
                                                         float RenderScaleFactor);
-    protected native EyeRenderParams _configureRendering(boolean UsesInputTexture1Only,
-                                                         int InTexture1Width,
-                                                         int InTexture1Height,
-                                                         int InTexture1GLId,
-                                                         int InTexture2Width,
-                                                         int InTexture2Height,
-                                                         int InTexture2GLId,
-                                                         int OutDisplayWidth,
-                                                         int OutDisplayHeight,
-                                                         long pWindow,
-                                                         long pDisplay,
-                                                         boolean VSyncEnabled,
-                                                         int MultiSample,
-                                                         boolean useTimewarp,
-                                                         boolean useTimewarpJitDelay,
-                                                         boolean useVignette,
-                                                         boolean useLowPersistence,
-                                                         boolean mirrorDisplay,
-                                                         boolean useDisplayOverdrive,
-                                                         boolean useDynamicPrediction,
-                                                         boolean useHighQualityDistortion,
-                                                         boolean useProfileNoSpinWaits,
-                                                         float LeftFovUpTan,
-                                                         float LeftFovDownTan,
-                                                         float LeftFovLeftTan,
-                                                         float LeftFovRightTan,
-                                                         float RightFovUpTan,
-                                                         float RightFovDownTan,
-                                                         float RightFovLeftTan,
-                                                         float RightFovRightTan,
-                                                         float worldScale);
-    protected native void            _resetRenderConfig();
 
-    protected native Posef           _getEyePose(int eye);
     protected native FullPoseState   _getEyePoses(long frameIndex);
     protected native Matrix4f        _getMatrix4fProjection(float EyeFovPortUpTan,
                                                             float EyeFovPortDownTan,
@@ -499,21 +275,6 @@ public class OculusRift //implements IOculusRift
                                                             float EyeFovPortRightTan,
                                                             float nearClip,
                                                             float farClip);
-    protected native static Matrix4f _getViewFromEyePose(float yawOffsetRads,
-                                                         float pitchOffsetRads,
-                                                         float headPosX,
-                                                         float headPosY,
-                                                         float headPosZ,
-                                                         float orientX,
-                                                         float orientY,
-                                                         float orientZ,
-                                                         float orientW,
-                                                         float PosX,
-                                                         float PosY,
-                                                         float PosZ,
-                                                         float viewAdjustX,
-                                                         float viewAdjustY,
-                                                         float viewAdjustZ);
 
     protected native static EulerOrient _convertQuatToEuler(float quatx,
                                                             float quaty,
@@ -526,9 +287,8 @@ public class OculusRift //implements IOculusRift
                                                             int hand,
                                                             int rotationDir);
 
-    protected native void            _submitFrame();
+    protected native ErrorInfo       _submitFrame();
     protected native UserProfileData _getUserProfileData();
-    protected native void            _dismissHSW();
     protected native static String   _getVersionString();
     protected native static double   _getCurrentTimeSecs();
 
