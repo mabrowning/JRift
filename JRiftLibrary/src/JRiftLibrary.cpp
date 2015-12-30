@@ -97,24 +97,40 @@ JNIEXPORT jboolean JNICALL Java_de_fruitfly_ovr_OculusRift__1initSubsystem(JNIEn
 	// Initialise LibOVR - use default init params for now
 	ovrInitParams initParams;
 	memset(&initParams, 0, sizeof(ovrInitParams));
-	_lastOvrResult = ovr_Initialize(&initParams);
 
+	_lastOvrResult = ovr_Initialize(&initParams);
 	if (OVR_FAILURE(_lastOvrResult)) 
 	{
-		printf("Unable to initialise LibOVR! ovr_Initialize() returned error code '%s' (%d)\n", getOvrResultString(_lastOvrResult).c_str(), _lastOvrResult);
+		ovrErrorInfo errorInfo;
+		ovr_GetLastErrorInfo(&errorInfo);
+		printf("Unable to initialise LibOVR! SDK version %s: ovr_Initialize() returned error code '%s' (%d) (%s)\n", 
+			OVR_VERSION_STRING, getOvrResultString(_lastOvrResult).c_str(), _lastOvrResult, errorInfo.ErrorString );
 		return false;
 	}
-
-    // Create HMD
-    if (CreateHmdAndConfigureTracker())
-        _initialised = true;
-	
-	if (!_initialised)
+	else
 	{
-		printf("Unable to create Oculus Rift device interface!\n");
+		std::string ovrRuntimeVersion = ovr_GetVersionString();
+		printf("Initialised LibOVR! SDK version %s, Runtime version %s", OVR_VERSION_STRING, ovrRuntimeVersion.c_str());
 	}
 
-	InitRenderConfig();
+	_pHmd = 0;
+	ovrGraphicsLuid luid;
+	_lastOvrResult = ovr_Create(&_pHmd, &luid);
+	if (OVR_SUCCESS(_lastOvrResult))
+	{
+		printf("Oculus Rift device found! %s (%d)\n", getOvrResultString(_lastOvrResult).c_str(), _lastOvrResult);
+		_initialised = true;
+	}
+	else
+	{
+		printf("Unable to create Oculus Rift device interface! ovr_Create() returned '%s' (%d)\n", 
+			getOvrResultString(_lastOvrResult).c_str(), _lastOvrResult);
+	}
+	
+	if (_initialised)
+	{
+		InitRenderConfig();
+	}
 	
 	return _initialised;
 }
@@ -264,18 +280,24 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1createSwapTextureSet
 	_lheight=lheight;
 	_rwidth=rwidth;
 	_rheight=rheight;
-	if (result && ovr_CreateSwapTextureSetGL(_pHmd, GL_SRGB8_ALPHA8, lwidth, lheight, &_pSwapTextureSet[0]) != ovrSuccess)
+	_lastOvrResult = ovr_CreateSwapTextureSetGL(_pHmd, GL_SRGB8_ALPHA8, lwidth, lheight, &_pSwapTextureSet[0]);
+	if (OVR_FAILURE(_lastOvrResult))
 	{
 		result = false;	
 	}
-	if (result && ovr_CreateSwapTextureSetGL(_pHmd, GL_SRGB8_ALPHA8, rwidth, rheight, &_pSwapTextureSet[1]) != ovrSuccess)
+	if (result)
 	{
-		result = false;	
+		_lastOvrResult = ovr_CreateSwapTextureSetGL(_pHmd, GL_SRGB8_ALPHA8, rwidth, rheight, &_pSwapTextureSet[1]);
+		if (OVR_FAILURE(_lastOvrResult))
+		{
+			result = false;	
+		}	
 	}
 
 	if (!result)
 	{
-		printf("Unable to create swap texture set!\n");
+		printf("Unable to create swap texture set! ovr_CreateSwapTextureSetGL() returned '%s' (%d)\n",
+			getOvrResultString(_lastOvrResult).c_str(), _lastOvrResult);
 		DestroySwapTextureSet();
 	}
 
@@ -354,9 +376,11 @@ JNIEXPORT jint JNICALL Java_de_fruitfly_ovr_OculusRift__1createMirrorTexture(
 
 	DestroyMirrorTexture();
 
-	if (ovr_CreateMirrorTextureGL(_pHmd, GL_SRGB8_ALPHA8, width, height, (ovrTexture**)&_pMirrorTexture) != ovrSuccess)
+	_lastOvrResult = ovr_CreateMirrorTextureGL(_pHmd, GL_SRGB8_ALPHA8, width, height, (ovrTexture**)&_pMirrorTexture);
+	if (OVR_FAILURE(_lastOvrResult))
 	{
-		printf("Unable to create mirror texture!\n");
+		printf("Unable to create mirror texture! ovr_CreateMirrorTextureGL() returned error '%s' (%d)\n",
+			getOvrResultString(_lastOvrResult).c_str(), _lastOvrResult);
 		_pMirrorTexture = 0;
 		return -1;
 	}
@@ -1212,6 +1236,9 @@ void SetAxisEnum(int value, Axis& A)
 
 void initOvrResultMaps()
 {
+	_errorMap.clear();
+	_successMap.clear();
+
     /* General errors */
     _errorMap[ovrError_MemoryAllocationFailure       ] = "ovrError_MemoryAllocationFailure";   
     _errorMap[ovrError_SocketCreationFailure         ] = "ovrError_SocketCreationFailure";
@@ -1220,7 +1247,7 @@ void initOvrResultMaps()
     _errorMap[ovrError_NotInitialized                ] = "ovrError_NotInitialized";   
     _errorMap[ovrError_InvalidParameter              ] = "ovrError_InvalidParameter";   
     _errorMap[ovrError_ServiceError                  ] = "ovrError_ServiceError";   
-    _errorMap[ovrError_NoHmd                         ] = "ovrError_NoHmd";   
+    _errorMap[ovrError_NoHmd                         ] = "ovrError_NoHmd (Connect HMD or enable debug HMD device)";   
     _errorMap[ovrError_AudioReservedBegin            ] = "ovrError_AudioReservedBegin";   
     _errorMap[ovrError_AudioDeviceNotFound           ] = "ovrError_AudioDeviceNotFound";   
     _errorMap[ovrError_AudioComError                 ] = "ovrError_AudioComError";   
@@ -1231,7 +1258,7 @@ void initOvrResultMaps()
     _errorMap[ovrError_ServiceConnection             ] = "ovrError_ServiceConnection";   
     _errorMap[ovrError_ServiceVersion                ] = "ovrError_ServiceVersion";   
     _errorMap[ovrError_IncompatibleOS                ] = "ovrError_IncompatibleOS";   
-    _errorMap[ovrError_DisplayInit                   ] = "ovrError_DisplayInit";  
+    _errorMap[ovrError_DisplayInit                   ] = "ovrError_DisplayInit (GPU does not meet minimum requirements)";  
     _errorMap[ovrError_ServerStart                   ] = "ovrError_ServerStart";  
     _errorMap[ovrError_Reinitialization              ] = "ovrError_Reinitialization";  
     _errorMap[ovrError_MismatchedAdapters            ] = "ovrError_MismatchedAdapters";  

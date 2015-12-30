@@ -60,12 +60,6 @@ public class OculusRift //implements IOculusRift
 		return init();
 	}
 
-	public static void initRenderingShim()
-    {
-        if (libraryLoaded)
-            _initRenderingShim();
-    }
-
 	public boolean init()
 	{
         _initSummary = "Load library failed";
