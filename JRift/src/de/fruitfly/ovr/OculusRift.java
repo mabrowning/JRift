@@ -14,6 +14,7 @@ public class OculusRift //implements IVR
     private Posef lastEyePose[] = new Posef[3];
     private Posef lastHandPose[] = new Posef[2];
     private FullPoseState trackerPoseInfo = new FullPoseState();
+    private ErrorInfo _lastErrorInfo = new ErrorInfo();
 
     public static String NOT_INITIALISED = "Not initialised";
     public String _initSummary = NOT_INITIALISED;
@@ -43,6 +44,11 @@ public class OculusRift //implements IVR
 	{
 		return _initSummary;
 	}
+
+    public String getLastError()
+    {
+        return _getLastError().errorStr;
+    }
 
     public static String getVersionString()
     {
@@ -213,7 +219,11 @@ public class OculusRift //implements IVR
         if (!isInitialized())
             return null;
 
-        return _createSwapTextureSet(lwidth, lheight, rwidth, rheight);
+        SwapTextureSet swapTextureSet = _createSwapTextureSet(lwidth, lheight, rwidth, rheight);
+        if (swapTextureSet == null) {
+            _lastErrorInfo = _getLastError();
+        }
+        return swapTextureSet;
     }
     
     public boolean setCurrentRenderTextureIndex(int idx)
@@ -226,7 +236,11 @@ public class OculusRift //implements IVR
         if (!isInitialized())
             return -1;
 
-        return _createMirrorTexture(width, height);
+        int ret = _createMirrorTexture(width, height);
+        if (ret == -1) {
+            _lastErrorInfo = _getLastError();
+        }
+        return ret;
     }
 
     public ErrorInfo submitFrame()

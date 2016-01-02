@@ -181,22 +181,27 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getHmdParameters(JNI
 
     jstring productName = env->NewStringUTF( _hmdDesc.ProductName == NULL ? "" : _hmdDesc.ProductName );
     jstring manufacturer = env->NewStringUTF( _hmdDesc.Manufacturer == NULL ? "" : _hmdDesc.Manufacturer );
-    jstring displayDeviceName = env->NewStringUTF( "Not set" );
+	jstring serialnumber = env->NewStringUTF( _hmdDesc.SerialNumber == NULL ? "" : _hmdDesc.SerialNumber );
     
     ClearException(env);
 
-	// TODO: Sync with updated hmdDesc struct
     jobject jHmdDesc = env->NewObject(hmdDesc_Class, hmdDesc_constructor_MethodID,
                                       (int)_hmdDesc.Type,
-                                      productName,
+									  productName,
                                       manufacturer,
+									  (int)_hmdDesc.VendorId,
+									  (int)_hmdDesc.ProductId,
+									  serialnumber,
+									  (int)_hmdDesc.FirmwareMajor,
+									  (int)_hmdDesc.FirmwareMinor,
+									  _hmdDesc.CameraFrustumHFovInRadians,
+									  _hmdDesc.CameraFrustumVFovInRadians,
+									  _hmdDesc.CameraFrustumNearZInMeters,
+									  _hmdDesc.CameraFrustumFarZInMeters,
                                       (int)_hmdDesc.AvailableHmdCaps,
+									  (int)_hmdDesc.DefaultHmdCaps,
                                       (int)_hmdDesc.AvailableTrackingCaps,
-                                      0, // Distortion caps no longer used, remove
-                                      _hmdDesc.Resolution.w,
-                                      _hmdDesc.Resolution.h,
-                                      0, // Window pos no longer used, remove
-                                      0, // Window pos no longer used, remove
+                                      (int)_hmdDesc.DefaultTrackingCaps,
                                       _hmdDesc.DefaultEyeFov[0].UpTan,
                                       _hmdDesc.DefaultEyeFov[0].DownTan,
                                       _hmdDesc.DefaultEyeFov[0].LeftTan,
@@ -213,16 +218,14 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getHmdParameters(JNI
                                       _hmdDesc.MaxEyeFov[1].DownTan,
                                       _hmdDesc.MaxEyeFov[1].LeftTan,
                                       _hmdDesc.MaxEyeFov[1].RightTan,
-                                      0, // Eye render order no longer used, remove
-                                      0, // Eye render order no longer used, remove
-                                      displayDeviceName,  // DisplayDeviceName no longer used, remove
-                                      0, // Display ID no longer used, remove
-                                      true // realDevice true / false not known, controlled by the RunTime 
-            );
+									  _hmdDesc.Resolution.w,
+                                      _hmdDesc.Resolution.h,
+									  _hmdDesc.DisplayRefreshRate
+									  );
 
     env->DeleteLocalRef( productName );
     env->DeleteLocalRef( manufacturer );
-    env->DeleteLocalRef( displayDeviceName );
+    env->DeleteLocalRef( serialnumber );
 
     if (jHmdDesc == 0) PrintNewObjectException(env, "HmdParameters");
 
@@ -991,7 +994,7 @@ bool CacheJNIGlobals(JNIEnv *env)
                          hmdDesc_Class,
                          "de/fruitfly/ovr/structs/HmdParameters",
                          hmdDesc_constructor_MethodID,
-                         "(ILjava/lang/String;Ljava/lang/String;IIIIIIIFFFFFFFFFFFFFFFFIILjava/lang/String;JZ)V"))
+                         "(ILjava/lang/String;Ljava/lang/String;IILjava/lang/String;IIFFFFIIIIFFFFFFFFFFFFFFFFIIF)V"))
     {
         return false;
     }
@@ -1251,7 +1254,7 @@ void InitOvrResultMaps()
     _ErrorMap[ovrError_ServiceConnection             ] = "ovrError_ServiceConnection";   
     _ErrorMap[ovrError_ServiceVersion                ] = "ovrError_ServiceVersion";   
     _ErrorMap[ovrError_IncompatibleOS                ] = "ovrError_IncompatibleOS";   
-    _ErrorMap[ovrError_DisplayInit                   ] = "ovrError_DisplayInit (GPU does not meet minimum requirements)";  
+    _ErrorMap[ovrError_DisplayInit                   ] = "ovrError_DisplayInit (GPU does not meet minimum requirements?)";  
     _ErrorMap[ovrError_ServerStart                   ] = "ovrError_ServerStart";  
     _ErrorMap[ovrError_Reinitialization              ] = "ovrError_Reinitialization";  
     _ErrorMap[ovrError_MismatchedAdapters            ] = "ovrError_MismatchedAdapters";  
@@ -1322,7 +1325,7 @@ void SetOvrErrorInfo(JNIEnv *env, const char* error, ovrResult ovr_result)
 	if (strlen(error) > 0)
 	{
 		s << error << " [Client SDK version " << OVR_VERSION_STRING << 
-			", Runtime version " << _ovrRuntimeVersion.c_str() << "]:";
+			", Runtime version " << _ovrRuntimeVersion.c_str() << "]: ";
 	}
 	s << sOvrError;
 

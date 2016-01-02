@@ -38,7 +38,7 @@ JNIEXPORT void JNICALL Java_de_fruitfly_ovr_OculusRift__1destroySubsystem
 /*
  * Class:     de_fruitfly_ovr_OculusRift
  * Method:    _getHmdParameters
- * Signature: (F)Lde/fruitfly/ovr/structs/HmdParameters;
+ * Signature: ()Lde/fruitfly/ovr/structs/HmdParameters;
  */
 JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getHmdParameters
     (JNIEnv *, jobject); 

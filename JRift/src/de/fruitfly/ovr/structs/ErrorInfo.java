@@ -9,6 +9,8 @@ public class ErrorInfo {
     public boolean success = true;
     public boolean unqualifiedSuccess = true;
 
+    public ErrorInfo() {}
+
     public ErrorInfo(String errorStr, int errorNo, boolean isSuccess, boolean isUnqualifiedSuccess) {
         this.errorStr = errorStr;
         this.error = errorNo;
