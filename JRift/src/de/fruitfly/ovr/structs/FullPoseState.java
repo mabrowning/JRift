@@ -1,15 +1,22 @@
 package de.fruitfly.ovr.structs;
 
 import de.fruitfly.ovr.enums.EyeType;
-import de.fruitfly.ovr.structs.Posef;
-import de.fruitfly.ovr.structs.TrackerState;
 
 public class FullPoseState
 {
     public long frameIndex = 0;
     public Posef leftEyePose = new Posef();
     public Posef rightEyePose = new Posef();
-    public TrackerState trackerState = new TrackerState();
+    public Posef leftHandPose = new Posef();
+    public Posef rightHandPose = new Posef();
+    public Posef cameraPose = new Posef();
+    public Posef levelledCameraPose = new Posef();
+    public PoseStatef centerEyePose = new PoseStatef();
+    public float temperature;
+    public int   hmdStatusFlags;
+    public int   leftHandStatusFlags;
+    public int   rightHandStatusFlags;
+    public int   counter;
 
     public FullPoseState() {}
 
@@ -48,61 +55,129 @@ public class FullPoseState
                          float PredictedVector3fLinearAccelerationy,
                          float PredictedVector3fLinearAccelerationz,
                          double PredictedTimeInSeconds,
-                         float temperature,
-                         int statusFlags)
+                         float temp,
+                         int statusFlags,
+                         float Cameraquatx,
+                         float Cameraquaty,
+                         float Cameraquatz,
+                         float Cameraquatw,
+                         float Cameraposx,
+                         float Cameraposy,
+                         float Cameraposz,
+                         float LevelledCameraquatx,
+                         float LevelledCameraquaty,
+                         float LevelledCameraquatz,
+                         float LevelledCameraquatw,
+                         float LevelledCameraposx,
+                         float LevelledCameraposy,
+                         float LevelledCameraposz,
+                         float LHandquatx,
+                         float LHandquaty,
+                         float LHandquatz,
+                         float LHandquatw,
+                         float LHandposx,
+                         float LHandposy,
+                         float LHandposz,
+                         int lhandstatusFlags,
+                         float RHandquatx,
+                         float RHandquaty,
+                         float RHandquatz,
+                         float RHandquatw,
+                         float RHandposx,
+                         float RHandposy,
+                         float RHandposz,
+                         int rhandstatusFlags,
+                         int count)
     {
         this.frameIndex = frameIndex;
 
-        leftEyePose.Orientation.x = Lquatx;
-        leftEyePose.Orientation.y = Lquaty;
-        leftEyePose.Orientation.z = Lquatz;
-        leftEyePose.Orientation.w = Lquatw;
-        leftEyePose.Position.x = Lposx;
-        leftEyePose.Position.y = Lposy;
-        leftEyePose.Position.z = Lposz;
+        leftEyePose.Orientation.x  = Lquatx;
+        leftEyePose.Orientation.y  = Lquaty;
+        leftEyePose.Orientation.z  = Lquatz;
+        leftEyePose.Orientation.w  = Lquatw;
+        leftEyePose.Position.x     = Lposx;
+        leftEyePose.Position.y     = Lposy;
+        leftEyePose.Position.z     = Lposz;
 
         rightEyePose.Orientation.x = Rquatx;
         rightEyePose.Orientation.y = Rquaty;
         rightEyePose.Orientation.z = Rquatz;
         rightEyePose.Orientation.w = Rquatw;
-        rightEyePose.Position.x = Rposx;
-        rightEyePose.Position.y = Rposy;
-        rightEyePose.Position.z = Rposz;
+        rightEyePose.Position.x    = Rposx;
+        rightEyePose.Position.y    = Rposy;
+        rightEyePose.Position.z    = Rposz;
 
         // Center eye pose
-        trackerState.HeadPose.ThePose.Orientation.x    = PredictedPoseStatefPosefOrientationx;
-        trackerState.HeadPose.ThePose.Orientation.y    = PredictedPoseStatefPosefOrientationy;
-        trackerState.HeadPose.ThePose.Orientation.z    = PredictedPoseStatefPosefOrientationz;
-        trackerState.HeadPose.ThePose.Orientation.w    = PredictedPoseStatefPosefOrientationw;
-        trackerState.HeadPose.ThePose.Position.x       = PredictedPoseStatefPosefPositionx;
-        trackerState.HeadPose.ThePose.Position.y       = PredictedPoseStatefPosefPositiony;
-        trackerState.HeadPose.ThePose.Position.z       = PredictedPoseStatefPosefPositionz;
+        centerEyePose.ThePose.Orientation.x    = PredictedPoseStatefPosefOrientationx;
+        centerEyePose.ThePose.Orientation.y    = PredictedPoseStatefPosefOrientationy;
+        centerEyePose.ThePose.Orientation.z    = PredictedPoseStatefPosefOrientationz;
+        centerEyePose.ThePose.Orientation.w    = PredictedPoseStatefPosefOrientationw;
+        centerEyePose.ThePose.Position.x       = PredictedPoseStatefPosefPositionx;
+        centerEyePose.ThePose.Position.y       = PredictedPoseStatefPosefPositiony;
+        centerEyePose.ThePose.Position.z       = PredictedPoseStatefPosefPositionz;
 
-        trackerState.HeadPose.AngularVelocity.x     = PredictedVector3fAngularVelocityx;
-        trackerState.HeadPose.AngularVelocity.y     = PredictedVector3fAngularVelocityy;
-        trackerState.HeadPose.AngularVelocity.z     = PredictedVector3fAngularVelocityz;
-        trackerState.HeadPose.LinearVelocity.x      = PredictedVector3fLinearVelocityx;
-        trackerState.HeadPose.LinearVelocity.y      = PredictedVector3fLinearVelocityy;
-        trackerState.HeadPose.LinearVelocity.z      = PredictedVector3fLinearVelocityz;
-        trackerState.HeadPose.AngularAcceleration.x = PredictedVector3fAngularAccelerationx;
-        trackerState.HeadPose.AngularAcceleration.y = PredictedVector3fAngularAccelerationy;
-        trackerState.HeadPose.AngularAcceleration.z = PredictedVector3fAngularAccelerationz;
-        trackerState.HeadPose.LinearAcceleration.x  = PredictedVector3fLinearAccelerationx;
-        trackerState.HeadPose.LinearAcceleration.y  = PredictedVector3fLinearAccelerationy;
-        trackerState.HeadPose.LinearAcceleration.z  = PredictedVector3fLinearAccelerationz;
-        trackerState.HeadPose.TimeInSeconds         = PredictedTimeInSeconds;
-        trackerState.Temperature = temperature;
-        trackerState.StatusFlags = statusFlags;
+        centerEyePose.AngularVelocity.x     = PredictedVector3fAngularVelocityx;
+        centerEyePose.AngularVelocity.y     = PredictedVector3fAngularVelocityy;
+        centerEyePose.AngularVelocity.z     = PredictedVector3fAngularVelocityz;
+        centerEyePose.LinearVelocity.x      = PredictedVector3fLinearVelocityx;
+        centerEyePose.LinearVelocity.y      = PredictedVector3fLinearVelocityy;
+        centerEyePose.LinearVelocity.z      = PredictedVector3fLinearVelocityz;
+        centerEyePose.AngularAcceleration.x = PredictedVector3fAngularAccelerationx;
+        centerEyePose.AngularAcceleration.y = PredictedVector3fAngularAccelerationy;
+        centerEyePose.AngularAcceleration.z = PredictedVector3fAngularAccelerationz;
+        centerEyePose.LinearAcceleration.x  = PredictedVector3fLinearAccelerationx;
+        centerEyePose.LinearAcceleration.y  = PredictedVector3fLinearAccelerationy;
+        centerEyePose.LinearAcceleration.z  = PredictedVector3fLinearAccelerationz;
+        centerEyePose.TimeInSeconds         = PredictedTimeInSeconds;
+
+        temperature = temp;
+        hmdStatusFlags = statusFlags;
+
+        cameraPose.Orientation.x  = Cameraquatx;
+        cameraPose.Orientation.y  = Cameraquaty;
+        cameraPose.Orientation.z  = Cameraquatz;
+        cameraPose.Orientation.w  = Cameraquatw;
+        cameraPose.Position.x     = Cameraposx;
+        cameraPose.Position.y     = Cameraposy;
+        cameraPose.Position.z     = Cameraposz;
+
+        levelledCameraPose.Orientation.x  = LevelledCameraquatx;
+        levelledCameraPose.Orientation.y  = LevelledCameraquaty;
+        levelledCameraPose.Orientation.z  = LevelledCameraquatz;
+        levelledCameraPose.Orientation.w  = LevelledCameraquatw;
+        levelledCameraPose.Position.x     = LevelledCameraposx;
+        levelledCameraPose.Position.y     = LevelledCameraposy;
+        levelledCameraPose.Position.z     = LevelledCameraposz;
+
+        leftHandPose.Orientation.x  = LHandquatx;
+        leftHandPose.Orientation.y  = LHandquaty;
+        leftHandPose.Orientation.z  = LHandquatz;
+        leftHandPose.Orientation.w  = LHandquatw;
+        leftHandPose.Position.x     = LHandposx;
+        leftHandPose.Position.y     = LHandposy;
+        leftHandPose.Position.z     = LHandposz;
+        leftHandStatusFlags         = lhandstatusFlags;
+
+        rightHandPose.Orientation.x = RHandquatx;
+        rightHandPose.Orientation.y = RHandquaty;
+        rightHandPose.Orientation.z = RHandquatz;
+        rightHandPose.Orientation.w = RHandquatw;
+        rightHandPose.Position.x    = RHandposx;
+        rightHandPose.Position.y    = RHandposy;
+        rightHandPose.Position.z    = RHandposz;
+        rightHandStatusFlags        = rhandstatusFlags;
+
+        counter = count;
     }
 
-    public Posef getPose(EyeType eye)
+    public Posef getEyePose(EyeType eye)
     {
         if (eye == EyeType.ovrEye_Right)
             return rightEyePose;
         else if (eye == EyeType.ovrEye_Left)
             return leftEyePose;
         else
-            return trackerState.HeadPose.ThePose;
+            return centerEyePose.ThePose;
     }
 
     public FullPoseState clone()
@@ -123,28 +198,59 @@ public class FullPoseState
                 rightEyePose.Position.x,
                 rightEyePose.Position.y,
                 rightEyePose.Position.z,
-                trackerState.HeadPose.ThePose.Orientation.x,
-                trackerState.HeadPose.ThePose.Orientation.y,
-                trackerState.HeadPose.ThePose.Orientation.z,
-                trackerState.HeadPose.ThePose.Orientation.w,
-                trackerState.HeadPose.ThePose.Position.x,
-                trackerState.HeadPose.ThePose.Position.y,
-                trackerState.HeadPose.ThePose.Position.z,
-                trackerState.HeadPose.AngularVelocity.x    ,
-                trackerState.HeadPose.AngularVelocity.y    ,
-                trackerState.HeadPose.AngularVelocity.z    ,
-                trackerState.HeadPose.LinearVelocity.x     ,
-                trackerState.HeadPose.LinearVelocity.y     ,
-                trackerState.HeadPose.LinearVelocity.z     ,
-                trackerState.HeadPose.AngularAcceleration.x,
-                trackerState.HeadPose.AngularAcceleration.y,
-                trackerState.HeadPose.AngularAcceleration.z,
-                trackerState.HeadPose.LinearAcceleration.x ,
-                trackerState.HeadPose.LinearAcceleration.y ,
-                trackerState.HeadPose.LinearAcceleration.z ,
-                trackerState.HeadPose.TimeInSeconds        ,
-                trackerState.Temperature,
-                trackerState.StatusFlags);
+                centerEyePose.ThePose.Orientation.x,
+                centerEyePose.ThePose.Orientation.y,
+                centerEyePose.ThePose.Orientation.z,
+                centerEyePose.ThePose.Orientation.w,
+                centerEyePose.ThePose.Position.x,
+                centerEyePose.ThePose.Position.y,
+                centerEyePose.ThePose.Position.z,
+                centerEyePose.AngularVelocity.x    ,
+                centerEyePose.AngularVelocity.y    ,
+                centerEyePose.AngularVelocity.z    ,
+                centerEyePose.LinearVelocity.x     ,
+                centerEyePose.LinearVelocity.y     ,
+                centerEyePose.LinearVelocity.z     ,
+                centerEyePose.AngularAcceleration.x,
+                centerEyePose.AngularAcceleration.y,
+                centerEyePose.AngularAcceleration.z,
+                centerEyePose.LinearAcceleration.x ,
+                centerEyePose.LinearAcceleration.y ,
+                centerEyePose.LinearAcceleration.z ,
+                centerEyePose.TimeInSeconds        ,
+                temperature,
+                hmdStatusFlags,
+                cameraPose.Orientation.x,
+                cameraPose.Orientation.y,
+                cameraPose.Orientation.z,
+                cameraPose.Orientation.w,
+                cameraPose.Position.x,
+                cameraPose.Position.y,
+                cameraPose.Position.z,
+                levelledCameraPose.Orientation.x,
+                levelledCameraPose.Orientation.y,
+                levelledCameraPose.Orientation.z,
+                levelledCameraPose.Orientation.w,
+                levelledCameraPose.Position.x,
+                levelledCameraPose.Position.y,
+                levelledCameraPose.Position.z,
+                leftHandPose.Orientation.x,
+                leftHandPose.Orientation.y,
+                leftHandPose.Orientation.z,
+                leftHandPose.Orientation.w,
+                leftHandPose.Position.x,
+                leftHandPose.Position.y,
+                leftHandPose.Position.z,
+                leftHandStatusFlags,
+                rightHandPose.Orientation.x,
+                rightHandPose.Orientation.y,
+                rightHandPose.Orientation.z,
+                rightHandPose.Orientation.w,
+                rightHandPose.Position.x,
+                rightHandPose.Position.y,
+                rightHandPose.Position.z,
+                rightHandStatusFlags,
+                counter);
 
         return cfps;
     }

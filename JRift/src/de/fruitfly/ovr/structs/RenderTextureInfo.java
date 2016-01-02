@@ -1,18 +1,18 @@
 package de.fruitfly.ovr.structs;
 
-public class FovTextureInfo
+public class RenderTextureInfo
 {
-    public FovTextureInfo() {}
+    public RenderTextureInfo() {}
 
-    public FovTextureInfo(int leftFovTextureResolutionWidth,
-                          int leftFovTextureResolutionHeight,
-                          int rightFovTextureResolutionWidth,
-                          int rightFovTextureResolutionHeight,
-                          int combinedTextureResolutionWidth,
-                          int combinedTextureResolutionHeight,
-                          int HmdNativeResolutionWidth,
-                          int HmdNativeResolutionHeight,
-                          float renderScale)
+    public RenderTextureInfo(int leftFovTextureResolutionWidth,
+                             int leftFovTextureResolutionHeight,
+                             int rightFovTextureResolutionWidth,
+                             int rightFovTextureResolutionHeight,
+                             int combinedTextureResolutionWidth,
+                             int combinedTextureResolutionHeight,
+                             int HmdNativeResolutionWidth,
+                             int HmdNativeResolutionHeight,
+                             float renderScale)
     {
         LeftFovTextureResolution.w = leftFovTextureResolutionWidth;
         LeftFovTextureResolution.h = leftFovTextureResolutionHeight;

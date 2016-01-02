@@ -45,6 +45,7 @@ ovrSizei            _swapTextureSize[2];
 ovrGLTexture*       _pMirrorTexture    = 0;
 
 ovrTrackingState    _hmdState;
+ovrInputState       _inputState;
 ovrPosef            _eyeRenderPose[2];
 ovrGLTexture        _GLEyeTexture[2];
 ovrEyeRenderDesc    _EyeRenderDesc[2];
@@ -67,8 +68,8 @@ static jclass       trackerState_Class                   = 0;
 static jmethodID    trackerState_constructor_MethodID    = 0;
 static jclass       sizei_Class                          = 0;
 static jmethodID    sizei_constructor_MethodID           = 0;
-static jclass       fovTextureInfo_Class                 = 0;
-static jmethodID    fovTextureInfo_constructor_MethodID  = 0;
+static jclass       renderTextureInfo_Class                 = 0;
+static jmethodID    renderTextureInfo_constructor_MethodID  = 0;
 static jclass       hmdDesc_Class                        = 0;
 static jmethodID    hmdDesc_constructor_MethodID         = 0;
 static jclass       vector3f_Class                       = 0;
@@ -173,7 +174,7 @@ JNIEXPORT void JNICALL Java_de_fruitfly_ovr_OculusRift__1destroySubsystem(JNIEnv
 	Reset();
 }
 
-JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getHmdDesc(JNIEnv *env, jobject) 
+JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getHmdParameters(JNIEnv *env, jobject) 
 {
 	if (!_initialised) 
         return 0;
@@ -223,7 +224,7 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getHmdDesc(JNIEnv *e
     env->DeleteLocalRef( manufacturer );
     env->DeleteLocalRef( displayDeviceName );
 
-    if (jHmdDesc == 0) PrintNewObjectException(env, "HmdDesc");
+    if (jHmdDesc == 0) PrintNewObjectException(env, "HmdParameters");
 
     return jHmdDesc;
 }
@@ -236,7 +237,7 @@ JNIEXPORT void JNICALL Java_de_fruitfly_ovr_OculusRift__1resetTracking(JNIEnv *e
     ovr_RecenterPose(_pHmdSession);
 }
 
-JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getFovTextureSize(
+JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getRenderTextureSize(
 	JNIEnv *env, 
 	jobject, 
 	jfloat leftFovUpTan,
@@ -272,7 +273,7 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getFovTextureSize(
 
     ClearException(env);
 
-    jobject jfovTextureInfo = env->NewObject(fovTextureInfo_Class, fovTextureInfo_constructor_MethodID,
+    jobject jrenderTextureInfo = env->NewObject(renderTextureInfo_Class, renderTextureInfo_constructor_MethodID,
 									recommendedTex0Size.w,
 									recommendedTex0Size.h,
 									recommendedTex1Size.w,
@@ -284,9 +285,9 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getFovTextureSize(
                                     (float)RenderScaleFactor
                                     );
 
-    if (jfovTextureInfo == 0) PrintNewObjectException(env, "FovTextureInfo");
+    if (jrenderTextureInfo == 0) PrintNewObjectException(env, "RenderTextureInfo");
 
-    return jfovTextureInfo;
+    return jrenderTextureInfo;
 }
 
 JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1createSwapTextureSet(
@@ -428,7 +429,7 @@ JNIEXPORT void JNICALL Java_de_fruitfly_ovr_OculusRift__1destroyMirrorTexture
     DestroyMirrorTexture();
 }
 
-JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getEyePoses(
+JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getTrackedPoses(
 	JNIEnv *env, 
 	jobject, 
 	jlong FrameIndex
@@ -444,10 +445,9 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getEyePoses(
 	// Get eye poses at our predicted display times
 	double ftiming = ovr_GetPredictedDisplayTime(_pHmdSession, FrameIndex);
     _sensorSampleTime = ovr_GetTimeInSeconds();
+	//ovr_GetInputState(_pHmdSession, ovrControllerType_All, &_inputState);
     _hmdState = ovr_GetTrackingState(_pHmdSession, ftiming, ovrTrue);
     ovr_CalcEyePoses(_hmdState.HeadPose.ThePose, ViewOffsets, _eyeRenderPose);
-
-	// TODO: Add HandPose info to this
 
     ClearException(env);
 	jobject jfullposestate = env->NewObject(fullPoseState_Class, fullPoseState_constructor_MethodID,
@@ -487,8 +487,39 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getEyePoses(
 								 _hmdState.HeadPose.LinearAcceleration.z, 
 								 _hmdState.HeadPose.TimeInSeconds,        
 								 _hmdState.RawSensorData.Temperature,
-								 _hmdState.StatusFlags
-								 );
+								 _hmdState.StatusFlags,
+								 _hmdState.CameraPose.Orientation.x,   
+								 _hmdState.CameraPose.Orientation.y,  
+								 _hmdState.CameraPose.Orientation.z,   
+								 _hmdState.CameraPose.Orientation.w,   
+								 _hmdState.CameraPose.Position.x,      
+								 _hmdState.CameraPose.Position.y,      
+								 _hmdState.CameraPose.Position.z,
+								 _hmdState.LeveledCameraPose.Orientation.x,   
+								 _hmdState.LeveledCameraPose.Orientation.y,  
+								 _hmdState.LeveledCameraPose.Orientation.z,   
+								 _hmdState.LeveledCameraPose.Orientation.w,   
+								 _hmdState.LeveledCameraPose.Position.x,      
+								 _hmdState.LeveledCameraPose.Position.y,      
+								 _hmdState.LeveledCameraPose.Position.z,
+								 _hmdState.HandPoses[0].ThePose.Orientation.x,   
+								 _hmdState.HandPoses[0].ThePose.Orientation.y,  
+								 _hmdState.HandPoses[0].ThePose.Orientation.z,   
+								 _hmdState.HandPoses[0].ThePose.Orientation.w,   
+								 _hmdState.HandPoses[0].ThePose.Position.x,      
+								 _hmdState.HandPoses[0].ThePose.Position.y,      
+								 _hmdState.HandPoses[0].ThePose.Position.z,
+								 _hmdState.HandStatusFlags[0],
+								 _hmdState.HandPoses[1].ThePose.Orientation.x,   
+								 _hmdState.HandPoses[1].ThePose.Orientation.y,  
+								 _hmdState.HandPoses[1].ThePose.Orientation.z,   
+								 _hmdState.HandPoses[1].ThePose.Orientation.w,   
+								 _hmdState.HandPoses[1].ThePose.Position.x,      
+								 _hmdState.HandPoses[1].ThePose.Position.y,      
+								 _hmdState.HandPoses[1].ThePose.Position.z,
+								 _hmdState.HandStatusFlags[1],
+								 _hmdState.LastCameraFrameCounter);
+
     if (jfullposestate == 0) PrintNewObjectException(env, "FullPoseState");
 
 	return jfullposestate;
@@ -948,9 +979,9 @@ bool CacheJNIGlobals(JNIEnv *env)
     }
 
     if (!LookupJNIGlobal(env,
-                         fovTextureInfo_Class,
-                         "de/fruitfly/ovr/structs/FovTextureInfo",
-                         fovTextureInfo_constructor_MethodID,
+                         renderTextureInfo_Class,
+                         "de/fruitfly/ovr/structs/RenderTextureInfo",
+                         renderTextureInfo_constructor_MethodID,
                          "(IIIIIIIIF)V"))
     {
         return false;
@@ -958,7 +989,7 @@ bool CacheJNIGlobals(JNIEnv *env)
 
     if (!LookupJNIGlobal(env,
                          hmdDesc_Class,
-                         "de/fruitfly/ovr/structs/HmdDesc",
+                         "de/fruitfly/ovr/structs/HmdParameters",
                          hmdDesc_constructor_MethodID,
                          "(ILjava/lang/String;Ljava/lang/String;IIIIIIIFFFFFFFFFFFFFFFFIILjava/lang/String;JZ)V"))
     {
@@ -1032,7 +1063,7 @@ bool CacheJNIGlobals(JNIEnv *env)
                          fullPoseState_Class,
                          "de/fruitfly/ovr/structs/FullPoseState",
                          fullPoseState_constructor_MethodID,
-                         "(JFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFDFI)V"))
+                         "(JFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFDFIFFFFFFFFFFFFFFFFFFFFFIFFFFFFFII)V"))
     {
         return false;
     }

@@ -3,23 +3,22 @@ package de.fruitfly.ovr;
 import de.fruitfly.ovr.enums.*;
 import de.fruitfly.ovr.structs.*;
 
-import java.io.File;
 import java.text.DecimalFormat;
 
-public class OculusRift //implements IOculusRift
+public class OculusRift //implements IVR
 {
 	private boolean initialized = false;
 
-	private HmdDesc hmdDesc = new HmdDesc();
+	private HmdParameters hmdParameters = new HmdParameters();
     private TrackerState trackerState = new TrackerState();
-    private Posef lastPose[] = new Posef[3];
-    private FullPoseState fps = new FullPoseState();
+    private Posef lastEyePose[] = new Posef[3];
+    private Posef lastHandPose[] = new Posef[2];
+    private FullPoseState trackerPoseInfo = new FullPoseState();
 
-    public String _initSummary = "Not initialised";
+    public static String NOT_INITIALISED = "Not initialised";
+    public String _initSummary = NOT_INITIALISED;
 
 	private static boolean libraryLoaded = false;
-	
-    protected EyeRenderParams erp = new EyeRenderParams();
 	
 	public OculusRift()
     {
@@ -28,15 +27,15 @@ public class OculusRift //implements IOculusRift
 
     private void resetHMDInfo()
     {
-        hmdDesc = new HmdDesc();
+        hmdParameters = new HmdParameters();
     }
 
     private void resetTrackerInfo()
     {
-        lastPose[0] = new Posef();
-        lastPose[1] = new Posef();
-        lastPose[2] = new Posef();
-        fps = new FullPoseState();
+        lastEyePose[0] = new Posef();
+        lastEyePose[1] = new Posef();
+        lastEyePose[2] = new Posef();
+        trackerPoseInfo = new FullPoseState();
         trackerState = new TrackerState();
     }
 
@@ -54,28 +53,26 @@ public class OculusRift //implements IOculusRift
     }
 
 	public boolean init()
-	{
-        _initSummary = "Load library failed";
-
+    {
         OculusRift.LoadLibrary();
 
         if( !libraryLoaded )
+        {
+            _initSummary = "Load library failed";
             return false;
-
-        _initSummary = "Last initialisation attempt failed";
-
-        if (!initialized)
-		    initialized = _initSubsystem();
-
-        if (initialized)
-        {
-            hmdDesc = _getHmdDesc();
-            _initSummary = "OK";
         }
-        else
+
+        initialized = _initSubsystem();
+        if( !initialized )
         {
+            ErrorInfo error = _getLastError();
+            _initSummary = error.errorStr;
             resetHMDInfo();
+            return false;
         }
+
+        hmdParameters = _getHmdParameters();
+        _initSummary = "OK";
 		
 		return initialized;
 	}
@@ -92,13 +89,13 @@ public class OculusRift //implements IOculusRift
             _destroySubsystem();
         }
 
-        _initSummary = "Not initialised";
+        _initSummary = NOT_INITIALISED;
         initialized = false;
     }
 
-    public HmdDesc getHmdDesc()
+    public HmdParameters getHmdParameters()
     {
-        return hmdDesc;
+        return hmdParameters;
     }
 
     public void resetTracking()
@@ -107,41 +104,41 @@ public class OculusRift //implements IOculusRift
         resetTrackerInfo();
     }
 
-    public FovTextureInfo getFovTextureSize(FovPort leftFov,
-                                            FovPort rightFov,
-                                            float renderScaleFactor)
+    public RenderTextureInfo getRenderTextureSizes(FovPort leftFov,
+                                                   FovPort rightFov,
+                                                   float renderScaleFactor)
     {
-        return _getFovTextureSize(leftFov.UpTan,
-                                  leftFov.DownTan,
-                                  leftFov.LeftTan,
-                                  leftFov.RightTan,
-                                  rightFov.UpTan,
-                                  rightFov.DownTan,
-                                  rightFov.LeftTan,
-                                  rightFov.RightTan,
-                                  renderScaleFactor);
+        return _getRenderTextureSize(leftFov.UpTan,
+                leftFov.DownTan,
+                leftFov.LeftTan,
+                leftFov.RightTan,
+                rightFov.UpTan,
+                rightFov.DownTan,
+                rightFov.LeftTan,
+                rightFov.RightTan,
+                renderScaleFactor);
     }
 
-    public FullPoseState getEyePoses(long frameIndex)
+    public FullPoseState getTrackedPoses(long frameIndex)
     {
         if (!initialized)
             return new FullPoseState();
 
-        fps = _getEyePoses(frameIndex);
+        trackerPoseInfo = _getTrackedPoses(frameIndex);
 
-        if (fps == null)
-            fps = new FullPoseState();
+        if (trackerPoseInfo == null)
+            trackerPoseInfo = new FullPoseState();
 
         // Account for the need for negated y position values
-        fps.leftEyePose.Position.y *= -1f;
-        fps.rightEyePose.Position.y *= -1f;
-        fps.trackerState.HeadPose.ThePose.Position.y *= -1f;
+        trackerPoseInfo.leftEyePose.Position.y *= -1f;
+        trackerPoseInfo.rightEyePose.Position.y *= -1f;
+        trackerPoseInfo.centerEyePose.ThePose.Position.y *= -1f;
 
-        lastPose[EyeType.ovrEye_Left.value()] = fps.getPose(EyeType.ovrEye_Left);
-        lastPose[EyeType.ovrEye_Right.value()] = fps.getPose(EyeType.ovrEye_Right);
-        lastPose[EyeType.ovrEye_Center.value()] = fps.getPose(EyeType.ovrEye_Center);
+        lastEyePose[EyeType.ovrEye_Left.value()] = trackerPoseInfo.getEyePose(EyeType.ovrEye_Left);
+        lastEyePose[EyeType.ovrEye_Right.value()] = trackerPoseInfo.getEyePose(EyeType.ovrEye_Right);
+        lastEyePose[EyeType.ovrEye_Center.value()] = trackerPoseInfo.getEyePose(EyeType.ovrEye_Center);
 
-        return fps.clone();
+        return trackerPoseInfo.clone();
     }
 
     public Vector3f getEyePos(EyeType eye)
@@ -149,13 +146,13 @@ public class OculusRift //implements IOculusRift
         if (!isInitialized())
             return new Vector3f();
 
-        Posef pose = lastPose[eye.value()];
+        Posef pose = lastEyePose[eye.value()];
         return new Vector3f(pose.Position.x, pose.Position.y, pose.Position.z);
     }
 
-    public Matrix4f getMatrix4fProjection(FovPort fov,
-                                          float nearClip,
-                                          float farClip)
+    public Matrix4f getProjectionMatrix(FovPort fov,
+                                        float nearClip,
+                                        float farClip)
     {
         if (!initialized)
             return null;
@@ -211,7 +208,7 @@ public class OculusRift //implements IOculusRift
         return time;
     }
 
-    public SwapTextureSet createSwapTextureSet(int lwidth, int lheight, int rwidth, int rheight)
+    public SwapTextureSet createRenderTextureSet(int lwidth, int lheight, int rwidth, int rheight)
     {
         if (!isInitialized())
             return null;
@@ -219,7 +216,7 @@ public class OculusRift //implements IOculusRift
         return _createSwapTextureSet(lwidth, lheight, rwidth, rheight);
     }
     
-    public boolean setCurrentSwapTextureIndex(int idx)
+    public boolean setCurrentRenderTextureIndex(int idx)
     {
     	return _setCurrentSwapTextureIndex(idx);
     }
@@ -232,12 +229,12 @@ public class OculusRift //implements IOculusRift
         return _createMirrorTexture(width, height);
     }
 
-    public void submitFrame()
+    public ErrorInfo submitFrame()
     {
         if (!isInitialized())
-            return;
+            return null;
 
-        _submitFrame();
+        return _submitFrame(1f); // TODO: How best to set render params, layer stuff?
     }
 
     // Native declarations
@@ -247,8 +244,7 @@ public class OculusRift //implements IOculusRift
 
     protected native ErrorInfo       _getLastError();
 
-    protected native boolean         _getNextHmd();
-    protected native HmdDesc         _getHmdDesc();
+    protected native HmdParameters   _getHmdParameters();
 
     protected native void            _resetTracking();
     protected native SwapTextureSet  _createSwapTextureSet(int lwidth,
@@ -258,17 +254,17 @@ public class OculusRift //implements IOculusRift
     protected native boolean         _setCurrentSwapTextureIndex(int idx);
     protected native int             _createMirrorTexture(int width,
                                                           int height);
-    protected native FovTextureInfo  _getFovTextureSize(float LeftFovUpTan,
-                                                        float LeftFovDownTan,
-                                                        float LeftFovLeftTan,
-                                                        float LeftFovRightTan,
-                                                        float RightFovUpTan,
-                                                        float RightFovDownTan,
-                                                        float RightFovLeftTan,
-                                                        float RightFovRightTan,
-                                                        float RenderScaleFactor);
+    protected native RenderTextureInfo _getRenderTextureSize(float LeftFovUpTan,
+                                                             float LeftFovDownTan,
+                                                             float LeftFovLeftTan,
+                                                             float LeftFovRightTan,
+                                                             float RightFovUpTan,
+                                                             float RightFovDownTan,
+                                                             float RightFovLeftTan,
+                                                             float RightFovRightTan,
+                                                             float RenderScaleFactor);
 
-    protected native FullPoseState   _getEyePoses(long frameIndex);
+    protected native FullPoseState   _getTrackedPoses(long frameIndex);
     protected native Matrix4f        _getMatrix4fProjection(float EyeFovPortUpTan,
                                                             float EyeFovPortDownTan,
                                                             float EyeFovPortLeftTan,
@@ -287,7 +283,7 @@ public class OculusRift //implements IOculusRift
                                                             int hand,
                                                             int rotationDir);
 
-    protected native ErrorInfo       _submitFrame();
+    protected native ErrorInfo       _submitFrame(float worldScale);
     protected native UserProfileData _getUserProfileData();
     protected native static String   _getVersionString();
     protected native static double   _getCurrentTimeSecs();
@@ -331,12 +327,12 @@ public class OculusRift //implements IOculusRift
         }
 
         // Get the HMD information
-        HmdDesc hmdDesc = or.getHmdDesc();
+        HmdParameters hmdDesc = or.getHmdParameters();
         System.out.println(hmdDesc.toString());
 
         // Determine render target size based on recommended sizes calculated by the Oculus SDK
-        FovTextureInfo recommendedFovTextureSize = or.getFovTextureSize(hmdDesc.DefaultEyeFov[0], hmdDesc.DefaultEyeFov[1], 1.0f);
-        System.out.println("Render target size: " + recommendedFovTextureSize.CombinedTextureResolution.w + "x" + recommendedFovTextureSize.CombinedTextureResolution.h);
+        RenderTextureInfo renderTextureSize = or.getRenderTextureSizes(hmdDesc.DefaultEyeFov[0], hmdDesc.DefaultEyeFov[1], 1.0f);
+        System.out.println("Render target size: " + renderTextureSize.CombinedTextureResolution.w + "x" + renderTextureSize.CombinedTextureResolution.h);
 
         // Setup render parameters
         GLConfig glConfig = new GLConfig();
@@ -348,18 +344,18 @@ public class OculusRift //implements IOculusRift
             ///frameIndex++;
 
             // Get tracker and eye pose information before beginFrame - if rendering configured
-            FullPoseState eyePoses = or.getEyePoses(frameIndex);
-            Posef leyePose = eyePoses.leftEyePose;
-            Posef reyePose = eyePoses.rightEyePose;
+            FullPoseState trackedPoses = or.getTrackedPoses(frameIndex);
+            Posef leyePose = trackedPoses.leftEyePose;
+            Posef reyePose = trackedPoses.rightEyePose;
 
             // If you need a Quatf to Euler conversion...
             EulerOrient Leuler = or.getEulerAnglesDeg(leyePose.Orientation.inverted(),
-                                               1.0f,
-                                               Axis.Axis_Y,
-                                               Axis.Axis_X,
-                                               Axis.Axis_Z,
-                                               HandedSystem.Handed_L,
-                                               RotateDirection.Rotate_CCW);
+                    1.0f,
+                    Axis.Axis_Y,
+                    Axis.Axis_X,
+                    Axis.Axis_Z,
+                    HandedSystem.Handed_L,
+                    RotateDirection.Rotate_CCW);
             EulerOrient Reuler = or.getEulerAnglesDeg(reyePose.Orientation.inverted(),
                     1.0f,
                     Axis.Axis_Y,
@@ -368,21 +364,21 @@ public class OculusRift //implements IOculusRift
                     HandedSystem.Handed_L,
                     RotateDirection.Rotate_CCW);
 
-            Vector3f Lpos = eyePoses.leftEyePose.Position;
-            Vector3f Rpos = eyePoses.rightEyePose.Position;
+            Vector3f Lpos = trackedPoses.leftEyePose.Position;
+            Vector3f Rpos = trackedPoses.rightEyePose.Position;
 
             // In game render loop, would call (needed to have called configureRendering first):
             //or._beginFrame(frameIndex);
 
-            //EyeType firstEyeToRender = hmdDesc.EyeRenderOrder[0];
+            //EyeType firstEyeToRender = hmdParameters.EyeRenderOrder[0];
 
             // Pseudo code
-            //<"RenderEye(eyePoses.getPose(firstEyeToRender))">     (should be <5ms for DK2)
+            //<"RenderEye(eyePoses.getEyePose(firstEyeToRender))">     (should be <5ms for DK2)
 
-            //EyeType secondEyeToRender = hmdDesc.EyeRenderOrder[1];
+            //EyeType secondEyeToRender = hmdParameters.EyeRenderOrder[1];
 
             // Pseudo code
-            //<"RenderEye(eyePoses.getPose(secondEyeToRender))">     (should be <5ms for DK2)
+            //<"RenderEye(eyePoses.getEyePose(secondEyeToRender))">     (should be <5ms for DK2)
 
             //or.endFrame();
 

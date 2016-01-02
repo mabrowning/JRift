@@ -3,14 +3,14 @@ package de.fruitfly.ovr.structs;
 import de.fruitfly.ovr.enums.EyeType;
 import de.fruitfly.ovr.enums.HmdType;
 
-public class HmdDesc
+public class HmdParameters
 {
-    public HmdDesc()
+    public HmdParameters()
     {
 
     }
 
-    public HmdDesc(
+    public HmdParameters(
             int hmdType,
             String productName,
             String manufacturer,
@@ -126,9 +126,9 @@ public class HmdDesc
         sb.append("Type:              ").append(HmdType.toString(Type)).append("\n");
         sb.append("ProductName:       ").append(ProductName).append("\n");
         sb.append("Manufacturer:      ").append(Manufacturer).append("\n");
-        sb.append("Hmd capability bits:\n").append(HmdDesc.HmdCapsToString(HmdCaps));
-        sb.append("Distortion capability bits:\n").append(HmdDesc.DistortionCapsToString(DistortionCaps));
-        sb.append("Tracker capability bits:\n").append(HmdDesc.TrackingCapsToString(TrackingCaps));
+        sb.append("Hmd capability bits:\n").append(HmdParameters.HmdCapsToString(HmdCaps));
+        sb.append("Distortion capability bits:\n").append(HmdParameters.DistortionCapsToString(DistortionCaps));
+        sb.append("Tracker capability bits:\n").append(HmdParameters.TrackingCapsToString(TrackingCaps));
         sb.append("Resolution:        ").append(Resolution.w).append("x").append(Resolution.h).append("\n");
         sb.append("EyeRenderOrder:    ").append(EyeType.toString(EyeRenderOrder[0])).append(", ").append(EyeType.toString(EyeRenderOrder[1])).append("\n");
         sb.append("DisplayDeviceName: ").append(DisplayDeviceName).append("\n");
