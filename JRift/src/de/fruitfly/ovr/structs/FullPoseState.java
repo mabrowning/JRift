@@ -173,11 +173,11 @@ public class FullPoseState
     public Posef getEyePose(EyeType eye)
     {
         if (eye == EyeType.ovrEye_Right)
-            return rightEyePose;
+            return rightEyePose.clone();
         else if (eye == EyeType.ovrEye_Left)
-            return leftEyePose;
+            return leftEyePose.clone();
         else
-            return centerEyePose.ThePose;
+            return centerEyePose.ThePose.clone();
     }
 
     public FullPoseState clone()
@@ -253,5 +253,15 @@ public class FullPoseState
                 counter);
 
         return cfps;
+    }
+
+    public String toString()
+    {
+        StringBuilder sb = new StringBuilder();
+        sb.append("FrameIndex:    " + frameIndex).append("\n");
+        sb.append("leftEyePose:   " + leftEyePose.toString()).append("\n");
+        sb.append("rightEyePose:  " + rightEyePose.toString()).append("\n");
+        sb.append("centerEyePose: " + centerEyePose.toString()).append("\n");
+        return sb.toString();
     }
 }

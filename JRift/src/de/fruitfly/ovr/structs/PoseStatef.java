@@ -8,4 +8,11 @@ public class PoseStatef
     public Vector3f  AngularAcceleration = new Vector3f();
     public Vector3f  LinearAcceleration = new Vector3f();
     public double    TimeInSeconds;
+
+    public String toString()
+    {
+        StringBuilder sb = new StringBuilder();
+        sb.append(ThePose.toString());
+        return sb.toString();
+    }
 }

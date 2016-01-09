@@ -146,8 +146,8 @@ JNIEXPORT jboolean JNICALL Java_de_fruitfly_ovr_OculusRift__1initSubsystem(JNIEn
 
 	// Get the (default FOV) HMD configuration parameters
 	_hmdDesc = ovr_GetHmdDesc(_pHmdSession);
-	_EyeRenderDesc[0] = ovr_GetRenderDesc(_pHmdSession, ovrEye_Left,  _hmdDesc.DefaultEyeFov[0]);
-    _EyeRenderDesc[1] = ovr_GetRenderDesc(_pHmdSession, ovrEye_Right, _hmdDesc.DefaultEyeFov[1]);
+	_EyeRenderDesc[0] = ovr_GetRenderDesc(_pHmdSession, ovrEye_Left,  _hmdDesc.MaxEyeFov[0]);
+    _EyeRenderDesc[1] = ovr_GetRenderDesc(_pHmdSession, ovrEye_Right, _hmdDesc.MaxEyeFov[1]);
 
 
 	printf("Rift device found!\n");
@@ -452,6 +452,17 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getTrackedPoses(
     _hmdState = ovr_GetTrackingState(_pHmdSession, ftiming, ovrTrue);
     ovr_CalcEyePoses(_hmdState.HeadPose.ThePose, ViewOffsets, _eyeRenderPose);
 
+	printf("_eyeRenderPose[0].Orientation.x:      %.6f\n", _eyeRenderPose[0].Orientation.x);
+	printf("_eyeRenderPose[0].Orientation.y:      %.6f\n", _eyeRenderPose[0].Orientation.y);
+	printf("_eyeRenderPose[0].Orientation.z:      %.6f\n", _eyeRenderPose[0].Orientation.z);
+	printf("_eyeRenderPose[0].Orientation.w:      %.6f\n", _eyeRenderPose[0].Orientation.w);
+
+	printf("_eyeRenderPose[1].Orientation.x:      %.6f\n", _eyeRenderPose[1].Orientation.x);
+	printf("_eyeRenderPose[1].Orientation.y:      %.6f\n", _eyeRenderPose[1].Orientation.y);
+	printf("_eyeRenderPose[1].Orientation.z:      %.6f\n", _eyeRenderPose[1].Orientation.z);
+	printf("_eyeRenderPose[1].Orientation.w:      %.6f\n", _eyeRenderPose[1].Orientation.w);
+
+
     ClearException(env);
 	jobject jfullposestate = env->NewObject(fullPoseState_Class, fullPoseState_constructor_MethodID,
                                  FrameIndex,
@@ -525,6 +536,63 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getTrackedPoses(
 
     if (jfullposestate == 0) PrintNewObjectException(env, "FullPoseState");
 
+	//jfieldID fid; /* store the field ID */
+ //   jobject posef;
+	//jobject quatf;
+ //   jclass cls;
+	//jfloat x = 2, y = 2, z = 2, w = 0;
+
+	///* get Posef */
+	//cls = env->GetObjectClass(jfullposestate);
+	//fid = env->GetFieldID(cls, "leftEyePose", "Lde/fruitfly/ovr/structs/Posef;");
+	//if (fid != NULL)
+ //   {
+ //       posef = env->GetObjectField(jfullposestate, fid);
+
+	//	// Get Quatf
+	//	cls = env->GetObjectClass(posef);
+	//	fid = env->GetFieldID(cls, "Orientation", "Lde/fruitfly/ovr/structs/Quatf;");
+	//	if (fid != NULL)
+	//	{
+	//		quatf = env->GetObjectField(posef, fid);
+
+	//		// Get float
+	//		cls = env->GetObjectClass(quatf);
+	//		fid = env->GetFieldID(cls, "x", "F");
+	//		if (fid != NULL) {
+	//			x = env->GetFloatField(quatf, fid);
+	//			printf("x:      %.6f\n", x);
+	//			env->SetFloatField(quatf, fid, _eyeRenderPose[0].Orientation.x);
+	//			x = env->GetFloatField(quatf, fid);
+	//			printf("x:      %.6f\n", x);
+	//		}
+	//		fid = env->GetFieldID(cls, "y", "F");
+	//		if (fid != NULL) {
+	//			y = env->GetFloatField(quatf, fid);
+	//			env->SetFloatField(quatf, fid, _eyeRenderPose[0].Orientation.y);
+	//		}
+	//		fid = env->GetFieldID(cls, "z", "F");
+	//		if (fid != NULL) {
+	//			z = env->GetFloatField(quatf, fid);
+	//			env->SetFloatField(quatf, fid, _eyeRenderPose[0].Orientation.z);
+	//		}
+	//		fid = env->GetFieldID(cls, "w", "F");
+	//		if (fid != NULL) {
+	//			w = env->GetFloatField(quatf, fid);
+	//			env->SetFloatField(quatf, fid, _eyeRenderPose[0].Orientation.w);
+	//		}
+
+	//		
+	//		printf("y:      %.6f\n", y);
+	//		printf("z:      %.6f\n", z);
+	//		printf("w:      %.6f\n", w);
+
+	//	}
+ //   }
+
+    
+    
+	
 	return jfullposestate;
 }
 
@@ -919,7 +987,7 @@ void Reset()
     _eyeRenderPose[0].Orientation.x = 0.0;
     _eyeRenderPose[0].Orientation.y = 0.0;
     _eyeRenderPose[0].Orientation.z = 0.0;
-    _eyeRenderPose[0].Orientation.w = 0.0;
+    _eyeRenderPose[0].Orientation.w = 1.0;
     _eyeRenderPose[0].Position.x = 0.0;
     _eyeRenderPose[0].Position.y = 0.0;
     _eyeRenderPose[0].Position.z = 0.0;
@@ -972,13 +1040,15 @@ void DestroyMirrorTexture()
 
 bool CacheJNIGlobals(JNIEnv *env)
 {
+	bool Success = true;
+
     if (!LookupJNIGlobal(env,
                          sizei_Class,
                          "de/fruitfly/ovr/structs/Sizei",
                          sizei_constructor_MethodID,
                          "(II)V"))
     {
-        return false;
+        Success = false;
     }
 
     if (!LookupJNIGlobal(env,
@@ -987,7 +1057,7 @@ bool CacheJNIGlobals(JNIEnv *env)
                          renderTextureInfo_constructor_MethodID,
                          "(IIIIIIIIF)V"))
     {
-        return false;
+        Success = false;
     }
 
     if (!LookupJNIGlobal(env,
@@ -996,16 +1066,7 @@ bool CacheJNIGlobals(JNIEnv *env)
                          hmdDesc_constructor_MethodID,
                          "(ILjava/lang/String;Ljava/lang/String;IILjava/lang/String;IIFFFFIIIIFFFFFFFFFFFFFFFFIIF)V"))
     {
-        return false;
-    }
-
-    if (!LookupJNIGlobal(env,
-                         trackerState_Class,
-                         "de/fruitfly/ovr/structs/TrackerState",
-                         trackerState_constructor_MethodID,
-                         "(FFFFFFFFFFFFFFFFFFFDFI)V"))
-    {
-        return false;
+        Success = false;
     }
 
     if (!LookupJNIGlobal(env,
@@ -1014,7 +1075,7 @@ bool CacheJNIGlobals(JNIEnv *env)
                          vector3f_constructor_MethodID,
                          "(FFF)V"))
     {
-        return false;
+        Success = false;
     }
 
     if (!LookupJNIGlobal(env,
@@ -1023,7 +1084,7 @@ bool CacheJNIGlobals(JNIEnv *env)
                          eyeRenderParams_constructor_MethodID,
                          "(IIIIIFFFFIIIIFFFFFIIIIIFFFFIIIIFFFFFF)V"))
     {
-        return false;
+        Success = false;
     }
 
     if (!LookupJNIGlobal(env,
@@ -1032,7 +1093,7 @@ bool CacheJNIGlobals(JNIEnv *env)
                          posef_constructor_MethodID,
                          "(FFFFFFF)V"))
     {
-        return false;
+        Success = false;
     }
 
     if (!LookupJNIGlobal(env,
@@ -1041,7 +1102,7 @@ bool CacheJNIGlobals(JNIEnv *env)
                          frameTiming_constructor_MethodID,
                          "(FDDDDDD)V"))
     {
-        return false;
+        Success = false;
     }
 
     if (!LookupJNIGlobal(env,
@@ -1050,7 +1111,7 @@ bool CacheJNIGlobals(JNIEnv *env)
                          matrix4f_constructor_MethodID,
                          "(FFFFFFFFFFFFFFFF)V"))
     {
-        return false;
+        Success = false;
     }
 
     if (!LookupJNIGlobal(env,
@@ -1059,7 +1120,7 @@ bool CacheJNIGlobals(JNIEnv *env)
                          userProfileData_constructor_MethodID,
                          "(FFFLjava/lang/String;ZLjava/lang/String;)V"))
     {
-        return false;
+        Success = false;
     }
 
     if (!LookupJNIGlobal(env,
@@ -1068,7 +1129,7 @@ bool CacheJNIGlobals(JNIEnv *env)
                          fullPoseState_constructor_MethodID,
                          "(JFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFDFIFFFFFFFFFFFFFFFFFFFFFIFFFFFFFII)V"))
     {
-        return false;
+        Success = false;
     }
 
 	if (!LookupJNIGlobal(env,
@@ -1077,7 +1138,7 @@ bool CacheJNIGlobals(JNIEnv *env)
                          swapTextureSet_constructor_MethodID,
                          "()V"))
     {
-        return false;
+        Success = false;
     }
 
 	if (!LookupJNIGlobal(env,
@@ -1086,7 +1147,7 @@ bool CacheJNIGlobals(JNIEnv *env)
                          errorInfo_constructor_MethodID,
                          "(Ljava/lang/String;IZZ)V"))
     {
-        return false;
+        Success = false;
     }
 
 	// TODO: Is this required...?
@@ -1094,13 +1155,13 @@ bool CacheJNIGlobals(JNIEnv *env)
 	if (field_swapTextureSet_leftEyeTextureIds == 0)
     {
 		printf("Failed to find field 'Ljava/util/ArrayList;' leftEyeTextureIds");
-        return false; 
+        Success = false; 
     }
 	field_swapTextureSet_rightEyeTextureIds = env->GetFieldID(swapTextureSet_Class, "rightEyeTextureIds", "Ljava/util/ArrayList;");
 	if (field_swapTextureSet_rightEyeTextureIds == 0)
     {
 		printf("Failed to find field 'Ljava/util/ArrayList;' rightEyeTextureIds");
-        return false; 
+        Success = false; 
     }
 
 	// Lookup some standard java classes / methods
@@ -1110,14 +1171,14 @@ bool CacheJNIGlobals(JNIEnv *env)
                          method_arrayList_init,
                          "()V"))
     {
-        return false;
+        Success = false;
     }
 
 	method_arrayList_add = env->GetMethodID(arrayListClass, "add", "(Ljava/lang/Object;)Z");
 	if (method_arrayList_add == 0) 
 	{
 		printf("Failed to find method 'java/util/ArrayList' add(Ljava/lang/Object;)Z");
-		return false;
+		Success = false;
 	}
 
 	if (!LookupJNIGlobal(env,
@@ -1126,10 +1187,10 @@ bool CacheJNIGlobals(JNIEnv *env)
                          method_integer_init,
                          "(I)V"))
     {
-        return false;
+        Success = false;
     }
 
-    return true;
+    return Success;
 }
 
 bool LookupJNIGlobal(JNIEnv *env,

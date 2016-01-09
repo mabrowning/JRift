@@ -10,7 +10,6 @@ public class OculusRift //implements IVR
 	private boolean initialized = false;
 
 	private HmdParameters hmdParameters = new HmdParameters();
-    private TrackerState trackerState = new TrackerState();
     private Posef lastEyePose[] = new Posef[3];
     private Posef lastHandPose[] = new Posef[2];
     private FullPoseState trackerPoseInfo = new FullPoseState();
@@ -37,7 +36,6 @@ public class OculusRift //implements IVR
         lastEyePose[1] = new Posef();
         lastEyePose[2] = new Posef();
         trackerPoseInfo = new FullPoseState();
-        trackerState = new TrackerState();
     }
 
 	public String getInitializationStatus()
@@ -131,6 +129,7 @@ public class OculusRift //implements IVR
             return new FullPoseState();
 
         trackerPoseInfo = _getTrackedPoses(frameIndex);
+
 
         if (trackerPoseInfo == null)
             trackerPoseInfo = new FullPoseState();
