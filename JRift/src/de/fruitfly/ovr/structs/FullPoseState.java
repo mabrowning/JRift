@@ -56,83 +56,86 @@ public class FullPoseState
                          float PredictedVector3fLinearAccelerationz,
                          double PredictedTimeInSeconds,
                          float temp,
-                         int statusFlags,
-                         float Cameraquatx,
-                         float Cameraquaty,
-                         float Cameraquatz,
-                         float Cameraquatw,
-                         float Cameraposx,
-                         float Cameraposy,
-                         float Cameraposz,
-                         float LevelledCameraquatx,
-                         float LevelledCameraquaty,
-                         float LevelledCameraquatz,
-                         float LevelledCameraquatw,
-                         float LevelledCameraposx,
-                         float LevelledCameraposy,
-                         float LevelledCameraposz,
-                         float LHandquatx,
-                         float LHandquaty,
-                         float LHandquatz,
-                         float LHandquatw,
-                         float LHandposx,
-                         float LHandposy,
-                         float LHandposz,
-                         int lhandstatusFlags,
-                         float RHandquatx,
-                         float RHandquaty,
-                         float RHandquatz,
-                         float RHandquatw,
-                         float RHandposx,
-                         float RHandposy,
-                         float RHandposz,
-                         int rhandstatusFlags,
-                         int count)
-    {
+                         int statusFlags) {
         this.frameIndex = frameIndex;
 
-        leftEyePose.Orientation.x  = Lquatx;
-        leftEyePose.Orientation.y  = Lquaty;
-        leftEyePose.Orientation.z  = Lquatz;
-        leftEyePose.Orientation.w  = Lquatw;
-        leftEyePose.Position.x     = Lposx;
-        leftEyePose.Position.y     = Lposy;
-        leftEyePose.Position.z     = Lposz;
+        leftEyePose.Orientation.x = Lquatx;
+        leftEyePose.Orientation.y = Lquaty;
+        leftEyePose.Orientation.z = Lquatz;
+        leftEyePose.Orientation.w = Lquatw;
+        leftEyePose.Position.x = Lposx;
+        leftEyePose.Position.y = Lposy;
+        leftEyePose.Position.z = Lposz;
 
         rightEyePose.Orientation.x = Rquatx;
         rightEyePose.Orientation.y = Rquaty;
         rightEyePose.Orientation.z = Rquatz;
         rightEyePose.Orientation.w = Rquatw;
-        rightEyePose.Position.x    = Rposx;
-        rightEyePose.Position.y    = Rposy;
-        rightEyePose.Position.z    = Rposz;
+        rightEyePose.Position.x = Rposx;
+        rightEyePose.Position.y = Rposy;
+        rightEyePose.Position.z = Rposz;
 
         // Center eye pose
-        centerEyePose.ThePose.Orientation.x    = PredictedPoseStatefPosefOrientationx;
-        centerEyePose.ThePose.Orientation.y    = PredictedPoseStatefPosefOrientationy;
-        centerEyePose.ThePose.Orientation.z    = PredictedPoseStatefPosefOrientationz;
-        centerEyePose.ThePose.Orientation.w    = PredictedPoseStatefPosefOrientationw;
-        centerEyePose.ThePose.Position.x       = PredictedPoseStatefPosefPositionx;
-        centerEyePose.ThePose.Position.y       = PredictedPoseStatefPosefPositiony;
-        centerEyePose.ThePose.Position.z       = PredictedPoseStatefPosefPositionz;
+        centerEyePose.ThePose.Orientation.x = PredictedPoseStatefPosefOrientationx;
+        centerEyePose.ThePose.Orientation.y = PredictedPoseStatefPosefOrientationy;
+        centerEyePose.ThePose.Orientation.z = PredictedPoseStatefPosefOrientationz;
+        centerEyePose.ThePose.Orientation.w = PredictedPoseStatefPosefOrientationw;
+        centerEyePose.ThePose.Position.x = PredictedPoseStatefPosefPositionx;
+        centerEyePose.ThePose.Position.y = PredictedPoseStatefPosefPositiony;
+        centerEyePose.ThePose.Position.z = PredictedPoseStatefPosefPositionz;
 
-        centerEyePose.AngularVelocity.x     = PredictedVector3fAngularVelocityx;
-        centerEyePose.AngularVelocity.y     = PredictedVector3fAngularVelocityy;
-        centerEyePose.AngularVelocity.z     = PredictedVector3fAngularVelocityz;
-        centerEyePose.LinearVelocity.x      = PredictedVector3fLinearVelocityx;
-        centerEyePose.LinearVelocity.y      = PredictedVector3fLinearVelocityy;
-        centerEyePose.LinearVelocity.z      = PredictedVector3fLinearVelocityz;
+        centerEyePose.AngularVelocity.x = PredictedVector3fAngularVelocityx;
+        centerEyePose.AngularVelocity.y = PredictedVector3fAngularVelocityy;
+        centerEyePose.AngularVelocity.z = PredictedVector3fAngularVelocityz;
+        centerEyePose.LinearVelocity.x = PredictedVector3fLinearVelocityx;
+        centerEyePose.LinearVelocity.y = PredictedVector3fLinearVelocityy;
+        centerEyePose.LinearVelocity.z = PredictedVector3fLinearVelocityz;
         centerEyePose.AngularAcceleration.x = PredictedVector3fAngularAccelerationx;
         centerEyePose.AngularAcceleration.y = PredictedVector3fAngularAccelerationy;
         centerEyePose.AngularAcceleration.z = PredictedVector3fAngularAccelerationz;
-        centerEyePose.LinearAcceleration.x  = PredictedVector3fLinearAccelerationx;
-        centerEyePose.LinearAcceleration.y  = PredictedVector3fLinearAccelerationy;
-        centerEyePose.LinearAcceleration.z  = PredictedVector3fLinearAccelerationz;
-        centerEyePose.TimeInSeconds         = PredictedTimeInSeconds;
+        centerEyePose.LinearAcceleration.x = PredictedVector3fLinearAccelerationx;
+        centerEyePose.LinearAcceleration.y = PredictedVector3fLinearAccelerationy;
+        centerEyePose.LinearAcceleration.z = PredictedVector3fLinearAccelerationz;
+        centerEyePose.TimeInSeconds = PredictedTimeInSeconds;
 
         temperature = temp;
         hmdStatusFlags = statusFlags;
+    }
 
+    /* Added as work-around to weird JNI issue - too many params on constructor?! */
+    public void setAdditionalPoseState1(
+            float Cameraquatx,
+            float Cameraquaty,
+            float Cameraquatz,
+            float Cameraquatw,
+            float Cameraposx,
+            float Cameraposy,
+            float Cameraposz,
+            float LevelledCameraquatx,
+            float LevelledCameraquaty,
+            float LevelledCameraquatz,
+            float LevelledCameraquatw,
+            float LevelledCameraposx,
+            float LevelledCameraposy,
+            float LevelledCameraposz,
+            float LHandquatx,
+            float LHandquaty,
+            float LHandquatz,
+            float LHandquatw,
+            float LHandposx,
+            float LHandposy,
+            float LHandposz,
+            int lhandstatusFlags,
+            float RHandquatx,
+            float RHandquaty,
+            float RHandquatz,
+            float RHandquatw,
+            float RHandposx,
+            float RHandposy,
+            float RHandposz,
+            int rhandstatusFlags,
+            int count)
+    {
         cameraPose.Orientation.x  = Cameraquatx;
         cameraPose.Orientation.y  = Cameraquaty;
         cameraPose.Orientation.z  = Cameraquatz;
@@ -219,7 +222,9 @@ public class FullPoseState
                 centerEyePose.LinearAcceleration.z ,
                 centerEyePose.TimeInSeconds        ,
                 temperature,
-                hmdStatusFlags,
+                hmdStatusFlags);
+
+        cfps.setAdditionalPoseState1(
                 cameraPose.Orientation.x,
                 cameraPose.Orientation.y,
                 cameraPose.Orientation.z,

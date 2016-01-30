@@ -80,6 +80,7 @@ static jclass       userProfileData_Class                = 0;
 static jmethodID    userProfileData_constructor_MethodID = 0;
 static jclass       fullPoseState_Class                  = 0;
 static jmethodID    fullPoseState_constructor_MethodID   = 0;
+static jmethodID    fullPoseState_setAdditionaPoseInfo1_MethodID = 0;
 static jclass       swapTextureSet_Class                 = 0;
 static jmethodID    swapTextureSet_constructor_MethodID  = 0;
 static jclass       eulerOrient_Class                    = 0;
@@ -501,7 +502,13 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getTrackedPoses(
 								 _hmdState.HeadPose.LinearAcceleration.z, 
 								 _hmdState.HeadPose.TimeInSeconds,        
 								 _hmdState.RawSensorData.Temperature,
-								 _hmdState.StatusFlags,
+								 _hmdState.StatusFlags);
+
+    if (jfullposestate == 0) PrintNewObjectException(env, "FullPoseState");
+
+	if (jfullposestate != 0)
+	{
+		env->CallObjectMethod(jfullposestate, fullPoseState_setAdditionaPoseInfo1_MethodID, 
 								 _hmdState.CameraPose.Orientation.x,   
 								 _hmdState.CameraPose.Orientation.y,  
 								 _hmdState.CameraPose.Orientation.z,   
@@ -533,65 +540,8 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getTrackedPoses(
 								 _hmdState.HandPoses[1].ThePose.Position.z,
 								 _hmdState.HandStatusFlags[1],
 								 _hmdState.LastCameraFrameCounter);
-
-    if (jfullposestate == 0) PrintNewObjectException(env, "FullPoseState");
-
-	//jfieldID fid; /* store the field ID */
- //   jobject posef;
-	//jobject quatf;
- //   jclass cls;
-	//jfloat x = 2, y = 2, z = 2, w = 0;
-
-	///* get Posef */
-	//cls = env->GetObjectClass(jfullposestate);
-	//fid = env->GetFieldID(cls, "leftEyePose", "Lde/fruitfly/ovr/structs/Posef;");
-	//if (fid != NULL)
- //   {
- //       posef = env->GetObjectField(jfullposestate, fid);
-
-	//	// Get Quatf
-	//	cls = env->GetObjectClass(posef);
-	//	fid = env->GetFieldID(cls, "Orientation", "Lde/fruitfly/ovr/structs/Quatf;");
-	//	if (fid != NULL)
-	//	{
-	//		quatf = env->GetObjectField(posef, fid);
-
-	//		// Get float
-	//		cls = env->GetObjectClass(quatf);
-	//		fid = env->GetFieldID(cls, "x", "F");
-	//		if (fid != NULL) {
-	//			x = env->GetFloatField(quatf, fid);
-	//			printf("x:      %.6f\n", x);
-	//			env->SetFloatField(quatf, fid, _eyeRenderPose[0].Orientation.x);
-	//			x = env->GetFloatField(quatf, fid);
-	//			printf("x:      %.6f\n", x);
-	//		}
-	//		fid = env->GetFieldID(cls, "y", "F");
-	//		if (fid != NULL) {
-	//			y = env->GetFloatField(quatf, fid);
-	//			env->SetFloatField(quatf, fid, _eyeRenderPose[0].Orientation.y);
-	//		}
-	//		fid = env->GetFieldID(cls, "z", "F");
-	//		if (fid != NULL) {
-	//			z = env->GetFloatField(quatf, fid);
-	//			env->SetFloatField(quatf, fid, _eyeRenderPose[0].Orientation.z);
-	//		}
-	//		fid = env->GetFieldID(cls, "w", "F");
-	//		if (fid != NULL) {
-	//			w = env->GetFloatField(quatf, fid);
-	//			env->SetFloatField(quatf, fid, _eyeRenderPose[0].Orientation.w);
-	//		}
-
-	//		
-	//		printf("y:      %.6f\n", y);
-	//		printf("z:      %.6f\n", z);
-	//		printf("w:      %.6f\n", w);
-
-	//	}
- //   }
-
-    
-    
+			
+	}
 	
 	return jfullposestate;
 }
@@ -1128,6 +1078,15 @@ bool CacheJNIGlobals(JNIEnv *env)
                          "de/fruitfly/ovr/structs/FullPoseState",
                          fullPoseState_constructor_MethodID,
                          "(JFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFDFIFFFFFFFFFFFFFFFFFFFFFIFFFFFFFII)V"))
+    {
+        Success = false;
+    }
+
+    if (!LookupJNIGlobal(env,
+                         fullPoseState_Class,
+                         "de/fruitfly/ovr/structs/FullPoseState",
+                         fullPoseState_setAdditionaPoseInfo1_MethodID,
+                         "(FFFFFFFFFFFFFFFFFFFFFIFFFFFFFII)V"))
     {
         Success = false;
     }
