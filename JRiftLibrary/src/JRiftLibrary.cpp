@@ -91,6 +91,8 @@ static jclass       integerClass                         = 0;
 static jmethodID    method_integer_init                  = 0;
 static jclass       errorInfo_Class                      = 0;
 static jmethodID    errorInfo_constructor_MethodID       = 0;
+static jclass       quatf_Class                          = 0;
+static jmethodID    quatf_constructor_MethodID           = 0;
 
 static jfieldID     field_swapTextureSet_leftEyeTextureIds   = 0;
 static jfieldID     field_swapTextureSet_rightEyeTextureIds  = 0;
@@ -1121,7 +1123,16 @@ bool CacheJNIGlobals(JNIEnv *env)
                          "(FFFLjava/lang/String;ZLjava/lang/String;)V"))
     {
         Success = false;
-    }
+    }                   
+
+    if (!LookupJNIGlobal(env,
+                         quatf_Class,
+                         "de/fruitfly/ovr/structs/Quatf",
+                         quatf_constructor_MethodID,
+                         "(FFFF)V"))
+    {
+        Success = false;
+    }  
 
     if (!LookupJNIGlobal(env,
                          fullPoseState_Class,
