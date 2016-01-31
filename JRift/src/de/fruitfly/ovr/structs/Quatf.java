@@ -20,7 +20,10 @@ public class Quatf
     public float z;
     public float w;
 
-    public static Quatf IDENTITY = new Quatf(0.0f, 0.0f, 0.0f, 1.0f);
+    public static Quatf IDENTITY()
+    {
+        return new Quatf(0.0f, 0.0f, 0.0f, 1.0f);
+    }
 
     public Quatf inverted()
     {

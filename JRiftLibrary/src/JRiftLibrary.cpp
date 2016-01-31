@@ -80,7 +80,6 @@ static jclass       userProfileData_Class                = 0;
 static jmethodID    userProfileData_constructor_MethodID = 0;
 static jclass       fullPoseState_Class                  = 0;
 static jmethodID    fullPoseState_constructor_MethodID   = 0;
-static jmethodID    fullPoseState_setAdditionaPoseInfo1_MethodID = 0;
 static jclass       swapTextureSet_Class                 = 0;
 static jmethodID    swapTextureSet_constructor_MethodID  = 0;
 static jclass       eulerOrient_Class                    = 0;
@@ -149,8 +148,8 @@ JNIEXPORT jboolean JNICALL Java_de_fruitfly_ovr_OculusRift__1initSubsystem(JNIEn
 
 	// Get the (default FOV) HMD configuration parameters
 	_hmdDesc = ovr_GetHmdDesc(_pHmdSession);
-	_EyeRenderDesc[0] = ovr_GetRenderDesc(_pHmdSession, ovrEye_Left,  _hmdDesc.MaxEyeFov[0]);
-    _EyeRenderDesc[1] = ovr_GetRenderDesc(_pHmdSession, ovrEye_Right, _hmdDesc.MaxEyeFov[1]);
+	_EyeRenderDesc[0] = ovr_GetRenderDesc(_pHmdSession, ovrEye_Left,  _hmdDesc.DefaultEyeFov[0]);
+    _EyeRenderDesc[1] = ovr_GetRenderDesc(_pHmdSession, ovrEye_Right, _hmdDesc.DefaultEyeFov[1]);
 
 
 	printf("Rift device found!\n");
@@ -455,17 +454,6 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getTrackedPoses(
     _hmdState = ovr_GetTrackingState(_pHmdSession, ftiming, ovrTrue);
     ovr_CalcEyePoses(_hmdState.HeadPose.ThePose, ViewOffsets, _eyeRenderPose);
 
-	printf("_eyeRenderPose[0].Orientation.x:      %.6f\n", _eyeRenderPose[0].Orientation.x);
-	printf("_eyeRenderPose[0].Orientation.y:      %.6f\n", _eyeRenderPose[0].Orientation.y);
-	printf("_eyeRenderPose[0].Orientation.z:      %.6f\n", _eyeRenderPose[0].Orientation.z);
-	printf("_eyeRenderPose[0].Orientation.w:      %.6f\n", _eyeRenderPose[0].Orientation.w);
-
-	printf("_eyeRenderPose[1].Orientation.x:      %.6f\n", _eyeRenderPose[1].Orientation.x);
-	printf("_eyeRenderPose[1].Orientation.y:      %.6f\n", _eyeRenderPose[1].Orientation.y);
-	printf("_eyeRenderPose[1].Orientation.z:      %.6f\n", _eyeRenderPose[1].Orientation.z);
-	printf("_eyeRenderPose[1].Orientation.w:      %.6f\n", _eyeRenderPose[1].Orientation.w);
-
-
     ClearException(env);
 	jobject jfullposestate = env->NewObject(fullPoseState_Class, fullPoseState_constructor_MethodID,
                                  FrameIndex,
@@ -504,13 +492,7 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getTrackedPoses(
 								 _hmdState.HeadPose.LinearAcceleration.z, 
 								 _hmdState.HeadPose.TimeInSeconds,        
 								 _hmdState.RawSensorData.Temperature,
-								 _hmdState.StatusFlags);
-
-    if (jfullposestate == 0) PrintNewObjectException(env, "FullPoseState");
-
-	if (jfullposestate != 0)
-	{
-		env->CallObjectMethod(jfullposestate, fullPoseState_setAdditionaPoseInfo1_MethodID, 
+								 _hmdState.StatusFlags,
 								 _hmdState.CameraPose.Orientation.x,   
 								 _hmdState.CameraPose.Orientation.y,  
 								 _hmdState.CameraPose.Orientation.z,   
@@ -542,8 +524,6 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getTrackedPoses(
 								 _hmdState.HandPoses[1].ThePose.Position.z,
 								 _hmdState.HandStatusFlags[1],
 								 _hmdState.LastCameraFrameCounter);
-			
-	}
 	
 	return jfullposestate;
 }
@@ -589,7 +569,7 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1submitFrame(
         return 0;
 
     ovrViewScaleDesc viewScaleDesc;
-    viewScaleDesc.HmdSpaceToWorldScaleInMeters = HmdSpaceToWorldScaleInMeters;  
+    viewScaleDesc.HmdSpaceToWorldScaleInMeters = HmdSpaceToWorldScaleInMeters;  // TODO: Find a better place for this  
     viewScaleDesc.HmdToEyeViewOffset[0] = _EyeRenderDesc[0].HmdToEyeViewOffset;
     viewScaleDesc.HmdToEyeViewOffset[1] = _EyeRenderDesc[1].HmdToEyeViewOffset;
   
@@ -813,7 +793,7 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1convertQuatToEuler
 	}
 
     // Cache JNI objects here to prevent the need for initialisation
-    if (!LookupJNIGlobal(env,
+    if (!LookupJNIConstructorGlobal(env,
                          eulerOrient_Class,
                          "de/fruitfly/ovr/structs/EulerOrient",
                          eulerOrient_constructor_MethodID,
@@ -994,7 +974,7 @@ bool CacheJNIGlobals(JNIEnv *env)
 {
 	bool Success = true;
 
-    if (!LookupJNIGlobal(env,
+    if (!LookupJNIConstructorGlobal(env,
                          sizei_Class,
                          "de/fruitfly/ovr/structs/Sizei",
                          sizei_constructor_MethodID,
@@ -1003,7 +983,7 @@ bool CacheJNIGlobals(JNIEnv *env)
         Success = false;
     }
 
-    if (!LookupJNIGlobal(env,
+    if (!LookupJNIConstructorGlobal(env,
                          renderTextureInfo_Class,
                          "de/fruitfly/ovr/structs/RenderTextureInfo",
                          renderTextureInfo_constructor_MethodID,
@@ -1012,7 +992,7 @@ bool CacheJNIGlobals(JNIEnv *env)
         Success = false;
     }
 
-    if (!LookupJNIGlobal(env,
+    if (!LookupJNIConstructorGlobal(env,
                          hmdDesc_Class,
                          "de/fruitfly/ovr/structs/HmdParameters",
                          hmdDesc_constructor_MethodID,
@@ -1021,7 +1001,7 @@ bool CacheJNIGlobals(JNIEnv *env)
         Success = false;
     }
 
-    if (!LookupJNIGlobal(env,
+    if (!LookupJNIConstructorGlobal(env,
                          vector3f_Class,
                          "de/fruitfly/ovr/structs/Vector3f",
                          vector3f_constructor_MethodID,
@@ -1030,7 +1010,7 @@ bool CacheJNIGlobals(JNIEnv *env)
         Success = false;
     }
 
-    if (!LookupJNIGlobal(env,
+    if (!LookupJNIConstructorGlobal(env,
                          eyeRenderParams_Class,
                          "de/fruitfly/ovr/EyeRenderParams",
                          eyeRenderParams_constructor_MethodID,
@@ -1039,7 +1019,7 @@ bool CacheJNIGlobals(JNIEnv *env)
         Success = false;
     }
 
-    if (!LookupJNIGlobal(env,
+    if (!LookupJNIConstructorGlobal(env,
                          posef_Class,
                          "de/fruitfly/ovr/structs/Posef",
                          posef_constructor_MethodID,
@@ -1048,7 +1028,7 @@ bool CacheJNIGlobals(JNIEnv *env)
         Success = false;
     }
 
-    if (!LookupJNIGlobal(env,
+    if (!LookupJNIConstructorGlobal(env,
                          frameTiming_Class,
                          "de/fruitfly/ovr/structs/FrameTiming",
                          frameTiming_constructor_MethodID,
@@ -1057,7 +1037,7 @@ bool CacheJNIGlobals(JNIEnv *env)
         Success = false;
     }
 
-    if (!LookupJNIGlobal(env,
+    if (!LookupJNIConstructorGlobal(env,
                          matrix4f_Class,
                          "de/fruitfly/ovr/structs/Matrix4f",
                          matrix4f_constructor_MethodID,
@@ -1066,7 +1046,7 @@ bool CacheJNIGlobals(JNIEnv *env)
         Success = false;
     }
 
-    if (!LookupJNIGlobal(env,
+    if (!LookupJNIConstructorGlobal(env,
                          userProfileData_Class,
                          "de/fruitfly/ovr/UserProfileData",
                          userProfileData_constructor_MethodID,
@@ -1075,7 +1055,7 @@ bool CacheJNIGlobals(JNIEnv *env)
         Success = false;
     }                   
 
-    if (!LookupJNIGlobal(env,
+    if (!LookupJNIConstructorGlobal(env,
                          quatf_Class,
                          "de/fruitfly/ovr/structs/Quatf",
                          quatf_constructor_MethodID,
@@ -1084,7 +1064,7 @@ bool CacheJNIGlobals(JNIEnv *env)
         Success = false;
     }  
 
-    if (!LookupJNIGlobal(env,
+    if (!LookupJNIConstructorGlobal(env,
                          fullPoseState_Class,
                          "de/fruitfly/ovr/structs/FullPoseState",
                          fullPoseState_constructor_MethodID,
@@ -1093,16 +1073,7 @@ bool CacheJNIGlobals(JNIEnv *env)
         Success = false;
     }
 
-    if (!LookupJNIGlobal(env,
-                         fullPoseState_Class,
-                         "de/fruitfly/ovr/structs/FullPoseState",
-                         fullPoseState_setAdditionaPoseInfo1_MethodID,
-                         "(FFFFFFFFFFFFFFFFFFFFFIFFFFFFFII)V"))
-    {
-        Success = false;
-    }
-
-	if (!LookupJNIGlobal(env,
+	if (!LookupJNIConstructorGlobal(env,
                          swapTextureSet_Class,
                          "de/fruitfly/ovr/structs/SwapTextureSet",
                          swapTextureSet_constructor_MethodID,
@@ -1111,7 +1082,7 @@ bool CacheJNIGlobals(JNIEnv *env)
         Success = false;
     }
 
-	if (!LookupJNIGlobal(env,
+	if (!LookupJNIConstructorGlobal(env,
                          errorInfo_Class,
                          "de/fruitfly/ovr/structs/ErrorInfo",
                          errorInfo_constructor_MethodID,
@@ -1120,22 +1091,29 @@ bool CacheJNIGlobals(JNIEnv *env)
         Success = false;
     }
 
-	// TODO: Is this required...?
-	field_swapTextureSet_leftEyeTextureIds = env->GetFieldID(swapTextureSet_Class, "leftEyeTextureIds", "Ljava/util/ArrayList;");
-	if (field_swapTextureSet_leftEyeTextureIds == 0)
+    if (!LookupJNIFieldGlobal(env,
+                         swapTextureSet_Class,
+                         "de/fruitfly/ovr/structs/SwapTextureSet",
+                         field_swapTextureSet_leftEyeTextureIds,
+                         "Ljava/util/ArrayList;",
+						 "leftEyeTextureIds"))
     {
-		printf("Failed to find field 'Ljava/util/ArrayList;' leftEyeTextureIds");
-        Success = false; 
-    }
-	field_swapTextureSet_rightEyeTextureIds = env->GetFieldID(swapTextureSet_Class, "rightEyeTextureIds", "Ljava/util/ArrayList;");
-	if (field_swapTextureSet_rightEyeTextureIds == 0)
-    {
-		printf("Failed to find field 'Ljava/util/ArrayList;' rightEyeTextureIds");
-        Success = false; 
+        Success = false;
     }
 
+    if (!LookupJNIFieldGlobal(env,
+                         swapTextureSet_Class,
+                         "de/fruitfly/ovr/structs/SwapTextureSet",
+                         field_swapTextureSet_rightEyeTextureIds,
+                         "Ljava/util/ArrayList;",
+						 "rightEyeTextureIds"))
+    {
+        Success = false;
+    }
+
+
 	// Lookup some standard java classes / methods
-	if (!LookupJNIGlobal(env,
+	if (!LookupJNIConstructorGlobal(env,
                          arrayListClass,
                          "java/util/ArrayList",
                          method_arrayList_init,
@@ -1144,14 +1122,17 @@ bool CacheJNIGlobals(JNIEnv *env)
         Success = false;
     }
 
-	method_arrayList_add = env->GetMethodID(arrayListClass, "add", "(Ljava/lang/Object;)Z");
-	if (method_arrayList_add == 0) 
-	{
-		printf("Failed to find method 'java/util/ArrayList' add(Ljava/lang/Object;)Z");
-		Success = false;
-	}
+    if (!LookupJNIMethodGlobal(env,
+                         arrayListClass,
+                         "java/util/ArrayList",
+                         method_arrayList_add,
+                         "(Ljava/lang/Object;)Z",
+						 "add"))
+    {
+        Success = false;
+    }
 
-	if (!LookupJNIGlobal(env,
+	if (!LookupJNIConstructorGlobal(env,
                          integerClass,
                          "java/lang/Integer",
                          method_integer_init,
@@ -1163,11 +1144,22 @@ bool CacheJNIGlobals(JNIEnv *env)
     return Success;
 }
 
-bool LookupJNIGlobal(JNIEnv *env,
+bool LookupJNIConstructorGlobal(JNIEnv *env,
                      jclass& clazz,
                      std::string className,
                      jmethodID& method,
-                     std::string constructorSignature)
+                     std::string Signature)
+{
+	std::string methodName = "<init>";
+	return LookupJNIMethodGlobal(env, clazz, className, method, Signature, methodName);
+}
+
+bool LookupJNIMethodGlobal(JNIEnv *env,
+                     jclass& clazz,
+                     std::string className,
+                     jmethodID& method,
+                     std::string Signature,
+					 std::string MethodName)
 {
     if (clazz == NULL)
 	{
@@ -1184,11 +1176,45 @@ bool LookupJNIGlobal(JNIEnv *env,
 
 	if (method == NULL)
 	{
-		method = env->GetMethodID(clazz, "<init>", constructorSignature.c_str());
+		method = env->GetMethodID(clazz, MethodName.c_str(), Signature.c_str());
         if (method == 0)
         {
-            printf("Failed to find constuctor method for class '%s' with signature: %s", 
-                className.c_str(), constructorSignature.c_str());
+            printf("Failed to find method '%s' for class '%s' with signature: %s", 
+                MethodName.c_str(), className.c_str(), Signature.c_str());
+            return false;
+        }
+	}
+
+    return true;
+}
+
+bool LookupJNIFieldGlobal(JNIEnv *env,
+                     jclass& clazz,
+                     std::string className,
+                     jfieldID& field,
+					 std::string Signature,
+					 std::string FieldName)
+{
+    if (clazz == NULL)
+	{
+		jclass localClass = env->FindClass(className.c_str());
+        if (localClass == 0)
+        {
+            printf("Failed to find class '%s'", className.c_str());
+            return false;
+        }
+
+		clazz = (jclass)env->NewGlobalRef(localClass);
+		env->DeleteLocalRef(localClass);
+	}
+
+	if (field == NULL)
+	{
+		field = env->GetFieldID(clazz, FieldName.c_str(), Signature.c_str());
+        if (field == 0)
+        {
+            printf("Failed to find field '%s' for class '%s' with signature: %s", 
+                FieldName.c_str(), className.c_str(), Signature.c_str());
             return false;
         }
 	}

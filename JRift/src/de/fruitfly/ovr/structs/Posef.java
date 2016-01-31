@@ -25,7 +25,7 @@ public class Posef
         Position.z = posz;
     }
 
-    public Quatf     Orientation = Quatf.IDENTITY;
+    public Quatf     Orientation = Quatf.IDENTITY();
     public Vector3f  Position = new Vector3f();
 
     public String getPositionString()

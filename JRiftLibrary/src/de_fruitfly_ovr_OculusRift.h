@@ -207,11 +207,23 @@ void Reset();
 void DestroySwapTextureSet();
 void DestroyMirrorTexture();
 bool CacheJNIGlobals(JNIEnv *env);
-bool LookupJNIGlobal(JNIEnv *env,
+bool LookupJNIConstructorGlobal(JNIEnv *env,
                      jclass& clazz,
                      std::string className,
                      jmethodID& method,
-                     std::string constructorSignature);
+                     std::string Signature);
+bool LookupJNIMethodGlobal(JNIEnv *env,
+                     jclass& clazz,
+                     std::string className,
+                     jmethodID& method,
+                     std::string Signature,
+					 std::string MethodName);
+bool LookupJNIFieldGlobal(JNIEnv *env,
+                     jclass& clazz,
+                     std::string className,
+                     jfieldID& field,
+					 std::string Signature,
+					 std::string FieldName);
 void ClearException(JNIEnv *env);
 void PrintNewObjectException(JNIEnv *env, std::string objectName);
 void SetEulerEnumValues(int firstRotationAxis,

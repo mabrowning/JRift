@@ -7,7 +7,7 @@ public class PoseStatef
     public Vector3f  LinearVelocity = new Vector3f();
     public Vector3f  AngularAcceleration = new Vector3f();
     public Vector3f  LinearAcceleration = new Vector3f();
-    public double    TimeInSeconds;
+    public double    TimeInSeconds = 0d;
 
     public String toString()
     {

@@ -56,7 +56,39 @@ public class FullPoseState
                          float PredictedVector3fLinearAccelerationz,
                          double PredictedTimeInSeconds,
                          float temp,
-                         int statusFlags) {
+                         int statusFlags,
+                         float Cameraquatx,
+                         float Cameraquaty,
+                         float Cameraquatz,
+                         float Cameraquatw,
+                         float Cameraposx,
+                         float Cameraposy,
+                         float Cameraposz,
+                         float LevelledCameraquatx,
+                         float LevelledCameraquaty,
+                         float LevelledCameraquatz,
+                         float LevelledCameraquatw,
+                         float LevelledCameraposx,
+                         float LevelledCameraposy,
+                         float LevelledCameraposz,
+                         float LHandquatx,
+                         float LHandquaty,
+                         float LHandquatz,
+                         float LHandquatw,
+                         float LHandposx,
+                         float LHandposy,
+                         float LHandposz,
+                         int lhandstatusFlags,
+                         float RHandquatx,
+                         float RHandquaty,
+                         float RHandquatz,
+                         float RHandquatw,
+                         float RHandposx,
+                         float RHandposy,
+                         float RHandposz,
+                         int rhandstatusFlags,
+                         int count)
+    {
         this.frameIndex = frameIndex;
 
         leftEyePose.Orientation.x = Lquatx;
@@ -100,42 +132,7 @@ public class FullPoseState
 
         temperature = temp;
         hmdStatusFlags = statusFlags;
-    }
 
-    /* Added as work-around to weird JNI issue - too many params on constructor?! */
-    public void setAdditionalPoseState1(
-            float Cameraquatx,
-            float Cameraquaty,
-            float Cameraquatz,
-            float Cameraquatw,
-            float Cameraposx,
-            float Cameraposy,
-            float Cameraposz,
-            float LevelledCameraquatx,
-            float LevelledCameraquaty,
-            float LevelledCameraquatz,
-            float LevelledCameraquatw,
-            float LevelledCameraposx,
-            float LevelledCameraposy,
-            float LevelledCameraposz,
-            float LHandquatx,
-            float LHandquaty,
-            float LHandquatz,
-            float LHandquatw,
-            float LHandposx,
-            float LHandposy,
-            float LHandposz,
-            int lhandstatusFlags,
-            float RHandquatx,
-            float RHandquaty,
-            float RHandquatz,
-            float RHandquatw,
-            float RHandposx,
-            float RHandposy,
-            float RHandposz,
-            int rhandstatusFlags,
-            int count)
-    {
         cameraPose.Orientation.x  = Cameraquatx;
         cameraPose.Orientation.y  = Cameraquaty;
         cameraPose.Orientation.z  = Cameraquatz;
@@ -222,9 +219,7 @@ public class FullPoseState
                 centerEyePose.LinearAcceleration.z ,
                 centerEyePose.TimeInSeconds        ,
                 temperature,
-                hmdStatusFlags);
-
-        cfps.setAdditionalPoseState1(
+                hmdStatusFlags,
                 cameraPose.Orientation.x,
                 cameraPose.Orientation.y,
                 cameraPose.Orientation.z,
@@ -263,10 +258,20 @@ public class FullPoseState
     public String toString()
     {
         StringBuilder sb = new StringBuilder();
-        sb.append("FrameIndex:    " + frameIndex).append("\n");
-        sb.append("leftEyePose:   " + leftEyePose.toString()).append("\n");
-        sb.append("rightEyePose:  " + rightEyePose.toString()).append("\n");
-        sb.append("centerEyePose: " + centerEyePose.toString()).append("\n");
+        sb.append("FrameIndex:           " + frameIndex).append("\n");
+        sb.append("leftEyePose:          " + leftEyePose.toString()).append("\n");
+        sb.append("rightEyePose:         " + rightEyePose.toString()).append("\n");
+        sb.append("centerEyePose:        " + centerEyePose.toString()).append("\n");
+        sb.append("TimeInSeconds:        " + centerEyePose.TimeInSeconds).append("\n");
+        sb.append("temperature:          " + temperature).append("\n");
+        sb.append("hmdStatusFlags:       " + hmdStatusFlags).append("\n");
+        sb.append("cameraPose:           " + cameraPose.toString()).append("\n");
+        sb.append("levelledCameraPose:   " + levelledCameraPose.toString()).append("\n");
+        sb.append("leftHandPose:         " + leftHandPose.toString()).append("\n");
+        sb.append("leftHandStatusFlags:  " + leftHandStatusFlags).append("\n");
+        sb.append("rightHandPose:        " + rightHandPose.toString()).append("\n");
+        sb.append("rightHandStatusFlags: " + rightHandStatusFlags).append("\n");
+        sb.append("counter:              " + counter).append("\n");
         return sb.toString();
     }
 }
