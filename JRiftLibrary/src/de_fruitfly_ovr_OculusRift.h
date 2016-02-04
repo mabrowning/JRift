@@ -86,13 +86,17 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1createSwapTextureSet
     
 /*
  * Class:     de_fruitfly_ovr_OculusRift
- * Method:    _setCurrentSwapTextureIndex
- * Signature: (I)Z;
+ * Method:    _setCurrentRenderTextureInfo
+ * Signature: (IIIII)Z;
  */
-JNIEXPORT jboolean JNICALL Java_de_fruitfly_ovr_OculusRift__1setCurrentSwapTextureIndex
+JNIEXPORT jboolean JNICALL Java_de_fruitfly_ovr_OculusRift__1setCurrentRenderTextureInfo
     (JNIEnv *env,
      jobject,
-     jint index);
+     jint index,
+	 jint textureIndex,
+	 jint depthTextureId,
+	 jint depthTextureWidth,
+	 jint depthTextureHeight);
     
 /*
  * Class:     de_fruitfly_ovr_OculusRift
@@ -241,6 +245,7 @@ void InitOvrResultMaps();
 void SetGenericOvrErrorInfo(JNIEnv *env, const char* error);
 void SetOvrErrorInfo(JNIEnv *env, const char* error, ovrResult ovr_result);
 jobject GetLastOvrErrorInfo(JNIEnv *env);
+void InitOvrDepthTextureSets();
 
 #ifdef __cplusplus
 }

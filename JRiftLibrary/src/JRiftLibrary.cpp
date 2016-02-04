@@ -43,6 +43,8 @@ ErrorInfo           _lastError;
 ovrSwapTextureSet*  _pSwapTextureSet[2];
 ovrSizei            _swapTextureSize[2];
 ovrGLTexture*       _pMirrorTexture    = 0;
+ovrSwapTextureSet   _DepthTextureSet[2];
+ovrGLTexture        _DepthTexture[2];
 
 ovrTrackingState    _hmdState;
 ovrInputState       _inputState;
@@ -50,6 +52,7 @@ ovrPosef            _eyeRenderPose[2];
 ovrGLTexture        _GLEyeTexture[2];
 ovrEyeRenderDesc    _EyeRenderDesc[2];
 double              _sensorSampleTime  = 0.0;
+ovrTimewarpProjectionDesc _PosTimewarpProjectionDesc;
 
 std::map<ovrErrorType,   std::string> _ErrorMap;
 std::map<ovrSuccessType, std::string> _SuccessMap;
@@ -367,30 +370,44 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1createSwapTextureSet
 	return jswapTextureSet;
 }
 
-JNIEXPORT jboolean JNICALL Java_de_fruitfly_ovr_OculusRift__1setCurrentSwapTextureIndex(
+JNIEXPORT jboolean JNICALL Java_de_fruitfly_ovr_OculusRift__1setCurrentRenderTextureInfo(
 	JNIEnv *env,
     jobject,
-    jint index)
+    jint index,
+	jint textureIndex,
+	jint depthTextureId,
+	jint depthTextureWidth,
+	jint depthTextureHeight)
 {
     if (!_initialised)
     {
         return false;
     }
+
+	if (index > 1)
+	{
+		return false;
+	}
     
-    if (_pSwapTextureSet[0] == 0 || _pSwapTextureSet[1] == 0)
+    if (_pSwapTextureSet[index] == 0)
     {
         return false;
     }
     
     if (index < 0 ||
-        index > (_pSwapTextureSet[0]->TextureCount - 1) ||
-        index > (_pSwapTextureSet[1]->TextureCount - 1))
+        index > (_pSwapTextureSet[index]->TextureCount - 1))
     {
         return false;
     }
     
-    _pSwapTextureSet[0]->CurrentIndex = index;
-    _pSwapTextureSet[1]->CurrentIndex = index;
+	// Set color texture index
+    _pSwapTextureSet[index]->CurrentIndex = textureIndex;
+
+	// Set depth texture info
+	ovrGLTexture* pDepthTexture = (ovrGLTexture*)&_DepthTextureSet[index].Textures[0];
+	pDepthTexture->OGL.TexId = depthTextureId;
+	pDepthTexture->OGL.Header.TextureSize.w = depthTextureWidth;
+	pDepthTexture->OGL.Header.TextureSize.h = depthTextureHeight;
     
     return true;
 }
@@ -547,7 +564,9 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getMatrix4fProjectio
     fov.LeftTan  = EyeFovPortLeftTan;
     fov.RightTan = EyeFovPortRightTan;
 
-    Matrix4f proj = ovrMatrix4f_Projection(fov, nearClip, farClip, true); // true = RH for OGL
+	unsigned int projectionModifier = ovrProjection_RightHanded | ovrProjection_ClipRangeOpenGL;
+    Matrix4f proj = ovrMatrix4f_Projection(fov, nearClip, farClip, projectionModifier); // RH for OGL
+	_PosTimewarpProjectionDesc = ovrTimewarpProjectionDesc_FromProjection(proj, projectionModifier);
 
     jobject jproj = env->NewObject(matrix4f_Class, matrix4f_constructor_MethodID,
                                    proj.M[0][0], proj.M[0][1], proj.M[0][2], proj.M[0][3],
@@ -573,21 +592,31 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1submitFrame(
     viewScaleDesc.HmdToEyeViewOffset[0] = _EyeRenderDesc[0].HmdToEyeViewOffset;
     viewScaleDesc.HmdToEyeViewOffset[1] = _EyeRenderDesc[1].HmdToEyeViewOffset;
   
-    ovrLayerEyeFov ld;
-    ld.Header.Type  = ovrLayerType_EyeFov;
-    ld.Header.Flags = ovrLayerFlag_TextureOriginAtBottomLeft;   // Because OpenGL.
+    ovrLayer_Union EyeLayer;
+	ovrGLTexture* pDepthTexture[2];
+	pDepthTexture[0] = (ovrGLTexture*)&_DepthTextureSet[0].Textures[0];
+	pDepthTexture[1] = (ovrGLTexture*)&_DepthTextureSet[1].Textures[0];
+	bool HasDepth = pDepthTexture[0]->OGL.TexId == -1 ? false : true;
+
+    EyeLayer.Header.Type  = HasDepth == true ? ovrLayerType_EyeFovDepth : ovrLayerType_EyeFov;
+    EyeLayer.Header.Flags = ovrLayerFlag_TextureOriginAtBottomLeft;   // Because OpenGL.
     
     for (int eye = 0; eye < 2; ++eye)
     {
-        ld.ColorTexture[eye] = _pSwapTextureSet[eye];
-        ld.Fov[eye]          = _hmdDesc.DefaultEyeFov[eye];
-        ld.RenderPose[eye]   = _eyeRenderPose[eye];
-        ld.SensorSampleTime  = _sensorSampleTime;
-    }
-	ld.Viewport[0]     = Recti(0,0,_swapTextureSize[0].w,_swapTextureSize[0].h);
-    ld.Viewport[1]     = Recti(0,0,_swapTextureSize[1].w,_swapTextureSize[1].h);
+        EyeLayer.EyeFov.ColorTexture[eye] = _pSwapTextureSet[eye];
+        EyeLayer.EyeFov.Fov[eye]          = _hmdDesc.DefaultEyeFov[eye];
+        EyeLayer.EyeFov.RenderPose[eye]   = _eyeRenderPose[eye];
+        EyeLayer.EyeFov.SensorSampleTime  = _sensorSampleTime;
+		EyeLayer.EyeFov.Viewport[eye]     = Recti(0,0,_swapTextureSize[eye].w,_swapTextureSize[eye].h);
 
-    ovrLayerHeader* layers = &ld.Header;
+		if (HasDepth)
+		{
+			EyeLayer.EyeFovDepth.DepthTexture[eye] = &_DepthTextureSet[eye];
+            EyeLayer.EyeFovDepth.ProjectionDesc    = _PosTimewarpProjectionDesc;
+		}
+    }
+
+    ovrLayerHeader* layers = &EyeLayer.Header;
     ovrResult ovr_result = ovr_SubmitFrame(_pHmdSession, 0, &viewScaleDesc, &layers, 1);
 	if (OVR_FAILURE(ovr_result))
 	{
@@ -1277,6 +1306,7 @@ bool LibFirstInit(JNIEnv *env)
 	if (!_performedFirstInit)
 	{
 		InitOvrResultMaps();
+		InitOvrDepthTextureSets();
 
 		Success = CacheJNIGlobals(env);
 		if (Success) 
@@ -1285,6 +1315,16 @@ bool LibFirstInit(JNIEnv *env)
 		}
 	}
 	return Success;
+}
+
+void InitOvrDepthTextureSets()
+{
+	for (int i = 0; i < 2; i++)
+	{
+		_DepthTextureSet[i].TextureCount = 1;
+		_DepthTextureSet[i].CurrentIndex = 0;
+		_DepthTextureSet[i].Textures = (ovrTexture*)&_DepthTexture[i];
+	}
 }
 
 void InitOvrResultMaps()

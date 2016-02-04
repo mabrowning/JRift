@@ -225,9 +225,9 @@ public class OculusRift //implements IVR
         return swapTextureSet;
     }
     
-    public boolean setCurrentRenderTextureIndex(int idx)
+    public boolean setCurrentRenderTextureInfo(int index, int textureIdx, int depthId, int depthWidth, int depthHeight)
     {
-    	return _setCurrentSwapTextureIndex(idx);
+    	return _setCurrentRenderTextureInfo(index, textureIdx, depthId, depthWidth, depthHeight);
     }
 
     public int createMirrorTexture(int width, int height)
@@ -264,7 +264,11 @@ public class OculusRift //implements IVR
                                                            int lheight,
                                                            int rwidth,
                                                            int rheight);
-    protected native boolean         _setCurrentSwapTextureIndex(int idx);
+    protected native boolean         _setCurrentRenderTextureInfo(int index,
+                                                                  int textureIdx,
+                                                                  int depthId,
+                                                                  int depthWidth,
+                                                                  int depthHeight);
     protected native int             _createMirrorTexture(int width,
                                                           int height);
     protected native RenderTextureInfo _getRenderTextureSize(float LeftFovUpTan,
