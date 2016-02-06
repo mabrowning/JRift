@@ -213,21 +213,32 @@ public class OculusRift //implements IVR
         return time;
     }
 
-    public SwapTextureSet createRenderTextureSet(int lwidth, int lheight, int rwidth, int rheight)
+    public RenderTextureSet createRenderTextureSet(int lwidth, int lheight, int rwidth, int rheight)
     {
         if (!isInitialized())
             return null;
 
-        SwapTextureSet swapTextureSet = _createSwapTextureSet(lwidth, lheight, rwidth, rheight);
-        if (swapTextureSet == null) {
+        RenderTextureSet renderTextureSet = _createRenderTextureSet(lwidth, lheight, rwidth, rheight);
+        if (renderTextureSet == null) {
             _lastErrorInfo = _getLastError();
         }
-        return swapTextureSet;
+        return renderTextureSet;
     }
     
     public boolean setCurrentRenderTextureInfo(int index, int textureIdx, int depthId, int depthWidth, int depthHeight)
     {
+        if (!isInitialized())
+            return false;
+
     	return _setCurrentRenderTextureInfo(index, textureIdx, depthId, depthWidth, depthHeight);
+    }
+
+    public void deleteRenderTextures()
+    {
+        if (!isInitialized())
+            return;
+
+        _destroyRenderTextureSet();
     }
 
     public int createMirrorTexture(int width, int height)
@@ -242,12 +253,25 @@ public class OculusRift //implements IVR
         return ret;
     }
 
+    public void deleteMirrorTexture()
+    {
+        if (!isInitialized())
+            return;
+
+        _destroyMirrorTexture();
+    }
+
     public ErrorInfo submitFrame()
     {
         if (!isInitialized())
             return null;
 
-        return _submitFrame(1f); // TODO: How best to set render params, layer stuff?
+        ErrorInfo ei = _submitFrame(1f); // TODO: How best to set render params, layer stuff?
+        if (ei != null && !ei.unqualifiedSuccess)
+        {
+            System.out.println("submitFrame: " + ei.errorStr);
+        }
+        return ei;
     }
 
     // Native declarations
@@ -260,17 +284,19 @@ public class OculusRift //implements IVR
     protected native HmdParameters   _getHmdParameters();
 
     protected native void            _resetTracking();
-    protected native SwapTextureSet  _createSwapTextureSet(int lwidth,
-                                                           int lheight,
-                                                           int rwidth,
-                                                           int rheight);
+    protected native RenderTextureSet _createRenderTextureSet(int lwidth,
+                                                              int lheight,
+                                                              int rwidth,
+                                                              int rheight);
     protected native boolean         _setCurrentRenderTextureInfo(int index,
                                                                   int textureIdx,
                                                                   int depthId,
                                                                   int depthWidth,
                                                                   int depthHeight);
+    protected native void            _destroyRenderTextureSet();
     protected native int             _createMirrorTexture(int width,
                                                           int height);
+    protected native void            _destroyMirrorTexture();
     protected native RenderTextureInfo _getRenderTextureSize(float LeftFovUpTan,
                                                              float LeftFovDownTan,
                                                              float LeftFovLeftTan,

@@ -72,10 +72,10 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getRenderTextureSize
 
 /*
  * Class:     de_fruitfly_ovr_OculusRift
- * Method:    _createSwapTextureSet
- * Signature: (IIII)Lde/fruitfly/ovr/SwapTextureSet;
+ * Method:    _createRenderTextureSet
+ * Signature: (IIII)Lde/fruitfly/ovr/RenderTextureSet;
  */
-JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1createSwapTextureSet(
+JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1createRenderTextureSet(
 	JNIEnv *env, 
 	jobject,
     jint lwidth,
@@ -100,10 +100,10 @@ JNIEXPORT jboolean JNICALL Java_de_fruitfly_ovr_OculusRift__1setCurrentRenderTex
     
 /*
  * Class:     de_fruitfly_ovr_OculusRift
- * Method:    _destroySwapTextureSet
+ * Method:    _destroyRenderTextureSet
  * Signature: ()V;
  */
-JNIEXPORT void JNICALL Java_de_fruitfly_ovr_OculusRift__1destroySwapTextureSet
+JNIEXPORT void JNICALL Java_de_fruitfly_ovr_OculusRift__1destroyRenderTextureSet
     (JNIEnv *env, jobject);
 
 /*
@@ -208,7 +208,7 @@ JNIEXPORT jdouble JNICALL Java_de_fruitfly_ovr_OculusRift__1getCurrentTimeSecs(
 /* Helpers */
 bool LibFirstInit(JNIEnv *env);
 void Reset();
-void DestroySwapTextureSet();
+void DestroyRenderTextureSet();
 void DestroyMirrorTexture();
 bool CacheJNIGlobals(JNIEnv *env);
 bool LookupJNIConstructorGlobal(JNIEnv *env,

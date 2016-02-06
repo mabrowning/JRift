@@ -40,9 +40,9 @@ struct ErrorInfo
 };
 
 ErrorInfo           _lastError;
-ovrSwapTextureSet*  _pSwapTextureSet[2];
-ovrSizei            _swapTextureSize[2];
-ovrGLTexture*       _pMirrorTexture    = 0;
+ovrSwapTextureSet*  _pRenderTextureSet[2];
+ovrSizei            _RenderTextureSize[2];
+ovrGLTexture*       _pMirrorTexture = 0;
 ovrSwapTextureSet   _DepthTextureSet[2];
 ovrGLTexture        _DepthTexture[2];
 
@@ -61,44 +61,44 @@ const Vector3f		UpVector(0.0f, 1.0f, 0.0f);
 const Vector3f		ForwardVector(0.0f, 0.0f, -1.0f);
 
 // JNI class / method caching
-static jclass       eyeRenderParams_Class                = 0;
-static jmethodID    eyeRenderParams_constructor_MethodID = 0;
-static jclass       frameTiming_Class                    = 0;
-static jmethodID    frameTiming_constructor_MethodID     = 0;
-static jclass       posef_Class                          = 0;
-static jmethodID    posef_constructor_MethodID           = 0;
-static jclass       trackerState_Class                   = 0;
-static jmethodID    trackerState_constructor_MethodID    = 0;
-static jclass       sizei_Class                          = 0;
-static jmethodID    sizei_constructor_MethodID           = 0;
+static jclass       eyeRenderParams_Class                   = 0;
+static jmethodID    eyeRenderParams_constructor_MethodID    = 0;
+static jclass       frameTiming_Class                       = 0;
+static jmethodID    frameTiming_constructor_MethodID        = 0;
+static jclass       posef_Class                             = 0;
+static jmethodID    posef_constructor_MethodID              = 0;
+static jclass       trackerState_Class                      = 0;
+static jmethodID    trackerState_constructor_MethodID       = 0;
+static jclass       sizei_Class                             = 0;
+static jmethodID    sizei_constructor_MethodID              = 0;
 static jclass       renderTextureInfo_Class                 = 0;
 static jmethodID    renderTextureInfo_constructor_MethodID  = 0;
-static jclass       hmdDesc_Class                        = 0;
-static jmethodID    hmdDesc_constructor_MethodID         = 0;
-static jclass       vector3f_Class                       = 0;
-static jmethodID    vector3f_constructor_MethodID        = 0;
-static jclass       matrix4f_Class                       = 0;
-static jmethodID    matrix4f_constructor_MethodID        = 0;
-static jclass       userProfileData_Class                = 0;
-static jmethodID    userProfileData_constructor_MethodID = 0;
-static jclass       fullPoseState_Class                  = 0;
-static jmethodID    fullPoseState_constructor_MethodID   = 0;
-static jclass       swapTextureSet_Class                 = 0;
-static jmethodID    swapTextureSet_constructor_MethodID  = 0;
-static jclass       eulerOrient_Class                    = 0;
-static jmethodID    eulerOrient_constructor_MethodID     = 0;
-static jclass       arrayListClass						 = 0;
-static jmethodID    method_arrayList_init                = 0;
-static jmethodID    method_arrayList_add                 = 0;
-static jclass       integerClass                         = 0;
-static jmethodID    method_integer_init                  = 0;
-static jclass       errorInfo_Class                      = 0;
-static jmethodID    errorInfo_constructor_MethodID       = 0;
-static jclass       quatf_Class                          = 0;
-static jmethodID    quatf_constructor_MethodID           = 0;
+static jclass       hmdDesc_Class                           = 0;
+static jmethodID    hmdDesc_constructor_MethodID            = 0;
+static jclass       vector3f_Class                          = 0;
+static jmethodID    vector3f_constructor_MethodID           = 0;
+static jclass       matrix4f_Class                          = 0;
+static jmethodID    matrix4f_constructor_MethodID           = 0;
+static jclass       userProfileData_Class                   = 0;
+static jmethodID    userProfileData_constructor_MethodID    = 0;
+static jclass       fullPoseState_Class                     = 0;
+static jmethodID    fullPoseState_constructor_MethodID      = 0;
+static jclass       renderTextureSet_Class                  = 0;
+static jmethodID    renderTextureSet_constructor_MethodID   = 0;
+static jclass       eulerOrient_Class                       = 0;
+static jmethodID    eulerOrient_constructor_MethodID        = 0;
+static jclass       arrayListClass						    = 0;
+static jmethodID    method_arrayList_init                   = 0;
+static jmethodID    method_arrayList_add                    = 0;
+static jclass       integerClass                            = 0;
+static jmethodID    method_integer_init                     = 0;
+static jclass       errorInfo_Class                         = 0;
+static jmethodID    errorInfo_constructor_MethodID          = 0;
+static jclass       quatf_Class                             = 0;
+static jmethodID    quatf_constructor_MethodID              = 0;
 
-static jfieldID     field_swapTextureSet_leftEyeTextureIds   = 0;
-static jfieldID     field_swapTextureSet_rightEyeTextureIds  = 0;
+static jfieldID     field_renderTextureSet_leftEyeTextureIds  = 0;
+static jfieldID     field_renderTextureSet_rightEyeTextureIds = 0;
 
 /* 
 Initialises 
@@ -298,7 +298,7 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getRenderTextureSize
     return jrenderTextureInfo;
 }
 
-JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1createSwapTextureSet(
+JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1createRenderTextureSet(
 	JNIEnv *env, 
 	jobject,
 	jint lwidth,
@@ -312,16 +312,16 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1createSwapTextureSet
 	if (!_initialised)
 		return 0;
 	
-	DestroySwapTextureSet();
+	DestroyRenderTextureSet();
 
 	boolean Result = true;
 
-	_swapTextureSize[0].w = lwidth;
-	_swapTextureSize[0].h = lheight;
-	_swapTextureSize[1].w = rwidth;
-	_swapTextureSize[1].h = rheight;
+	_RenderTextureSize[0].w = lwidth;
+	_RenderTextureSize[0].h = lheight;
+	_RenderTextureSize[1].w = rwidth;
+	_RenderTextureSize[1].h = rheight;
 
-	ovr_result = ovr_CreateSwapTextureSetGL(_pHmdSession, GL_SRGB8_ALPHA8, lwidth, lheight, &_pSwapTextureSet[0]);
+	ovr_result = ovr_CreateSwapTextureSetGL(_pHmdSession, GL_SRGB8_ALPHA8, lwidth, lheight, &_pRenderTextureSet[0]);
 	if (OVR_FAILURE(ovr_result))
 	{
 		Result = false;	
@@ -329,7 +329,7 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1createSwapTextureSet
 
 	if (Result)
 	{
-		ovr_result = ovr_CreateSwapTextureSetGL(_pHmdSession, GL_SRGB8_ALPHA8, rwidth, rheight, &_pSwapTextureSet[1]);
+		ovr_result = ovr_CreateSwapTextureSetGL(_pHmdSession, GL_SRGB8_ALPHA8, rwidth, rheight, &_pRenderTextureSet[1]);
 		if (OVR_FAILURE(ovr_result))
 		{
 			Result = false;	
@@ -338,36 +338,36 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1createSwapTextureSet
 
 	if (!Result)
 	{
-		SetOvrErrorInfo(env, "Unable to create swap texture set!", ovr_result);
+		SetOvrErrorInfo(env, "Unable to create render texture set!", ovr_result);
 
-		DestroySwapTextureSet();
+		DestroyRenderTextureSet();
 		return 0;
 	}
 
-	// Construct a new SwapTextureSet object
+	// Construct a new RenderTextureSet object
 	ClearException(env);
-	jobject jswapTextureSet = env->NewObject(swapTextureSet_Class, swapTextureSet_constructor_MethodID);
-	if (jswapTextureSet == 0) PrintNewObjectException(env, "SwapTextureSet");
+	jobject jrenderTextureSet = env->NewObject(renderTextureSet_Class, renderTextureSet_constructor_MethodID);
+	if (jrenderTextureSet == 0) PrintNewObjectException(env, "RenderTextureSet");
 
-	jobject leftEyeTextureIds = env->GetObjectField(jswapTextureSet, field_swapTextureSet_leftEyeTextureIds);
-	jobject rightEyeTextureIds = env->GetObjectField(jswapTextureSet, field_swapTextureSet_rightEyeTextureIds);
+	jobject leftEyeTextureIds = env->GetObjectField(jrenderTextureSet, field_renderTextureSet_leftEyeTextureIds);
+	jobject rightEyeTextureIds = env->GetObjectField(jrenderTextureSet, field_renderTextureSet_rightEyeTextureIds);
 
 	// Add the texture IDs
-	for (int i = 0; i < _pSwapTextureSet[0]->TextureCount; i++)
+	for (int i = 0; i < _pRenderTextureSet[0]->TextureCount; i++)
 	{
-		ovrGLTexture* tex = (ovrGLTexture*)&_pSwapTextureSet[0]->Textures[i];
+		ovrGLTexture* tex = (ovrGLTexture*)&_pRenderTextureSet[0]->Textures[i];
 		jobject texIdInt = env->NewObject(integerClass, method_integer_init, (jint)tex->OGL.TexId);
 		jboolean jbool = env->CallBooleanMethod(leftEyeTextureIds, method_arrayList_add, texIdInt);
 	}
-	for (int i = 0; i < _pSwapTextureSet[1]->TextureCount; i++)
+	for (int i = 0; i < _pRenderTextureSet[1]->TextureCount; i++)
 	{
-		ovrGLTexture* tex = (ovrGLTexture*)&_pSwapTextureSet[1]->Textures[i];
+		ovrGLTexture* tex = (ovrGLTexture*)&_pRenderTextureSet[1]->Textures[i];
 		jobject texIdInt = env->NewObject(integerClass, method_integer_init, (jint)tex->OGL.TexId);
 		jboolean jbool = env->CallBooleanMethod(rightEyeTextureIds, method_arrayList_add, texIdInt);
 	}
 
-	SetOvrErrorInfo(env, "Created swap texture set successfully!", ovr_result);
-	return jswapTextureSet;
+	SetOvrErrorInfo(env, "Created render texture set successfully!", ovr_result);
+	return jrenderTextureSet;
 }
 
 JNIEXPORT jboolean JNICALL Java_de_fruitfly_ovr_OculusRift__1setCurrentRenderTextureInfo(
@@ -389,19 +389,19 @@ JNIEXPORT jboolean JNICALL Java_de_fruitfly_ovr_OculusRift__1setCurrentRenderTex
 		return false;
 	}
     
-    if (_pSwapTextureSet[index] == 0)
+    if (_pRenderTextureSet[index] == 0)
     {
         return false;
     }
     
     if (index < 0 ||
-        index > (_pSwapTextureSet[index]->TextureCount - 1))
+        index > (_pRenderTextureSet[index]->TextureCount - 1))
     {
         return false;
     }
     
 	// Set color texture index
-    _pSwapTextureSet[index]->CurrentIndex = textureIndex;
+    _pRenderTextureSet[index]->CurrentIndex = textureIndex;
 
 	// Set depth texture info
 	ovrGLTexture* pDepthTexture = (ovrGLTexture*)&_DepthTextureSet[index].Textures[0];
@@ -412,10 +412,10 @@ JNIEXPORT jboolean JNICALL Java_de_fruitfly_ovr_OculusRift__1setCurrentRenderTex
     return true;
 }
 
-JNIEXPORT void JNICALL Java_de_fruitfly_ovr_OculusRift__1destroySwapTextureSet
+JNIEXPORT void JNICALL Java_de_fruitfly_ovr_OculusRift__1destroyRenderTextureSet
 (JNIEnv *env, jobject)
 {
-    DestroySwapTextureSet();
+    DestroyRenderTextureSet();
 }
 
 JNIEXPORT jint JNICALL Java_de_fruitfly_ovr_OculusRift__1createMirrorTexture(
@@ -603,11 +603,11 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1submitFrame(
     
     for (int eye = 0; eye < 2; ++eye)
     {
-        EyeLayer.EyeFov.ColorTexture[eye] = _pSwapTextureSet[eye];
+        EyeLayer.EyeFov.ColorTexture[eye] = _pRenderTextureSet[eye];
         EyeLayer.EyeFov.Fov[eye]          = _hmdDesc.DefaultEyeFov[eye];
         EyeLayer.EyeFov.RenderPose[eye]   = _eyeRenderPose[eye];
         EyeLayer.EyeFov.SensorSampleTime  = _sensorSampleTime;
-		EyeLayer.EyeFov.Viewport[eye]     = Recti(0,0,_swapTextureSize[eye].w,_swapTextureSize[eye].h);
+		EyeLayer.EyeFov.Viewport[eye]     = Recti(0,0,_RenderTextureSize[eye].w,_RenderTextureSize[eye].h);
 
 		if (HasDepth)
 		{
@@ -926,7 +926,7 @@ void Reset()
 	if (_initialised)
 	{
 		// Destroy render textures
-		DestroySwapTextureSet();
+		DestroyRenderTextureSet();
 
 		// Destroy mirror texture
 		DestroyMirrorTexture();
@@ -941,8 +941,8 @@ void Reset()
 
 	_pHmdSession = 0;
 
-	_pSwapTextureSet[0] = 0;
-	_pSwapTextureSet[1] = 0;
+	_pRenderTextureSet[0] = 0;
+	_pRenderTextureSet[1] = 0;
 	_pMirrorTexture     = 0;
 
     _eyeRenderPose[0].Orientation.x = 0.0;
@@ -963,24 +963,24 @@ void Reset()
 	_initialised = false;
 }
 
-void DestroySwapTextureSet()
+void DestroyRenderTextureSet()
 {
 	if (!_initialised)
 	{
-		_pSwapTextureSet[0] = 0;
-		_pSwapTextureSet[1] = 0;
+		_pRenderTextureSet[0] = 0;
+		_pRenderTextureSet[1] = 0;
 		return;
 	}
 
-	if (_pSwapTextureSet[0] != 0)
+	if (_pRenderTextureSet[0] != 0)
 	{		    
-		ovr_DestroySwapTextureSet(_pHmdSession, _pSwapTextureSet[0]);
-		_pSwapTextureSet[0] = 0;
+		ovr_DestroySwapTextureSet(_pHmdSession, _pRenderTextureSet[0]);
+		_pRenderTextureSet[0] = 0;
 	}
-	if (_pSwapTextureSet[1] != 0)
+	if (_pRenderTextureSet[1] != 0)
 	{
-		ovr_DestroySwapTextureSet(_pHmdSession, _pSwapTextureSet[1]);
-		_pSwapTextureSet[1] = 0;
+		ovr_DestroySwapTextureSet(_pHmdSession, _pRenderTextureSet[1]);
+		_pRenderTextureSet[1] = 0;
 	}
 }
 
@@ -1103,9 +1103,9 @@ bool CacheJNIGlobals(JNIEnv *env)
     }
 
 	if (!LookupJNIConstructorGlobal(env,
-                         swapTextureSet_Class,
-                         "de/fruitfly/ovr/structs/SwapTextureSet",
-                         swapTextureSet_constructor_MethodID,
+                         renderTextureSet_Class,
+                         "de/fruitfly/ovr/structs/RenderTextureSet",
+                         renderTextureSet_constructor_MethodID,
                          "()V"))
     {
         Success = false;
@@ -1121,9 +1121,9 @@ bool CacheJNIGlobals(JNIEnv *env)
     }
 
     if (!LookupJNIFieldGlobal(env,
-                         swapTextureSet_Class,
-                         "de/fruitfly/ovr/structs/SwapTextureSet",
-                         field_swapTextureSet_leftEyeTextureIds,
+                         renderTextureSet_Class,
+                         "de/fruitfly/ovr/structs/RenderTextureSet",
+                         field_renderTextureSet_leftEyeTextureIds,
                          "Ljava/util/ArrayList;",
 						 "leftEyeTextureIds"))
     {
@@ -1131,9 +1131,9 @@ bool CacheJNIGlobals(JNIEnv *env)
     }
 
     if (!LookupJNIFieldGlobal(env,
-                         swapTextureSet_Class,
-                         "de/fruitfly/ovr/structs/SwapTextureSet",
-                         field_swapTextureSet_rightEyeTextureIds,
+                         renderTextureSet_Class,
+                         "de/fruitfly/ovr/structs/RenderTextureSet",
+                         field_renderTextureSet_rightEyeTextureIds,
                          "Ljava/util/ArrayList;",
 						 "rightEyeTextureIds"))
     {
