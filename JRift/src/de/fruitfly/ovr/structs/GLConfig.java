@@ -6,4 +6,5 @@ public class GLConfig
     public long Display = 0;
     public boolean mirrorDisplay = true;
     public boolean usePositionalTimewarp = true;
+    public float worldScale = 1f;
 }

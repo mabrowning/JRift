@@ -154,12 +154,21 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getMatrix4fProjectio
 /*
  * Class:     de_fruitfly_ovr_OculusRift
  * Method:    _submitFrame
- * Signature: (F)Lde/fruitfly/ovr/structs/ErrorInfo;
+ * Signature: ()Lde/fruitfly/ovr/structs/ErrorInfo;
  */
 JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1submitFrame(
 	JNIEnv *env,
+	jobject);
+
+/*
+ * Class:     de_fruitfly_ovr_OculusRift
+ * Method:    _configureRenderer
+ * Signature: (F)V
+ */
+JNIEXPORT void JNICALL Java_de_fruitfly_ovr_OculusRift__1configureRenderer(
+	JNIEnv *env,
 	jobject,
-	jfloat HmdSpaceToWorldScaleInMeters);
+	jfloat);
 
 /*
  * Class:     de_fruitfly_ovr_OculusRift

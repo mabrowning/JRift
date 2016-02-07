@@ -266,12 +266,16 @@ public class OculusRift //implements IVR
         if (!isInitialized())
             return null;
 
-        ErrorInfo ei = _submitFrame(1f); // TODO: How best to set render params, layer stuff?
-        if (ei != null && !ei.unqualifiedSuccess)
-        {
-            System.out.println("submitFrame: " + ei.errorStr);
-        }
+        ErrorInfo ei = _submitFrame();
         return ei;
+    }
+
+    public void configureRenderer(GLConfig cfg)
+    {
+        if (!isInitialized())
+            return;
+
+        _configureRenderer(cfg.worldScale);
     }
 
     // Native declarations
@@ -284,6 +288,7 @@ public class OculusRift //implements IVR
     protected native HmdParameters   _getHmdParameters();
 
     protected native void            _resetTracking();
+    protected native void            _configureRenderer(float worldScale);
     protected native RenderTextureSet _createRenderTextureSet(int lwidth,
                                                               int lheight,
                                                               int rwidth,
@@ -326,7 +331,7 @@ public class OculusRift //implements IVR
                                                             int hand,
                                                             int rotationDir);
 
-    protected native ErrorInfo       _submitFrame(float worldScale);
+    protected native ErrorInfo       _submitFrame();
     protected native UserProfileData _getUserProfileData();
     protected native static String   _getVersionString();
     protected native static double   _getCurrentTimeSecs();

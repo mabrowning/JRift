@@ -53,6 +53,7 @@ ovrGLTexture        _GLEyeTexture[2];
 ovrEyeRenderDesc    _EyeRenderDesc[2];
 double              _sensorSampleTime  = 0.0;
 ovrTimewarpProjectionDesc _PosTimewarpProjectionDesc;
+float               _worldScale;
 
 std::map<ovrErrorType,   std::string> _ErrorMap;
 std::map<ovrSuccessType, std::string> _SuccessMap;
@@ -243,6 +244,17 @@ JNIEXPORT void JNICALL Java_de_fruitfly_ovr_OculusRift__1resetTracking(JNIEnv *e
 		return;
 
     ovr_RecenterPose(_pHmdSession);
+}
+
+JNIEXPORT void JNICALL Java_de_fruitfly_ovr_OculusRift__1configureRenderer(
+	JNIEnv *env,
+    jobject,
+    jfloat worldScale)
+{
+	if (!_initialised)
+		return;
+
+	_worldScale = worldScale;
 }
 
 JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getRenderTextureSize(
@@ -581,14 +593,13 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getMatrix4fProjectio
 
 JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1submitFrame(
 	JNIEnv *env,
-	jobject, 
-	jfloat HmdSpaceToWorldScaleInMeters)
+	jobject)
 {
     if (!_initialised)
         return 0;
 
     ovrViewScaleDesc viewScaleDesc;
-    viewScaleDesc.HmdSpaceToWorldScaleInMeters = HmdSpaceToWorldScaleInMeters;  // TODO: Find a better place for this  
+    viewScaleDesc.HmdSpaceToWorldScaleInMeters = _worldScale;   
     viewScaleDesc.HmdToEyeViewOffset[0] = _EyeRenderDesc[0].HmdToEyeViewOffset;
     viewScaleDesc.HmdToEyeViewOffset[1] = _EyeRenderDesc[1].HmdToEyeViewOffset;
   
@@ -959,6 +970,8 @@ void Reset()
 	_lastError.ovr_result         = ovrSuccess;
 	_lastError.Success            = OVR_SUCCESS(ovrSuccess);
 	_lastError.UnqualifiedSuccess = OVR_UNQUALIFIED_SUCCESS(ovrSuccess);
+
+	_worldScale = 1.0;
 
 	_initialised = false;
 }
