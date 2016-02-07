@@ -321,7 +321,7 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1createRenderTextureS
 	_RenderTextureSize[1].w = rwidth;
 	_RenderTextureSize[1].h = rheight;
 
-	ovr_result = ovr_CreateSwapTextureSetGL(_pHmdSession, GL_SRGB8_ALPHA8, lwidth, lheight, &_pRenderTextureSet[0]);
+	ovr_result = ovr_CreateSwapTextureSetGL(_pHmdSession, GL_SRGB8_ALPHA8, lwidth, lheight, &_pRenderTextureSet[0]); // GL_RGBA8?
 	if (OVR_FAILURE(ovr_result))
 	{
 		Result = false;	
