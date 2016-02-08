@@ -3,7 +3,10 @@ package de.fruitfly.ovr;
 import de.fruitfly.ovr.enums.*;
 import de.fruitfly.ovr.structs.*;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.text.DecimalFormat;
+import java.util.Properties;
 
 public class OculusRift //implements IVR
 {
@@ -17,6 +20,7 @@ public class OculusRift //implements IVR
 
     public static String NOT_INITIALISED = "Not initialised";
     public String _initSummary = NOT_INITIALISED;
+    private static String jriftVersion = null;
 
 	private static boolean libraryLoaded = false;
 	
@@ -54,6 +58,30 @@ public class OculusRift //implements IVR
             return "Not loaded";
 
         return _getVersionString();
+    }
+
+    public static String getJRiftVersionString()
+    {
+        if (jriftVersion == null)
+        {
+            String path = "/META-INF/maven/de.fruitfly.ovr/JRift/pom.properties";
+            InputStream stream = OculusRift.class.getResourceAsStream(path);
+            if (stream == null)
+                jriftVersion = "UNKNOWN";
+            else {
+                Properties props = new Properties();
+                try {
+                    props.load(stream);
+                    stream.close();
+                    jriftVersion = (String) props.get("version");
+                } catch (IOException e) {
+                    e.printStackTrace();
+                    jriftVersion = "UNKNOWN";
+                }
+            }
+        }
+
+        return jriftVersion;
     }
 
 	public boolean init()
