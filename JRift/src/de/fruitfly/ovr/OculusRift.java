@@ -388,6 +388,7 @@ public class OculusRift //implements IVR
     public static void main(String[] args)
     {
         long frameIndex = 0;
+        System.out.println("JRift version: " + OculusRift.getJRiftVersionString());
 
         // Will need to add the natives dir to your Java VM args: -Djava.library.path="<path to natives dir>"
 
