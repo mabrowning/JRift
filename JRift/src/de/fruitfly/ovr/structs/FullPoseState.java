@@ -17,6 +17,7 @@ public class FullPoseState
     public int   leftHandStatusFlags;
     public int   rightHandStatusFlags;
     public int   counter;
+    public double PredictedDisplayTime;
 
     public FullPoseState() {}
 
@@ -87,7 +88,8 @@ public class FullPoseState
                          float RHandposy,
                          float RHandposz,
                          int rhandstatusFlags,
-                         int count)
+                         int count,
+                         double predictedDisplayTime)
     {
         this.frameIndex = frameIndex;
 
@@ -168,6 +170,8 @@ public class FullPoseState
         rightHandStatusFlags        = rhandstatusFlags;
 
         counter = count;
+
+        PredictedDisplayTime = predictedDisplayTime;
     }
 
     public Posef getEyePose(EyeType eye)
@@ -250,7 +254,8 @@ public class FullPoseState
                 rightHandPose.Position.y,
                 rightHandPose.Position.z,
                 rightHandStatusFlags,
-                counter);
+                counter,
+                PredictedDisplayTime);
 
         return cfps;
     }
@@ -272,6 +277,7 @@ public class FullPoseState
         sb.append("rightHandPose:        " + rightHandPose.toString()).append("\n");
         sb.append("rightHandStatusFlags: " + rightHandStatusFlags).append("\n");
         sb.append("counter:              " + counter).append("\n");
+        sb.append("PredictedDisplayTimeSeconds: " + PredictedDisplayTime).append("\n");
         return sb.toString();
     }
 }

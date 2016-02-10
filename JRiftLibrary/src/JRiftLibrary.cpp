@@ -482,6 +482,7 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getTrackedPoses(
 	//ovr_GetInputState(_pHmdSession, ovrControllerType_All, &_inputState);
     _hmdState = ovr_GetTrackingState(_pHmdSession, ftiming, ovrTrue);
     ovr_CalcEyePoses(_hmdState.HeadPose.ThePose, ViewOffsets, _eyeRenderPose);
+	double PredictedDisplayTime = ovr_GetPredictedDisplayTime(_pHmdSession, FrameIndex);
 
     ClearException(env);
 	jobject jfullposestate = env->NewObject(fullPoseState_Class, fullPoseState_constructor_MethodID,
@@ -552,7 +553,8 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getTrackedPoses(
 								 _hmdState.HandPoses[1].ThePose.Position.y,      
 								 _hmdState.HandPoses[1].ThePose.Position.z,
 								 _hmdState.HandStatusFlags[1],
-								 _hmdState.LastCameraFrameCounter);
+								 _hmdState.LastCameraFrameCounter,
+								 PredictedDisplayTime);
 	
 	return jfullposestate;
 }
@@ -1071,15 +1073,6 @@ bool CacheJNIGlobals(JNIEnv *env)
     }
 
     if (!LookupJNIConstructorGlobal(env,
-                         frameTiming_Class,
-                         "de/fruitfly/ovr/structs/FrameTiming",
-                         frameTiming_constructor_MethodID,
-                         "(FDDDDDD)V"))
-    {
-        Success = false;
-    }
-
-    if (!LookupJNIConstructorGlobal(env,
                          matrix4f_Class,
                          "de/fruitfly/ovr/structs/Matrix4f",
                          matrix4f_constructor_MethodID,
@@ -1110,7 +1103,7 @@ bool CacheJNIGlobals(JNIEnv *env)
                          fullPoseState_Class,
                          "de/fruitfly/ovr/structs/FullPoseState",
                          fullPoseState_constructor_MethodID,
-                         "(JFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFDFIFFFFFFFFFFFFFFFFFFFFFIFFFFFFFII)V"))
+                         "(JFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFDFIFFFFFFFFFFFFFFFFFFFFFIFFFFFFFIID)V"))
     {
         Success = false;
     }
