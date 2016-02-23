@@ -399,7 +399,7 @@ public class OculusRift //implements IVR
         // Initialise the Rift
         if (!or.init())
         {
-            System.out.println("Failed to initialise OR lib");
+            System.out.println("Failed to initialise OR lib! " + or.getLastError());
             return;
         }
 

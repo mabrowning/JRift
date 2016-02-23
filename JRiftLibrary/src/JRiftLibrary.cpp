@@ -20,14 +20,14 @@ bool                _initialised        = false;
 bool                _performedFirstInit = false;
 
 const std::string   UNKNOWN_RUNTIME_VER = "<Unknown>";
-const std::string   NO_OVR_ERROR        = "<No error>";
-std::string         _ovrRuntimeVersion  = UNKNOWN_RUNTIME_VER;
+const std::string   _NO_ERROR           = "<No error>";
+std::string         _sRuntimeVersion    = UNKNOWN_RUNTIME_VER;
 
 struct ErrorInfo 
 {
 	ErrorInfo()
 	{
-		sError = NO_OVR_ERROR;
+		sError = _NO_ERROR;
 		ovr_result = ovrSuccess;
 		Success = true;
 		UnqualifiedSuccess = true;
@@ -105,7 +105,7 @@ static jfieldID     field_renderTextureSet_rightEyeTextureIds = 0;
 Initialises 
    - the LibOVR client -> RT connection
    - the HMD device session
-   - gets the HMD parameters
+   - gets the HMD render parameters
 */
 JNIEXPORT jboolean JNICALL Java_de_fruitfly_ovr_OculusRift__1initSubsystem(JNIEnv *env, jobject jobj) 
 {
@@ -118,7 +118,7 @@ JNIEXPORT jboolean JNICALL Java_de_fruitfly_ovr_OculusRift__1initSubsystem(JNIEn
 	// Do any lib first init
 	if (!LibFirstInit(env))
 	{
-		SetGenericOvrErrorInfo(env, "Failed libFirstInit()");
+		SetGenericErrorInfo(env, "Failed libFirstInit()");
 		return false;
 	}
 
@@ -131,21 +131,21 @@ JNIEXPORT jboolean JNICALL Java_de_fruitfly_ovr_OculusRift__1initSubsystem(JNIEn
 	ovr_result = ovr_Initialize(&initParams);
 	if (OVR_FAILURE(ovr_result)) 
 	{
-		SetOvrErrorInfo(env, "Unable to initialise LibOVR!", ovr_result);
+		_SetErrorInfo(env, "Unable to initialise LibOVR!", ovr_result);
 		return false;
 	}
 
 
 	// Get RT version
-	_ovrRuntimeVersion = ovr_GetVersionString();
-	printf("Initialised LibOVR! Client SDK version %s, Runtime version %s\n", OVR_VERSION_STRING, _ovrRuntimeVersion.c_str());
+	_sRuntimeVersion = ovr_GetVersionString();
+	printf("Initialised LibOVR! Client SDK version %s, Runtime version %s\n", OVR_VERSION_STRING, _sRuntimeVersion.c_str());
 
 
 	// Create the HMD session (HMD must be present or a debug device enabled)
 	ovr_result = ovr_Create(&_pHmdSession, &luid);
 	if (OVR_FAILURE(ovr_result))
 	{
-		SetOvrErrorInfo(env, "Unable to connect to HMD!", ovr_result);
+		_SetErrorInfo(env, "Unable to connect to HMD!", ovr_result);
 		return false;
 	}
 
@@ -165,13 +165,13 @@ JNIEXPORT jboolean JNICALL Java_de_fruitfly_ovr_OculusRift__1initSubsystem(JNIEn
 	_initialised = true;
 
 
-	SetOvrErrorInfo(env, "Initialised Rift successfully!", ovr_result);
+	_SetErrorInfo(env, "Initialised Rift successfully!", ovr_result);
 	return true;
 }
 
 JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getLastError(JNIEnv *env, jobject jobj) 
 {
-	return GetLastOvrErrorInfo(env);
+	return GetLastErrorInfo(env);
 }
 
 JNIEXPORT void JNICALL Java_de_fruitfly_ovr_OculusRift__1destroySubsystem(JNIEnv *env, jobject jobj) 
@@ -350,7 +350,7 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1createRenderTextureS
 
 	if (!Result)
 	{
-		SetOvrErrorInfo(env, "Unable to create render texture set!", ovr_result);
+		_SetErrorInfo(env, "Unable to create render texture set!", ovr_result);
 
 		DestroyRenderTextureSet();
 		return 0;
@@ -378,7 +378,7 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1createRenderTextureS
 		jboolean jbool = env->CallBooleanMethod(rightEyeTextureIds, method_arrayList_add, texIdInt);
 	}
 
-	SetOvrErrorInfo(env, "Created render texture set successfully!", ovr_result);
+	_SetErrorInfo(env, "Created render texture set successfully!", ovr_result);
 	return jrenderTextureSet;
 }
 
@@ -445,13 +445,13 @@ JNIEXPORT jint JNICALL Java_de_fruitfly_ovr_OculusRift__1createMirrorTexture(
 	ovrResult ovr_result = ovr_CreateMirrorTextureGL(_pHmdSession, GL_SRGB8_ALPHA8, width, height, (ovrTexture**)&_pMirrorTexture);
 	if (OVR_FAILURE(ovr_result))
 	{
-		SetOvrErrorInfo(env, "Unable to create mirror texture!", ovr_result);
+		_SetErrorInfo(env, "Unable to create mirror texture!", ovr_result);
 
 		_pMirrorTexture = 0;
 		return -1;
 	}
 
-	SetOvrErrorInfo(env, "Created mirror texture successfully!", ovr_result);
+	_SetErrorInfo(env, "Created mirror texture successfully!", ovr_result);
 
 	// Just return the texture ID
 	return _pMirrorTexture->OGL.TexId;
@@ -633,14 +633,14 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1submitFrame(
     ovrResult ovr_result = ovr_SubmitFrame(_pHmdSession, 0, &viewScaleDesc, &layers, 1);
 	if (OVR_FAILURE(ovr_result))
 	{
-		SetOvrErrorInfo(env, "Failed to submit frame!", ovr_result);
+		_SetErrorInfo(env, "Failed to submit frame!", ovr_result);
 	}
 	else
 	{
-		SetOvrErrorInfo(env, "Submitted frame successfully!", ovr_result);
+		_SetErrorInfo(env, "Submitted frame successfully!", ovr_result);
 	}
 	
-	return GetLastOvrErrorInfo(env);
+	return GetLastErrorInfo(env);
 }
 
 JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1convertQuatToEuler
@@ -967,7 +967,7 @@ void Reset()
     _eyeRenderPose[0].Position.z = 0.0;
     _eyeRenderPose[1] = _eyeRenderPose[0];
 
-	_ovrRuntimeVersion            = UNKNOWN_RUNTIME_VER;
+	_sRuntimeVersion            = UNKNOWN_RUNTIME_VER;
 	_lastError.sError             = "No error";
 	_lastError.ovr_result         = ovrSuccess;
 	_lastError.Success            = OVR_SUCCESS(ovrSuccess);
@@ -1396,12 +1396,12 @@ void InitOvrResultMaps()
     _SuccessMap[ovrSuccess_ControllerFirmwareMismatch] = "ovrSuccess_ControllerFirmwareMismatch";
 }
 
-void SetOvrErrorInfo(JNIEnv *env, const char* error, ovrResult ovr_result)
+void _SetErrorInfo(JNIEnv *env, const char* error, ovrResult ovr_result)
 {	
 	/* 
 	TODO: Use 
 		ovrErrorInfo errorInfo;
-		ovr_GetLastOvrErrorInfo(&errorInfo);
+		ovr_GetLastErrorInfo(&errorInfo);
 	when I can get it working...
 	*/
 
@@ -1428,7 +1428,7 @@ void SetOvrErrorInfo(JNIEnv *env, const char* error, ovrResult ovr_result)
 	if (strlen(error) > 0)
 	{
 		s << error << " [Client SDK version " << OVR_VERSION_STRING << 
-			", Runtime version " << _ovrRuntimeVersion.c_str() << "]: ";
+			", Runtime version " << _sRuntimeVersion.c_str() << "]: ";
 	}
 	s << sOvrError;
 
@@ -1438,12 +1438,12 @@ void SetOvrErrorInfo(JNIEnv *env, const char* error, ovrResult ovr_result)
 	_lastError.UnqualifiedSuccess = OVR_UNQUALIFIED_SUCCESS(ovr_result);
 }
 
-void SetGenericOvrErrorInfo(JNIEnv *env, const char* error)
+void SetGenericErrorInfo(JNIEnv *env, const char* error)
 {	
-    SetOvrErrorInfo(env, error, ovrError_Initialize);
+    _SetErrorInfo(env, error, ovrError_Initialize);
 }
 
-jobject GetLastOvrErrorInfo(JNIEnv *env)
+jobject GetLastErrorInfo(JNIEnv *env)
 {
 	if (!_performedFirstInit)
 	{

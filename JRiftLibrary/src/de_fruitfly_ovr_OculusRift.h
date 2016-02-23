@@ -251,9 +251,9 @@ void SetEulerEnumValues(int firstRotationAxis,
 					    OVR::HandedSystem& S);
 void SetAxisEnum(int value, OVR::Axis& A);
 void InitOvrResultMaps();
-void SetGenericOvrErrorInfo(JNIEnv *env, const char* error);
-void SetOvrErrorInfo(JNIEnv *env, const char* error, ovrResult ovr_result);
-jobject GetLastOvrErrorInfo(JNIEnv *env);
+void SetGenericErrorInfo(JNIEnv *env, const char* error);
+void _SetErrorInfo(JNIEnv *env, const char* error, ovrResult ovr_result);
+jobject GetLastErrorInfo(JNIEnv *env);
 void InitOvrDepthTextureSets();
 
 #ifdef __cplusplus
