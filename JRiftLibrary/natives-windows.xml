@@ -11,7 +11,7 @@
 	  <directory>natives/windows</directory>
 	  <outputDirectory>/</outputDirectory>
       <includes>
-        <include>*.dll</include>
+        <include>JRiftLibrary*.dll</include>
       </includes>      
     </fileSet>
   </fileSets>
