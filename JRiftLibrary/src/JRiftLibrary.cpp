@@ -582,6 +582,7 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getMatrix4fProjectio
     Matrix4f proj = ovrMatrix4f_Projection(fov, nearClip, farClip, projectionModifier); // RH for OGL
 	_PosTimewarpProjectionDesc = ovrTimewarpProjectionDesc_FromProjection(proj, projectionModifier);
 
+    ClearException(env);
     jobject jproj = env->NewObject(matrix4f_Class, matrix4f_constructor_MethodID,
                                    proj.M[0][0], proj.M[0][1], proj.M[0][2], proj.M[0][3],
                                    proj.M[1][0], proj.M[1][1], proj.M[1][2], proj.M[1][3],
