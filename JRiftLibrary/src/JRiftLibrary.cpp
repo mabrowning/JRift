@@ -39,17 +39,21 @@ struct ErrorInfo
 	bool        UnqualifiedSuccess;
 };
 
-ErrorInfo           _lastError;
-ovrSwapTextureSet*  _pRenderTextureSet[2];
-ovrSizei            _RenderTextureSize[2];
-ovrGLTexture*       _pMirrorTexture = 0;
-ovrSwapTextureSet   _DepthTextureSet[2];
-ovrGLTexture        _DepthTexture[2];
+ErrorInfo            _lastError;
+ovrTextureSwapChain  _pRenderTextureSet[2];
+ovrSizei             _RenderTextureSize[2];
+ovrMirrorTexture     _pMirrorTexture = 0;
+GLuint               _mirrorTexId = -1;
+ovrTextureSwapChain  _pDepthTextureSet[2];
+//ovrGLTexture         _DepthTexture[2];
 
-ovrTrackingState    _hmdState;
+ovrTrackingState    _hmdTrackerState;
+ovrTrackerPose      _hmdTrackerPoses;
+ovrTrackerDesc      _trackerDesc;
+uint32_t            _trackerCount;
 ovrInputState       _inputState;
 ovrPosef            _eyeRenderPose[2];
-ovrGLTexture        _GLEyeTexture[2];
+//ovrGLTexture        _GLEyeTexture[2];
 ovrEyeRenderDesc    _EyeRenderDesc[2];
 double              _sensorSampleTime  = 0.0;
 ovrTimewarpProjectionDesc _PosTimewarpProjectionDesc;
@@ -152,6 +156,9 @@ JNIEXPORT jboolean JNICALL Java_de_fruitfly_ovr_OculusRift__1initSubsystem(JNIEn
 
 	// Get the (default FOV) HMD configuration parameters
 	_hmdDesc = ovr_GetHmdDesc(_pHmdSession);
+	_trackerCount = ovr_GetTrackerCount(_pHmdSession);  // TODO: Support multiple trackers, and poll when needed, not at startup
+	if (_trackerCount > 0)
+		_trackerDesc = ovr_GetTrackerDesc(_pHmdSession, 0); 
 	_EyeRenderDesc[0] = ovr_GetRenderDesc(_pHmdSession, ovrEye_Left,  _hmdDesc.DefaultEyeFov[0]);
     _EyeRenderDesc[1] = ovr_GetRenderDesc(_pHmdSession, ovrEye_Right, _hmdDesc.DefaultEyeFov[1]);
 
@@ -200,10 +207,10 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getHmdParameters(JNI
 									  serialnumber,
 									  (int)_hmdDesc.FirmwareMajor,
 									  (int)_hmdDesc.FirmwareMinor,
-									  _hmdDesc.CameraFrustumHFovInRadians,
-									  _hmdDesc.CameraFrustumVFovInRadians,
-									  _hmdDesc.CameraFrustumNearZInMeters,
-									  _hmdDesc.CameraFrustumFarZInMeters,
+									  _trackerDesc.FrustumHFovInRadians,
+									  _trackerDesc.FrustumVFovInRadians,
+									  _trackerDesc.FrustumNearZInMeters,
+									  _trackerDesc.FrustumFarZInMeters,
                                       (int)_hmdDesc.AvailableHmdCaps,
 									  (int)_hmdDesc.DefaultHmdCaps,
                                       (int)_hmdDesc.AvailableTrackingCaps,
@@ -243,7 +250,7 @@ JNIEXPORT void JNICALL Java_de_fruitfly_ovr_OculusRift__1resetTracking(JNIEnv *e
 	if (!_initialised)
 		return;
 
-    ovr_RecenterPose(_pHmdSession);
+    ovr_RecenterTrackingOrigin(_pHmdSession);
 }
 
 JNIEXPORT void JNICALL Java_de_fruitfly_ovr_OculusRift__1configureRenderer(
@@ -333,28 +340,25 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1createRenderTextureS
 	_RenderTextureSize[1].w = rwidth;
 	_RenderTextureSize[1].h = rheight;
 
-	ovr_result = ovr_CreateSwapTextureSetGL(_pHmdSession, GL_SRGB8_ALPHA8, lwidth, lheight, &_pRenderTextureSet[0]); // GL_RGBA8?
-	if (OVR_FAILURE(ovr_result))
-	{
-		Result = false;	
-	}
+	ovrTextureSwapChainDesc ldesc = {};
+	ldesc.Type = ovrTexture_2D;
+	ldesc.ArraySize = 1;
+	ldesc.Width = lwidth;
+	ldesc.Height = lheight;
+	ldesc.MipLevels = 1;
+	ldesc.Format = OVR_FORMAT_R8G8B8A8_UNORM_SRGB;
+	ldesc.SampleCount = 1;
+	ldesc.StaticImage = ovrFalse;
 
-	if (Result)
-	{
-		ovr_result = ovr_CreateSwapTextureSetGL(_pHmdSession, GL_SRGB8_ALPHA8, rwidth, rheight, &_pRenderTextureSet[1]);
-		if (OVR_FAILURE(ovr_result))
-		{
-			Result = false;	
-		}	
-	}
-
-	if (!Result)
-	{
-		_SetErrorInfo(env, "Unable to create render texture set!", ovr_result);
-
-		DestroyRenderTextureSet();
-		return 0;
-	}
+	ovrTextureSwapChainDesc rdesc = {};
+	rdesc.Type = ovrTexture_2D;
+	rdesc.ArraySize = 1;
+	rdesc.Width = rwidth;
+	rdesc.Height = rheight;
+	rdesc.MipLevels = 1;
+	rdesc.Format = OVR_FORMAT_R8G8B8A8_UNORM_SRGB;
+	rdesc.SampleCount = 1;
+	rdesc.StaticImage = ovrFalse;
 
 	// Construct a new RenderTextureSet object
 	ClearException(env);
@@ -364,18 +368,58 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1createRenderTextureS
 	jobject leftEyeTextureIds = env->GetObjectField(jrenderTextureSet, field_renderTextureSet_leftEyeTextureIds);
 	jobject rightEyeTextureIds = env->GetObjectField(jrenderTextureSet, field_renderTextureSet_rightEyeTextureIds);
 
-	// Add the texture IDs
-	for (int i = 0; i < _pRenderTextureSet[0]->TextureCount; i++)
+	// Create the texture sets
+
+	// Left eye
+	ovr_result = ovr_CreateTextureSwapChainGL(_pHmdSession, &ldesc, &_pRenderTextureSet[0]);
+	if (OVR_FAILURE(ovr_result))
 	{
-		ovrGLTexture* tex = (ovrGLTexture*)&_pRenderTextureSet[0]->Textures[i];
-		jobject texIdInt = env->NewObject(integerClass, method_integer_init, (jint)tex->OGL.TexId);
-		jboolean jbool = env->CallBooleanMethod(leftEyeTextureIds, method_arrayList_add, texIdInt);
+		Result = false;	
 	}
-	for (int i = 0; i < _pRenderTextureSet[1]->TextureCount; i++)
+
+	if (Result)
 	{
-		ovrGLTexture* tex = (ovrGLTexture*)&_pRenderTextureSet[1]->Textures[i];
-		jobject texIdInt = env->NewObject(integerClass, method_integer_init, (jint)tex->OGL.TexId);
-		jboolean jbool = env->CallBooleanMethod(rightEyeTextureIds, method_arrayList_add, texIdInt);
+		int length = 0;
+        ovr_GetTextureSwapChainLength(_pHmdSession, _pRenderTextureSet[0], &length);
+        for (int i = 0; i < length; ++i)
+        {
+            GLuint chainTexId;
+            ovr_GetTextureSwapChainBufferGL(_pHmdSession, _pRenderTextureSet[0], i, &chainTexId);
+			jobject texIdInt = env->NewObject(integerClass, method_integer_init, (jint)chainTexId);
+		    env->CallBooleanMethod(leftEyeTextureIds, method_arrayList_add, texIdInt);
+		}
+	}
+
+	// Right eye
+	if (Result)
+	{
+		ovr_result = ovr_CreateTextureSwapChainGL(_pHmdSession, &rdesc, &_pRenderTextureSet[1]);
+		if (OVR_FAILURE(ovr_result))
+		{
+			Result = false;	
+		}
+
+		if (Result)
+		{
+			int length = 0;
+			ovr_GetTextureSwapChainLength(_pHmdSession, _pRenderTextureSet[1], &length);
+			for (int i = 0; i < length; ++i)
+			{
+				GLuint chainTexId;
+				ovr_GetTextureSwapChainBufferGL(_pHmdSession, _pRenderTextureSet[0], i, &chainTexId);
+				jobject texIdInt = env->NewObject(integerClass, method_integer_init, (jint)chainTexId);
+				env->CallBooleanMethod(rightEyeTextureIds, method_arrayList_add, texIdInt);
+			}
+		}	
+	}
+
+	if (!Result)
+	{
+		_SetErrorInfo(env, "Unable to create render texture set!", ovr_result);
+
+		DestroyRenderTextureSet();
+		env->DeleteLocalRef(jrenderTextureSet);
+		return 0;
 	}
 
 	_SetErrorInfo(env, "Created render texture set successfully!", ovr_result);
@@ -406,8 +450,9 @@ JNIEXPORT jboolean JNICALL Java_de_fruitfly_ovr_OculusRift__1setCurrentRenderTex
         return false;
     }
     
+	/*
     if (index < 0 ||
-        index > (_pRenderTextureSet[index]->TextureCount - 1))
+        index > (_pRenderTextureSet[index]-> - 1))
     {
         return false;
     }
@@ -416,10 +461,11 @@ JNIEXPORT jboolean JNICALL Java_de_fruitfly_ovr_OculusRift__1setCurrentRenderTex
     _pRenderTextureSet[index]->CurrentIndex = textureIndex;
 
 	// Set depth texture info
-	ovrGLTexture* pDepthTexture = (ovrGLTexture*)&_DepthTextureSet[index].Textures[0];
+	ovrGLTexture* pDepthTexture = (ovrGLTexture*)&_pDepthTextureSet[index].Textures[0];
 	pDepthTexture->OGL.TexId = depthTextureId;
 	pDepthTexture->OGL.Header.TextureSize.w = depthTextureWidth;
 	pDepthTexture->OGL.Header.TextureSize.h = depthTextureHeight;
+	*/
     
     return true;
 }
@@ -442,7 +488,13 @@ JNIEXPORT jint JNICALL Java_de_fruitfly_ovr_OculusRift__1createMirrorTexture(
 
 	DestroyMirrorTexture();
 
-	ovrResult ovr_result = ovr_CreateMirrorTextureGL(_pHmdSession, GL_SRGB8_ALPHA8, width, height, (ovrTexture**)&_pMirrorTexture);
+	ovrMirrorTextureDesc desc;
+    memset(&desc, 0, sizeof(desc));
+    desc.Width = width;
+    desc.Height = height;
+    desc.Format = OVR_FORMAT_R8G8B8A8_UNORM_SRGB;
+
+	ovrResult ovr_result = ovr_CreateMirrorTextureGL(_pHmdSession, &desc, &_pMirrorTexture);
 	if (OVR_FAILURE(ovr_result))
 	{
 		_SetErrorInfo(env, "Unable to create mirror texture!", ovr_result);
@@ -454,7 +506,8 @@ JNIEXPORT jint JNICALL Java_de_fruitfly_ovr_OculusRift__1createMirrorTexture(
 	_SetErrorInfo(env, "Created mirror texture successfully!", ovr_result);
 
 	// Just return the texture ID
-	return _pMirrorTexture->OGL.TexId;
+    ovr_GetMirrorTextureBufferGL(_pHmdSession, _pMirrorTexture, &_mirrorTexId);
+	return _mirrorTexId;
 }
 
 JNIEXPORT void JNICALL Java_de_fruitfly_ovr_OculusRift__1destroyMirrorTexture
@@ -473,15 +526,18 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getTrackedPoses(
         return 0;
 
 	// Use mandated view offsets
-	ovrVector3f ViewOffsets[2] = { _EyeRenderDesc[0].HmdToEyeViewOffset,
-                                   _EyeRenderDesc[1].HmdToEyeViewOffset };
+	ovrVector3f ViewOffsets[2] = { _EyeRenderDesc[0].HmdToEyeOffset,
+                                   _EyeRenderDesc[1].HmdToEyeOffset };
 
 	// Get eye poses at our predicted display times
 	double ftiming = ovr_GetPredictedDisplayTime(_pHmdSession, FrameIndex);
     _sensorSampleTime = ovr_GetTimeInSeconds();
 	//ovr_GetInputState(_pHmdSession, ovrControllerType_All, &_inputState);
-    _hmdState = ovr_GetTrackingState(_pHmdSession, ftiming, ovrTrue);
-    ovr_CalcEyePoses(_hmdState.HeadPose.ThePose, ViewOffsets, _eyeRenderPose);
+    _hmdTrackerState = ovr_GetTrackingState(_pHmdSession, ftiming, ovrTrue);
+	if (_trackerCount > 0)
+		_hmdTrackerPoses = ovr_GetTrackerPose(_pHmdSession, 0); // TODO: Get all tracker states
+
+    ovr_CalcEyePoses(_hmdTrackerState.HeadPose.ThePose, ViewOffsets, _eyeRenderPose);
 	double PredictedDisplayTime = ovr_GetPredictedDisplayTime(_pHmdSession, FrameIndex);
 
     ClearException(env);
@@ -501,59 +557,59 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getTrackedPoses(
 								 _eyeRenderPose[1].Position.x,
 								 _eyeRenderPose[1].Position.y,
 								 _eyeRenderPose[1].Position.z,
-								 _hmdState.HeadPose.ThePose.Orientation.x,   
-								 _hmdState.HeadPose.ThePose.Orientation.y,  
-								 _hmdState.HeadPose.ThePose.Orientation.z,   
-								 _hmdState.HeadPose.ThePose.Orientation.w,   
-								 _hmdState.HeadPose.ThePose.Position.x,      
-								 _hmdState.HeadPose.ThePose.Position.y,      
-								 _hmdState.HeadPose.ThePose.Position.z,      
-								 _hmdState.HeadPose.AngularVelocity.x,    
-								 _hmdState.HeadPose.AngularVelocity.y,    
-								 _hmdState.HeadPose.AngularVelocity.z,    
-								 _hmdState.HeadPose.LinearVelocity.x,     
-								 _hmdState.HeadPose.LinearVelocity.y,     
-								 _hmdState.HeadPose.LinearVelocity.z,     
-								 _hmdState.HeadPose.AngularAcceleration.x,
-								 _hmdState.HeadPose.AngularAcceleration.y,
-								 _hmdState.HeadPose.AngularAcceleration.z,
-								 _hmdState.HeadPose.LinearAcceleration.x, 
-								 _hmdState.HeadPose.LinearAcceleration.y, 
-								 _hmdState.HeadPose.LinearAcceleration.z, 
-								 _hmdState.HeadPose.TimeInSeconds,        
-								 _hmdState.RawSensorData.Temperature,
-								 _hmdState.StatusFlags,
-								 _hmdState.CameraPose.Orientation.x,   
-								 _hmdState.CameraPose.Orientation.y,  
-								 _hmdState.CameraPose.Orientation.z,   
-								 _hmdState.CameraPose.Orientation.w,   
-								 _hmdState.CameraPose.Position.x,      
-								 _hmdState.CameraPose.Position.y,      
-								 _hmdState.CameraPose.Position.z,
-								 _hmdState.LeveledCameraPose.Orientation.x,   
-								 _hmdState.LeveledCameraPose.Orientation.y,  
-								 _hmdState.LeveledCameraPose.Orientation.z,   
-								 _hmdState.LeveledCameraPose.Orientation.w,   
-								 _hmdState.LeveledCameraPose.Position.x,      
-								 _hmdState.LeveledCameraPose.Position.y,      
-								 _hmdState.LeveledCameraPose.Position.z,
-								 _hmdState.HandPoses[0].ThePose.Orientation.x,   
-								 _hmdState.HandPoses[0].ThePose.Orientation.y,  
-								 _hmdState.HandPoses[0].ThePose.Orientation.z,   
-								 _hmdState.HandPoses[0].ThePose.Orientation.w,   
-								 _hmdState.HandPoses[0].ThePose.Position.x,      
-								 _hmdState.HandPoses[0].ThePose.Position.y,      
-								 _hmdState.HandPoses[0].ThePose.Position.z,
-								 _hmdState.HandStatusFlags[0],
-								 _hmdState.HandPoses[1].ThePose.Orientation.x,   
-								 _hmdState.HandPoses[1].ThePose.Orientation.y,  
-								 _hmdState.HandPoses[1].ThePose.Orientation.z,   
-								 _hmdState.HandPoses[1].ThePose.Orientation.w,   
-								 _hmdState.HandPoses[1].ThePose.Position.x,      
-								 _hmdState.HandPoses[1].ThePose.Position.y,      
-								 _hmdState.HandPoses[1].ThePose.Position.z,
-								 _hmdState.HandStatusFlags[1],
-								 _hmdState.LastCameraFrameCounter,
+								 _hmdTrackerState.HeadPose.ThePose.Orientation.x,   
+								 _hmdTrackerState.HeadPose.ThePose.Orientation.y,  
+								 _hmdTrackerState.HeadPose.ThePose.Orientation.z,   
+								 _hmdTrackerState.HeadPose.ThePose.Orientation.w,   
+								 _hmdTrackerState.HeadPose.ThePose.Position.x,      
+								 _hmdTrackerState.HeadPose.ThePose.Position.y,      
+								 _hmdTrackerState.HeadPose.ThePose.Position.z,      
+								 _hmdTrackerState.HeadPose.AngularVelocity.x,    
+								 _hmdTrackerState.HeadPose.AngularVelocity.y,    
+								 _hmdTrackerState.HeadPose.AngularVelocity.z,    
+								 _hmdTrackerState.HeadPose.LinearVelocity.x,     
+								 _hmdTrackerState.HeadPose.LinearVelocity.y,     
+								 _hmdTrackerState.HeadPose.LinearVelocity.z,     
+								 _hmdTrackerState.HeadPose.AngularAcceleration.x,
+								 _hmdTrackerState.HeadPose.AngularAcceleration.y,
+								 _hmdTrackerState.HeadPose.AngularAcceleration.z,
+								 _hmdTrackerState.HeadPose.LinearAcceleration.x, 
+								 _hmdTrackerState.HeadPose.LinearAcceleration.y, 
+								 _hmdTrackerState.HeadPose.LinearAcceleration.z, 
+								 _hmdTrackerState.HeadPose.TimeInSeconds,        
+								 0, // TODO: Remove
+								 _hmdTrackerState.StatusFlags,
+								 _hmdTrackerPoses.Pose.Orientation.x,   
+								 _hmdTrackerPoses.Pose.Orientation.y,  
+								 _hmdTrackerPoses.Pose.Orientation.z,   
+								 _hmdTrackerPoses.Pose.Orientation.w,   
+								 _hmdTrackerPoses.Pose.Position.x,      
+								 _hmdTrackerPoses.Pose.Position.y,      
+								 _hmdTrackerPoses.Pose.Position.z,
+								 _hmdTrackerPoses.LeveledPose.Orientation.x,   
+								 _hmdTrackerPoses.LeveledPose.Orientation.y,  
+								 _hmdTrackerPoses.LeveledPose.Orientation.z,   
+								 _hmdTrackerPoses.LeveledPose.Orientation.w,   
+								 _hmdTrackerPoses.LeveledPose.Position.x,      
+								 _hmdTrackerPoses.LeveledPose.Position.y,      
+								 _hmdTrackerPoses.LeveledPose.Position.z,
+								 _hmdTrackerState.HandPoses[0].ThePose.Orientation.x,   
+								 _hmdTrackerState.HandPoses[0].ThePose.Orientation.y,  
+								 _hmdTrackerState.HandPoses[0].ThePose.Orientation.z,   
+								 _hmdTrackerState.HandPoses[0].ThePose.Orientation.w,   
+								 _hmdTrackerState.HandPoses[0].ThePose.Position.x,      
+								 _hmdTrackerState.HandPoses[0].ThePose.Position.y,      
+								 _hmdTrackerState.HandPoses[0].ThePose.Position.z,
+								 _hmdTrackerState.HandStatusFlags[0],
+								 _hmdTrackerState.HandPoses[1].ThePose.Orientation.x,   
+								 _hmdTrackerState.HandPoses[1].ThePose.Orientation.y,  
+								 _hmdTrackerState.HandPoses[1].ThePose.Orientation.z,   
+								 _hmdTrackerState.HandPoses[1].ThePose.Orientation.w,   
+								 _hmdTrackerState.HandPoses[1].ThePose.Position.x,      
+								 _hmdTrackerState.HandPoses[1].ThePose.Position.y,      
+								 _hmdTrackerState.HandPoses[1].ThePose.Position.z,
+								 _hmdTrackerState.HandStatusFlags[1],
+								 0, // TODO: Remove
 								 PredictedDisplayTime);
 	
 	return jfullposestate;
@@ -578,8 +634,8 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getMatrix4fProjectio
     fov.LeftTan  = EyeFovPortLeftTan;
     fov.RightTan = EyeFovPortRightTan;
 
-	unsigned int projectionModifier = ovrProjection_RightHanded | ovrProjection_ClipRangeOpenGL;
-    Matrix4f proj = ovrMatrix4f_Projection(fov, nearClip, farClip, projectionModifier); // RH for OGL
+	unsigned int projectionModifier = ovrProjection_ClipRangeOpenGL;
+    Matrix4f proj = ovrMatrix4f_Projection(fov, nearClip, farClip, projectionModifier); // RH for OGL (by default)
 	_PosTimewarpProjectionDesc = ovrTimewarpProjectionDesc_FromProjection(proj, projectionModifier);
 
     ClearException(env);
@@ -603,13 +659,13 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1submitFrame(
 
     ovrViewScaleDesc viewScaleDesc;
     viewScaleDesc.HmdSpaceToWorldScaleInMeters = _worldScale;   
-    viewScaleDesc.HmdToEyeViewOffset[0] = _EyeRenderDesc[0].HmdToEyeViewOffset;
-    viewScaleDesc.HmdToEyeViewOffset[1] = _EyeRenderDesc[1].HmdToEyeViewOffset;
+    viewScaleDesc.HmdToEyeOffset[0] = _EyeRenderDesc[0].HmdToEyeOffset;
+    viewScaleDesc.HmdToEyeOffset[1] = _EyeRenderDesc[1].HmdToEyeOffset;
   
     ovrLayer_Union EyeLayer;
 	ovrGLTexture* pDepthTexture[2];
-	pDepthTexture[0] = (ovrGLTexture*)&_DepthTextureSet[0].Textures[0];
-	pDepthTexture[1] = (ovrGLTexture*)&_DepthTextureSet[1].Textures[0];
+	pDepthTexture[0] = (ovrGLTexture*)&_pDepthTextureSet[0].Textures[0];
+	pDepthTexture[1] = (ovrGLTexture*)&_pDepthTextureSet[1].Textures[0];
 	bool HasDepth = pDepthTexture[0]->OGL.TexId == -1 ? false : true;
 
     EyeLayer.Header.Type  = HasDepth == true ? ovrLayerType_EyeFovDepth : ovrLayerType_EyeFov;
@@ -625,7 +681,7 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1submitFrame(
 
 		if (HasDepth)
 		{
-			EyeLayer.EyeFovDepth.DepthTexture[eye] = &_DepthTextureSet[eye];
+			EyeLayer.EyeFovDepth.DepthTexture[eye] = &_pDepthTextureSet[eye];
             EyeLayer.EyeFovDepth.ProjectionDesc    = _PosTimewarpProjectionDesc;
 		}
     }
@@ -990,12 +1046,12 @@ void DestroyRenderTextureSet()
 
 	if (_pRenderTextureSet[0] != 0)
 	{		    
-		ovr_DestroySwapTextureSet(_pHmdSession, _pRenderTextureSet[0]);
+		ovr_DestroyTextureSwapChain(_pHmdSession, _pRenderTextureSet[0]);
 		_pRenderTextureSet[0] = 0;
 	}
 	if (_pRenderTextureSet[1] != 0)
 	{
-		ovr_DestroySwapTextureSet(_pHmdSession, _pRenderTextureSet[1]);
+		ovr_DestroyTextureSwapChain(_pHmdSession, _pRenderTextureSet[1]);
 		_pRenderTextureSet[1] = 0;
 	}
 }
@@ -1005,13 +1061,15 @@ void DestroyMirrorTexture()
 	if (!_initialised)
 	{
 		_pMirrorTexture = 0;
+		_mirrorTexId = -1;
 		return;
 	}
 
 	if (_pMirrorTexture != 0)
 	{
-		ovr_DestroyMirrorTexture(_pHmdSession, (ovrTexture*)_pMirrorTexture);
+		ovr_DestroyMirrorTexture(_pHmdSession, _pMirrorTexture);
 		_pMirrorTexture = 0;
+		_mirrorTexId = -1;
 	}
 }
 
@@ -1328,9 +1386,9 @@ void InitOvrDepthTextureSets()
 {
 	for (int i = 0; i < 2; i++)
 	{
-		_DepthTextureSet[i].TextureCount = 1;
-		_DepthTextureSet[i].CurrentIndex = 0;
-		_DepthTextureSet[i].Textures = (ovrTexture*)&_DepthTexture[i];
+		_pDepthTextureSet[i].TextureCount = 1;
+		_pDepthTextureSet[i].CurrentIndex = 0;
+		_pDepthTextureSet[i].Textures = (ovrTexture*)&_DepthTexture[i];
 	}
 }
 
