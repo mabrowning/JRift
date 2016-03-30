@@ -253,12 +253,20 @@ public class OculusRift //implements IVR
         return renderTextureSet;
     }
     
-    public boolean setCurrentRenderTextureInfo(int index, int textureIdx, int depthId, int depthWidth, int depthHeight)
+    public int getCurrentEyeRenderTextureId(EyeType eye)
     {
         if (!isInitialized())
-            return false;
+            return 0;
 
-    	return _setCurrentRenderTextureInfo(index, textureIdx, depthId, depthWidth, depthHeight);
+    	return _getCurrentEyeRenderTextureId(eye);
+    }
+
+    public int commitCurrentEyeRenderTexture(EyeType eye)
+    {
+        if (!isInitialized())
+            return 0;
+
+        return _commitCurrentEyeRenderTexture(eye);
     }
 
     public void deleteRenderTextures()
@@ -321,11 +329,8 @@ public class OculusRift //implements IVR
                                                               int lheight,
                                                               int rwidth,
                                                               int rheight);
-    protected native boolean         _setCurrentRenderTextureInfo(int index,
-                                                                  int textureIdx,
-                                                                  int depthId,
-                                                                  int depthWidth,
-                                                                  int depthHeight);
+    protected native int             _getCurrentEyeRenderTextureId(int eye);
+    protected native int             _commitCurrentEyeRenderTexture(int eye);
     protected native void            _destroyRenderTextureSet();
     protected native int             _createMirrorTexture(int width,
                                                           int height);

@@ -86,17 +86,23 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1createRenderTextureS
     
 /*
  * Class:     de_fruitfly_ovr_OculusRift
- * Method:    _setCurrentRenderTextureInfo
- * Signature: (IIIII)Z;
+ * Method:    _getCurrentEyeRenderTextureId
+ * Signature: (I)I;
  */
-JNIEXPORT jboolean JNICALL Java_de_fruitfly_ovr_OculusRift__1setCurrentRenderTextureInfo
+JNIEXPORT jint JNICALL Java_de_fruitfly_ovr_OculusRift__1getCurrentEyeRenderTextureId
     (JNIEnv *env,
      jobject,
-     jint index,
-	 jint textureIndex,
-	 jint depthTextureId,
-	 jint depthTextureWidth,
-	 jint depthTextureHeight);
+     jint Eye);
+
+/*
+ * Class:     de_fruitfly_ovr_OculusRift
+ * Method:    _commitCurrentEyeRenderTexture
+ * Signature: (I)V;
+ */
+JNIEXPORT void JNICALL Java_de_fruitfly_ovr_OculusRift__1commitCurrentEyeRenderTexture(
+	JNIEnv *env,
+    jobject,
+    jint Eye);
     
 /*
  * Class:     de_fruitfly_ovr_OculusRift
@@ -217,6 +223,7 @@ JNIEXPORT jdouble JNICALL Java_de_fruitfly_ovr_OculusRift__1getCurrentTimeSecs(
 /* Helpers */
 bool LibFirstInit(JNIEnv *env);
 void Reset();
+void ResetTracking();
 void DestroyRenderTextureSet();
 void DestroyMirrorTexture();
 bool CacheJNIGlobals(JNIEnv *env);

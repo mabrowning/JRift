@@ -23,6 +23,8 @@ const std::string   UNKNOWN_RUNTIME_VER = "<Unknown>";
 const std::string   _NO_ERROR           = "<No error>";
 std::string         _sRuntimeVersion    = UNKNOWN_RUNTIME_VER;
 
+const int32_t ovrSuccess_SessionShouldQuit  = 9999;
+
 struct ErrorInfo 
 {
 	ErrorInfo()
@@ -59,8 +61,8 @@ double              _sensorSampleTime  = 0.0;
 ovrTimewarpProjectionDesc _PosTimewarpProjectionDesc;
 float               _worldScale;
 
-std::map<ovrErrorType,   std::string> _ErrorMap;
-std::map<ovrSuccessType, std::string> _SuccessMap;
+std::map<int32_t, std::string> _ErrorMap;
+std::map<int32_t, std::string> _SuccessMap;
 
 const Vector3f		UpVector(0.0f, 1.0f, 0.0f);
 const Vector3f		ForwardVector(0.0f, 0.0f, -1.0f);
@@ -154,11 +156,15 @@ JNIEXPORT jboolean JNICALL Java_de_fruitfly_ovr_OculusRift__1initSubsystem(JNIEn
 	}
 
 
-	// Get the (default FOV) HMD configuration parameters
+	// Get the HMD and HMD tracker configuration parameters
 	_hmdDesc = ovr_GetHmdDesc(_pHmdSession);
 	_trackerCount = ovr_GetTrackerCount(_pHmdSession);  // TODO: Support multiple trackers, and poll when needed, not at startup
 	if (_trackerCount > 0)
 		_trackerDesc = ovr_GetTrackerDesc(_pHmdSession, 0); 
+	ovr_SetTrackingOriginType(_pHmdSession, ovrTrackingOrigin_EyeLevel); // TODO: Allow selection of ovrTrackingOrigin_FloorLevel for standing experiences?
+
+
+	// Get initial HMD render params - this may change at any time however
 	_EyeRenderDesc[0] = ovr_GetRenderDesc(_pHmdSession, ovrEye_Left,  _hmdDesc.DefaultEyeFov[0]);
     _EyeRenderDesc[1] = ovr_GetRenderDesc(_pHmdSession, ovrEye_Right, _hmdDesc.DefaultEyeFov[1]);
 
@@ -246,6 +252,11 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getHmdParameters(JNI
 }
 
 JNIEXPORT void JNICALL Java_de_fruitfly_ovr_OculusRift__1resetTracking(JNIEnv *env, jobject) 
+{
+	ResetTracking();
+}
+
+void ResetTracking()
 {
 	if (!_initialised)
 		return;
@@ -426,48 +437,54 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1createRenderTextureS
 	return jrenderTextureSet;
 }
 
-JNIEXPORT jboolean JNICALL Java_de_fruitfly_ovr_OculusRift__1setCurrentRenderTextureInfo(
+JNIEXPORT jint JNICALL Java_de_fruitfly_ovr_OculusRift__1getCurrentEyeRenderTextureId(
 	JNIEnv *env,
     jobject,
-    jint index,
-	jint textureIndex,
-	jint depthTextureId,
-	jint depthTextureWidth,
-	jint depthTextureHeight)
+    jint Eye)
 {
     if (!_initialised)
     {
-        return false;
+        return 0;
     }
 
-	if (index > 1)
+	GLuint curTexId = 0;
+
+	// Normalise eye
+	ovrEyeType eye = ovrEye_Left;
+	if (Eye == 1)
+		eye = ovrEye_Right;
+
+	// Get current eye render texture
+	if (_pRenderTextureSet[eye] != 0)
 	{
-		return false;
+		int curIndex = 0;
+		ovr_GetTextureSwapChainCurrentIndex(_pHmdSession, _pRenderTextureSet[eye], &curIndex);
+		ovr_GetTextureSwapChainBufferGL(_pHmdSession, _pRenderTextureSet[eye], curIndex, &curTexId);
 	}
-    
-    if (_pRenderTextureSet[index] == 0)
-    {
-        return false;
-    }
-    
-	/*
-    if (index < 0 ||
-        index > (_pRenderTextureSet[index]-> - 1))
-    {
-        return false;
-    }
-    
-	// Set color texture index
-    _pRenderTextureSet[index]->CurrentIndex = textureIndex;
 
-	// Set depth texture info
-	ovrGLTexture* pDepthTexture = (ovrGLTexture*)&_pDepthTextureSet[index].Textures[0];
-	pDepthTexture->OGL.TexId = depthTextureId;
-	pDepthTexture->OGL.Header.TextureSize.w = depthTextureWidth;
-	pDepthTexture->OGL.Header.TextureSize.h = depthTextureHeight;
-	*/
-    
-    return true;
+	return curTexId;
+}
+
+JNIEXPORT void JNICALL Java_de_fruitfly_ovr_OculusRift__1commitCurrentEyeRenderTexture(
+	JNIEnv *env,
+    jobject,
+    jint Eye)
+{
+    if (!_initialised)
+    {
+        return;
+    }
+
+	// Normalise eye
+	ovrEyeType eye = ovrEye_Left;
+	if (Eye == 1)
+		eye = ovrEye_Right;
+
+	// Commit current eye render texture
+	if (_pRenderTextureSet[eye] != 0)
+	{
+		ovr_CommitTextureSwapChain(_pHmdSession, _pRenderTextureSet[eye]);
+	}
 }
 
 JNIEXPORT void JNICALL Java_de_fruitfly_ovr_OculusRift__1destroyRenderTextureSet
@@ -524,6 +541,10 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getTrackedPoses(
 {
     if (!_initialised)
         return 0;
+
+	// Update render params
+	_EyeRenderDesc[0] = ovr_GetRenderDesc(_pHmdSession, ovrEye_Left,  _hmdDesc.DefaultEyeFov[0]);
+    _EyeRenderDesc[1] = ovr_GetRenderDesc(_pHmdSession, ovrEye_Right, _hmdDesc.DefaultEyeFov[1]);
 
 	// Use mandated view offsets
 	ovrVector3f ViewOffsets[2] = { _EyeRenderDesc[0].HmdToEyeOffset,
@@ -663,12 +684,15 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1submitFrame(
     viewScaleDesc.HmdToEyeOffset[1] = _EyeRenderDesc[1].HmdToEyeOffset;
   
     ovrLayer_Union EyeLayer;
-	ovrGLTexture* pDepthTexture[2];
-	pDepthTexture[0] = (ovrGLTexture*)&_pDepthTextureSet[0].Textures[0];
-	pDepthTexture[1] = (ovrGLTexture*)&_pDepthTextureSet[1].Textures[0];
-	bool HasDepth = pDepthTexture[0]->OGL.TexId == -1 ? false : true;
+	
+	// TODO: Get this working when Oculus get pos track timewarp working again
+	//ovrGLTexture* pDepthTexture[2];
+	//pDepthTexture[0] = (ovrGLTexture*)&_pDepthTextureSet[0].Textures[0];
+	//pDepthTexture[1] = (ovrGLTexture*)&_pDepthTextureSet[1].Textures[0];
+	//bool HasDepth = pDepthTexture[0]->OGL.TexId == -1 ? false : true;
 
-    EyeLayer.Header.Type  = HasDepth == true ? ovrLayerType_EyeFovDepth : ovrLayerType_EyeFov;
+    //EyeLayer.Header.Type  = HasDepth == true ? ovrLayerType_EyeFovDepth : ovrLayerType_EyeFov;
+	EyeLayer.Header.Type  = ovrLayerType_EyeFov;
     EyeLayer.Header.Flags = ovrLayerFlag_TextureOriginAtBottomLeft;   // Because OpenGL.
     
     for (int eye = 0; eye < 2; ++eye)
@@ -679,15 +703,24 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1submitFrame(
         EyeLayer.EyeFov.SensorSampleTime  = _sensorSampleTime;
 		EyeLayer.EyeFov.Viewport[eye]     = Recti(0,0,_RenderTextureSize[eye].w,_RenderTextureSize[eye].h);
 
-		if (HasDepth)
-		{
-			EyeLayer.EyeFovDepth.DepthTexture[eye] = &_pDepthTextureSet[eye];
-            EyeLayer.EyeFovDepth.ProjectionDesc    = _PosTimewarpProjectionDesc;
-		}
+		//if (HasDepth)
+		//{
+		//	EyeLayer.EyeFovDepth.DepthTexture[eye] = &_pDepthTextureSet[eye];
+        //    EyeLayer.EyeFovDepth.ProjectionDesc    = _PosTimewarpProjectionDesc;
+		//}
     }
 
     ovrLayerHeader* layers = &EyeLayer.Header;
     ovrResult ovr_result = ovr_SubmitFrame(_pHmdSession, 0, &viewScaleDesc, &layers, 1);
+
+	// Get session status (TODO: Move to a better place)
+    ovrSessionStatus sessionStatus;
+    ovr_GetSessionStatus(_pHmdSession, &sessionStatus);
+    if (sessionStatus.ShouldQuit)
+        ovr_result = ovrSuccess_SessionShouldQuit;
+    if (sessionStatus.ShouldRecenter)
+        ResetTracking();
+
 	if (OVR_FAILURE(ovr_result))
 	{
 		_SetErrorInfo(env, "Failed to submit frame!", ovr_result);
@@ -941,7 +974,7 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getUserProfileData(
 
 	float playerHeight = ovr_GetFloat( _pHmdSession, OVR_KEY_PLAYER_HEIGHT, OVR_DEFAULT_PLAYER_HEIGHT);
 	float eyeHeight    = ovr_GetFloat( _pHmdSession, OVR_KEY_EYE_HEIGHT,    OVR_DEFAULT_EYE_HEIGHT); 
-	float ipd          = ovr_GetFloat( _pHmdSession, OVR_KEY_IPD,           OVR_DEFAULT_IPD); 
+	//float ipd          = ovr_GetFloat( _pHmdSession, OVR_KEY_IPD,           OVR_DEFAULT_IPD); 
 	std::string gender = ovr_GetString(_pHmdSession, OVR_KEY_GENDER,        OVR_DEFAULT_GENDER);
     std::string name   = ovr_GetString(_pHmdSession, OVR_KEY_NAME,          "No Profile");
 
@@ -951,7 +984,7 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1getUserProfileData(
 	jobject profileData = env->NewObject(userProfileData_Class, userProfileData_constructor_MethodID,
 		playerHeight,
 		eyeHeight,
-		ipd,
+		0,//ipd,
 		jgender,
 		true, // Always the default profile?
 		jname
@@ -1384,12 +1417,12 @@ bool LibFirstInit(JNIEnv *env)
 
 void InitOvrDepthTextureSets()
 {
-	for (int i = 0; i < 2; i++)
-	{
-		_pDepthTextureSet[i].TextureCount = 1;
-		_pDepthTextureSet[i].CurrentIndex = 0;
-		_pDepthTextureSet[i].Textures = (ovrTexture*)&_DepthTexture[i];
-	}
+//	for (int i = 0; i < 2; i++)
+//	{
+//		_pDepthTextureSet[i].TextureCount = 1;
+//		_pDepthTextureSet[i].CurrentIndex = 0;
+//		_pDepthTextureSet[i].Textures = (ovrTexture*)&_DepthTexture[i];
+//	}
 }
 
 void InitOvrResultMaps()
@@ -1453,6 +1486,9 @@ void InitOvrResultMaps()
     _SuccessMap[ovrSuccess_HMDFirmwareMismatch       ] = "ovrSuccess_HMDFirmwareMismatch";
     _SuccessMap[ovrSuccess_TrackerFirmwareMismatch   ] = "ovrSuccess_TrackerFirmwareMismatch";
     _SuccessMap[ovrSuccess_ControllerFirmwareMismatch] = "ovrSuccess_ControllerFirmwareMismatch";
+
+	// Added for (and defined in) JRift
+	_SuccessMap[ovrSuccess_SessionShouldQuit]          = "ovrSuccess_SessionShouldQuit";
 }
 
 void _SetErrorInfo(JNIEnv *env, const char* error, ovrResult ovr_result)
@@ -1469,7 +1505,7 @@ void _SetErrorInfo(JNIEnv *env, const char* error, ovrResult ovr_result)
 	
 	if (OVR_SUCCESS(ovr_result))
 	{
-		std::map<ovrSuccessType, std::string>::const_iterator it = _SuccessMap.find((ovrSuccessType)ovr_result);
+		std::map<int32_t, std::string>::const_iterator it = _SuccessMap.find((int32_t)ovr_result);
 		if (it != _SuccessMap.end()) 
 		{
 			sOvrError = it->second;
@@ -1477,7 +1513,7 @@ void _SetErrorInfo(JNIEnv *env, const char* error, ovrResult ovr_result)
 	}
 	else
 	{
-		std::map<ovrErrorType, std::string>::const_iterator it = _ErrorMap.find((ovrErrorType)ovr_result);
+		std::map<int32_t, std::string>::const_iterator it = _ErrorMap.find((int32_t)ovr_result);
 		if (it != _ErrorMap.end()) 
 		{
 			sOvrError = it->second;
