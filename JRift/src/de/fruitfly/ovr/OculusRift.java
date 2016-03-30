@@ -258,7 +258,7 @@ public class OculusRift //implements IVR
         if (!isInitialized())
             return 0;
 
-    	return _getCurrentEyeRenderTextureId(eye);
+    	return _getCurrentEyeRenderTextureId(eye.value());
     }
 
     public int commitCurrentEyeRenderTexture(EyeType eye)
@@ -266,7 +266,7 @@ public class OculusRift //implements IVR
         if (!isInitialized())
             return 0;
 
-        return _commitCurrentEyeRenderTexture(eye);
+        return _commitCurrentEyeRenderTexture(eye.value());
     }
 
     public void deleteRenderTextures()
