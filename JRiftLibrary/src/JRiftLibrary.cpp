@@ -417,7 +417,7 @@ JNIEXPORT jobject JNICALL Java_de_fruitfly_ovr_OculusRift__1createRenderTextureS
 			for (int i = 0; i < length; ++i)
 			{
 				GLuint chainTexId;
-				ovr_GetTextureSwapChainBufferGL(_pHmdSession, _pRenderTextureSet[0], i, &chainTexId);
+				ovr_GetTextureSwapChainBufferGL(_pHmdSession, _pRenderTextureSet[1], i, &chainTexId);
 				jobject texIdInt = env->NewObject(integerClass, method_integer_init, (jint)chainTexId);
 				env->CallBooleanMethod(rightEyeTextureIds, method_arrayList_add, texIdInt);
 			}
